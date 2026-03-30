@@ -12,6 +12,9 @@ import ForgotPassword from "./pages/ForgotPassword.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import Profile from "./pages/Profile.tsx";
 import Family from "./pages/Family.tsx";
+import BarcodeScanner from "./pages/BarcodeScanner.tsx";
+import ReceiptScanner from "./pages/ReceiptScanner.tsx";
+import ManualEntry from "./pages/ManualEntry.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -32,6 +35,9 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/family" element={<Family />} />
+            <Route path="/barcode-scanner" element={<BarcodeScanner />} />
+            <Route path="/scan" element={<ReceiptScanner />} />
+            <Route path="/manual-entry" element={<ManualEntry />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

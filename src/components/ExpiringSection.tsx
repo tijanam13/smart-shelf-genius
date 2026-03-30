@@ -1,11 +1,7 @@
 import { motion } from "framer-motion";
 import { AlertTriangle, Clock } from "lucide-react";
-
-const expiringItems = [
-  { emoji: "🥛", name: "Milk", days: 1, urgency: "urgent" as const },
-  { emoji: "🫙", name: "Yogurt", days: 2, urgency: "warning" as const },
-  { emoji: "🍅", name: "Tomato", days: 3, urgency: "warning" as const },
-];
+import { useFridgeItems, getUrgency, getDaysLeft, getCategoryEmoji } from "@/hooks/useFridgeItems";
+import { useAuth } from "@/contexts/AuthContext";
 
 const urgencyStyles = {
   urgent: "border-urgent/30 glow-urgent",
@@ -20,6 +16,21 @@ const urgencyBadgeStyles = {
 };
 
 const ExpiringSection = () => {
+  const { user } = useAuth();
+  const { data: items = [], isLoading } = useFridgeItems();
+
+  // Show items expiring within 7 days
+  const expiringItems = items
+    .filter((item) => {
+      const days = getDaysLeft(item.expiry_date);
+      return days <= 7 && days >= 0;
+    })
+    .slice(0, 5);
+
+  if (!user || (expiringItems.length === 0 && !isLoading)) {
+    return null;
+  }
+
   return (
     <div className="px-5 mt-6 lg:px-0">
       <div className="flex items-center justify-between mb-3">
@@ -32,27 +43,39 @@ const ExpiringSection = () => {
         <span className="text-[10px] text-muted-foreground">{expiringItems.length} items</span>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide justify-center">
-        {expiringItems.map((item, idx) => (
-          <motion.div
-            key={item.name}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: idx * 0.08 }}
-            whileHover={{ scale: 1.06 }}
-            className={`glass-card rounded-2xl p-4 min-w-[130px] flex-shrink-0 cursor-pointer border transition-all duration-200 ${urgencyStyles[item.urgency]}`}
-          >
-            <span className="text-3xl block mb-2">{item.emoji}</span>
-            <p className="text-sm font-medium text-foreground">{item.name}</p>
-            <div className="flex items-center gap-1 mt-1.5">
-              <Clock className="w-3 h-3 text-muted-foreground" />
-              <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${urgencyBadgeStyles[item.urgency]}`}>
-                {item.days === 1 ? "1 day" : `${item.days} days`}
-              </span>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="flex gap-3 justify-center">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="glass-card rounded-2xl p-4 min-w-[130px] h-[100px] animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide justify-center">
+          {expiringItems.map((item, idx) => {
+            const urgency = getUrgency(item.expiry_date);
+            const days = getDaysLeft(item.expiry_date);
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: idx * 0.08 }}
+                whileHover={{ scale: 1.06 }}
+                className={`glass-card rounded-2xl p-4 min-w-[130px] flex-shrink-0 cursor-pointer border transition-all duration-200 ${urgencyStyles[urgency]}`}
+              >
+                <span className="text-3xl block mb-2">{getCategoryEmoji(item.category)}</span>
+                <p className="text-sm font-medium text-foreground">{item.name}</p>
+                <div className="flex items-center gap-1 mt-1.5">
+                  <Clock className="w-3 h-3 text-muted-foreground" />
+                  <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${urgencyBadgeStyles[urgency]}`}>
+                    {days <= 0 ? "Today!" : days === 1 ? "1 day" : `${days} days`}
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
