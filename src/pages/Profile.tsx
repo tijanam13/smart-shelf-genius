@@ -23,15 +23,19 @@ const Profile = () => {
       navigate('/login');
       return;
     }
+    // Set email from auth user immediately
+    setEmail(user.email || '');
+    setDisplayName(user.user_metadata?.display_name || user.email?.split('@')[0] || '');
+
     const fetchProfile = async () => {
       const { data } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       if (data) {
-        setDisplayName(data.display_name || '');
-        setEmail(data.email || '');
+        setDisplayName(data.display_name || user.user_metadata?.display_name || '');
+        setEmail(data.email || user.email || '');
         setPhone(data.phone || '');
       }
     };
@@ -48,9 +52,9 @@ const Profile = () => {
     setLoading(false);
 
     if (error) {
-      toast({ title: 'Greška', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Sačuvano!', description: 'Profil je ažuriran.' });
+      toast({ title: 'Saved!', description: 'Your profile has been updated.' });
     }
   };
 
@@ -63,17 +67,17 @@ const Profile = () => {
     <div className="min-h-screen bg-background relative overflow-x-hidden">
       <div className="absolute top-0 left-1/3 w-[500px] h-[500px] rounded-full bg-mint/5 blur-[140px] pointer-events-none" />
 
-      <div className="relative z-10 pb-28 px-5 pt-12 lg:px-8 xl:px-16 2xl:px-24">
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="font-display text-2xl font-bold text-foreground">Moj profil</h1>
-          <p className="text-muted-foreground text-sm mt-1">Upravljaj svojim podacima</p>
+      <div className="relative z-10 pb-28 px-5 pt-12 lg:px-8 xl:px-16 2xl:px-24 flex flex-col items-center">
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-lg">
+          <h1 className="font-display text-2xl font-bold text-foreground">My Profile</h1>
+          <p className="text-muted-foreground text-sm mt-1">Manage your account details</p>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mt-8 max-w-lg"
+          className="mt-8 w-full max-w-lg"
         >
           <div className="glass-card rounded-2xl p-6 space-y-5">
             <div className="flex items-center gap-4 mb-2">
@@ -83,14 +87,14 @@ const Profile = () => {
                 </span>
               </div>
               <div>
-                <h2 className="font-display text-lg font-bold text-foreground">{displayName || 'Korisnik'}</h2>
+                <h2 className="font-display text-lg font-bold text-foreground">{displayName || 'User'}</h2>
                 <p className="text-muted-foreground text-sm">{email}</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Ime</label>
+                <label className="text-sm text-muted-foreground mb-1 block">Name</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -108,14 +112,14 @@ const Profile = () => {
                 </div>
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Telefon</label>
+                <label className="text-sm text-muted-foreground mb-1 block">Phone</label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="pl-10 bg-secondary/50 border-border/50"
-                    placeholder="+381..."
+                    placeholder="+1..."
                   />
                 </div>
               </div>
@@ -124,11 +128,11 @@ const Profile = () => {
             <div className="flex gap-3 pt-2">
               <Button onClick={handleSave} disabled={loading} className="flex-1">
                 <Save className="w-4 h-4 mr-2" />
-                {loading ? 'Čuvanje...' : 'Sačuvaj'}
+                {loading ? 'Saving...' : 'Save'}
               </Button>
               <Button variant="outline" onClick={handleSignOut} className="text-destructive border-destructive/30 hover:bg-destructive/10">
                 <LogOut className="w-4 h-4 mr-2" />
-                Odjavi se
+                Sign Out
               </Button>
             </div>
           </div>

@@ -46,7 +46,6 @@ const Family = () => {
     if (!user) return;
     setLoading(true);
 
-    // Check if user owns a group
     const { data: ownedGroup } = await supabase
       .from('family_groups')
       .select('*')
@@ -60,7 +59,6 @@ const Family = () => {
       return;
     }
 
-    // Check if user is a member of any group
     const { data: membership } = await supabase
       .from('family_members')
       .select('group_id')
@@ -82,7 +80,6 @@ const Family = () => {
   };
 
   const loadMembers = async (groupId: string, currentUserId: string) => {
-    // Get owner profile
     const { data: groupData } = await supabase
       .from('family_groups')
       .select('owner_id')
@@ -96,7 +93,6 @@ const Family = () => {
 
     if (!memberRows || !groupData) return;
 
-    // Fetch profiles for all members + owner
     const allUserIds = [...new Set([groupData.owner_id, ...memberRows.map(m => m.user_id)])];
     const { data: profiles } = await supabase
       .from('profiles')
@@ -122,18 +118,17 @@ const Family = () => {
     if (!user) return;
     const { data, error } = await supabase
       .from('family_groups')
-      .insert({ owner_id: user.id, name: 'Moja porodica' })
+      .insert({ owner_id: user.id, name: 'My Family' })
       .select()
       .single();
 
     if (error) {
-      toast({ title: 'Greška', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else if (data) {
-      // Add owner as member too
       await supabase.from('family_members').insert({ group_id: data.id, user_id: user.id });
       setGroup(data);
       await loadMembers(data.id, user.id);
-      toast({ title: 'Grupa kreirana!', description: `Tvoj kod za poziv: ${data.invite_code}` });
+      toast({ title: 'Group created!', description: `Your invite code: ${data.invite_code}` });
     }
   };
 
@@ -146,7 +141,7 @@ const Family = () => {
       .maybeSingle();
 
     if (!foundGroup) {
-      toast({ title: 'Greška', description: 'Nevažeći kod za poziv.', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Invalid invite code.', variant: 'destructive' });
       return;
     }
 
@@ -155,12 +150,12 @@ const Family = () => {
       .insert({ group_id: foundGroup.id, user_id: user.id });
 
     if (error) {
-      toast({ title: 'Greška', description: error.message === 'duplicate key value violates unique constraint "family_members_group_id_user_id_key"' ? 'Već si član ove grupe.' : error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message === 'duplicate key value violates unique constraint "family_members_group_id_user_id_key"' ? 'You are already a member of this group.' : error.message, variant: 'destructive' });
     } else {
       setGroup(foundGroup);
       await loadMembers(foundGroup.id, user.id);
       setJoinCode('');
-      toast({ title: 'Uspešno!', description: `Pridružio/la si se grupi "${foundGroup.name}".` });
+      toast({ title: 'Success!', description: `You joined "${foundGroup.name}".` });
     }
   };
 
@@ -170,7 +165,7 @@ const Family = () => {
 
     await supabase.from('family_members').delete().eq('id', memberId);
     setMembers(prev => prev.filter(m => m.id !== memberId));
-    toast({ title: 'Uklonjeno', description: 'Član je uklonjen iz grupe.' });
+    toast({ title: 'Removed', description: 'Member has been removed from the group.' });
   };
 
   const copyCode = () => {
@@ -184,7 +179,7 @@ const Family = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Učitavanje...</p>
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }
@@ -193,26 +188,26 @@ const Family = () => {
     <div className="min-h-screen bg-background relative overflow-x-hidden">
       <div className="absolute top-0 left-1/3 w-[500px] h-[500px] rounded-full bg-mint/5 blur-[140px] pointer-events-none" />
 
-      <div className="relative z-10 pb-28 px-5 pt-12 lg:px-8 xl:px-16 2xl:px-24">
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="font-display text-2xl font-bold text-foreground">Porodica</h1>
-          <p className="text-muted-foreground text-sm mt-1">Upravljaj članovima zajednice</p>
+      <div className="relative z-10 pb-28 px-5 pt-12 lg:px-8 xl:px-16 2xl:px-24 flex flex-col items-center">
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-lg">
+          <h1 className="font-display text-2xl font-bold text-foreground">Family</h1>
+          <p className="text-muted-foreground text-sm mt-1">Manage your community members</p>
         </motion.div>
 
         {!group ? (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-8 max-w-lg space-y-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-8 w-full max-w-lg space-y-6">
             <div className="glass-card rounded-2xl p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
                   <Users className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="font-display text-lg font-bold text-foreground">Kreiraj grupu</h2>
-                  <p className="text-muted-foreground text-xs">Pozovi porodicu da prati namirnice zajedno</p>
+                  <h2 className="font-display text-lg font-bold text-foreground">Create Group</h2>
+                  <p className="text-muted-foreground text-xs">Invite family to track groceries together</p>
                 </div>
               </div>
               <Button onClick={createGroup} className="w-full">
-                <Users className="w-4 h-4 mr-2" /> Kreiraj porodičnu grupu
+                <Users className="w-4 h-4 mr-2" /> Create Family Group
               </Button>
             </div>
 
@@ -222,27 +217,26 @@ const Family = () => {
                   <UserPlus className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="font-display text-lg font-bold text-foreground">Pridruži se</h2>
-                  <p className="text-muted-foreground text-xs">Unesi kod koji si dobio/la od člana</p>
+                  <h2 className="font-display text-lg font-bold text-foreground">Join Group</h2>
+                  <p className="text-muted-foreground text-xs">Enter the code you received from a member</p>
                 </div>
               </div>
               <div className="flex gap-2">
                 <Input
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value)}
-                  placeholder="Unesi kod..."
+                  placeholder="Enter code..."
                   className="bg-secondary/50 border-border/50"
                 />
-                <Button onClick={joinGroup}>Pridruži se</Button>
+                <Button onClick={joinGroup}>Join</Button>
               </div>
             </div>
           </motion.div>
         ) : (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-8 max-w-lg space-y-6">
-            {/* Invite code section */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-8 w-full max-w-lg space-y-6">
             <div className="glass-card rounded-2xl p-6">
               <h2 className="font-display text-lg font-bold text-foreground mb-1">{group.name}</h2>
-              <p className="text-muted-foreground text-xs mb-4">Podeli kod sa članovima porodice</p>
+              <p className="text-muted-foreground text-xs mb-4">Share the code with family members</p>
               <div className="flex items-center gap-2">
                 <div className="flex-1 bg-secondary/50 border border-border/50 rounded-lg px-4 py-3 font-mono text-lg tracking-widest text-foreground text-center">
                   {group.invite_code.toUpperCase()}
@@ -253,10 +247,9 @@ const Family = () => {
               </div>
             </div>
 
-            {/* Members list */}
             <div className="glass-card rounded-2xl p-6">
               <h3 className="font-display text-base font-bold text-foreground mb-4">
-                Članovi ({members.length})
+                Members ({members.length})
               </h3>
               <div className="space-y-3">
                 {members.map((member) => (
@@ -270,7 +263,7 @@ const Family = () => {
                       <div>
                         <div className="flex items-center gap-1.5">
                           <p className="text-sm font-medium text-foreground">
-                            {member.profile?.display_name || 'Korisnik'}
+                            {member.profile?.display_name || 'User'}
                           </p>
                           {member.user_id === group.owner_id && (
                             <Crown className="w-3.5 h-3.5 text-token" />

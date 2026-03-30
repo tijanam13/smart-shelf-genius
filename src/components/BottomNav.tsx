@@ -3,11 +3,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const tabs = [
-  { icon: Home, label: "Početna", path: "/" },
-  { icon: Refrigerator, label: "Frižider", path: "/fridge" },
-  { icon: Camera, label: "Skeniraj", path: "/scan" },
-  { icon: Users, label: "Porodica", path: "/family" },
-  { icon: User, label: "Profil", path: "/profile" },
+  { icon: Home, label: "Home", path: "/" },
+  { icon: Refrigerator, label: "Fridge", path: "/fridge" },
+  { icon: Camera, label: "Scan", path: "/scan" },
+  { icon: Users, label: "Family", path: "/family" },
+  { icon: User, label: "Profile", path: "/profile" },
 ];
 
 const BottomNav = () => {

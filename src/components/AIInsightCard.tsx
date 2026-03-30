@@ -11,7 +11,6 @@ const AIInsightCard = () => {
         whileHover={{ scale: 1.01 }}
         className="relative glass-card-strong rounded-2xl p-5 overflow-hidden cursor-pointer"
       >
-        {/* Glow accent */}
         <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
 
         <div className="flex items-start gap-3 relative z-10">
@@ -19,12 +18,12 @@ const AIInsightCard = () => {
             <Sparkles className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] text-primary font-semibold uppercase tracking-wider">AI Predlog</p>
+            <p className="text-[10px] text-primary font-semibold uppercase tracking-wider">AI Suggestion</p>
             <p className="text-sm font-medium text-foreground mt-1">
-              Napravi palačinke od mleka! 🥞
+              Make pancakes with milk! 🥞
             </p>
             <p className="text-[11px] text-muted-foreground mt-1">
-              Mleko ističe sutra. Iskoristi ga sa jajima i brašnom za ukusan doručak.
+              Milk expires tomorrow. Use it with eggs and flour for a delicious breakfast.
             </p>
             <div className="flex items-center gap-2 mt-3">
               <span className="text-[10px] text-muted-foreground">⏱ 15 min</span>

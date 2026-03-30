@@ -58,7 +58,7 @@ const Header = () => {
               className="flex items-center gap-2 px-3 py-2 glass-card rounded-xl cursor-pointer"
             >
               <LogIn className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-foreground">Prijavi se</span>
+              <span className="text-sm font-medium text-foreground">Sign In</span>
             </motion.div>
           )}
         </div>
@@ -72,10 +72,10 @@ const Header = () => {
           className="mt-5"
         >
           <p className="text-muted-foreground text-sm">
-            Zdravo, {user.user_metadata?.display_name || user.email?.split('@')[0]} 👋
+            Hello, {user.user_metadata?.display_name || user.email?.split('@')[0]} 👋
           </p>
           <h2 className="font-display text-xl font-bold text-foreground mt-0.5">
-            Tvoj frižider na dlanu
+            Your fridge at a glance
           </h2>
         </motion.div>
       )}
@@ -88,10 +88,10 @@ const Header = () => {
           className="mt-5"
         >
           <h2 className="font-display text-xl font-bold text-foreground mt-0.5">
-            Tvoj frižider na dlanu
+            Your fridge at a glance
           </h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Prijavi se da počneš da pratiš namirnice
+            Sign in to start tracking your groceries
           </p>
         </motion.div>
       )}

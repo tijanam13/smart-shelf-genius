@@ -22,7 +22,7 @@ const Login = () => {
     setLoading(false);
 
     if (error) {
-      toast({ title: 'Greška', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
       navigate('/');
     }
@@ -45,15 +45,15 @@ const Login = () => {
         </div>
 
         <div className="glass-card rounded-2xl p-6">
-          <h2 className="font-display text-xl font-bold text-foreground mb-1">Prijavi se</h2>
-          <p className="text-muted-foreground text-sm mb-6">Dobrodošao/la nazad! 👋</p>
+          <h2 className="font-display text-xl font-bold text-foreground mb-1">Sign In</h2>
+          <p className="text-muted-foreground text-sm mb-6">Welcome back! 👋</p>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="email"
-                placeholder="Email adresa"
+                placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10 bg-secondary/50 border-border/50"
@@ -64,7 +64,7 @@ const Login = () => {
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Lozinka"
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10 pr-10 bg-secondary/50 border-border/50"
@@ -81,19 +81,19 @@ const Login = () => {
 
             <div className="flex justify-end">
               <Link to="/forgot-password" className="text-sm text-primary hover:underline">
-                Zaboravljena lozinka?
+                Forgot password?
               </Link>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Prijavljivanje...' : 'Prijavi se'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Nemaš nalog?{' '}
+            Don't have an account?{' '}
             <Link to="/register" className="text-primary hover:underline font-medium">
-              Registruj se
+              Sign Up
             </Link>
           </p>
         </div>

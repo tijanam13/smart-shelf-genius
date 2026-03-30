@@ -79,7 +79,6 @@ const FridgePage = () => {
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
-      {/* Ambient glow */}
       <div className="absolute top-20 left-1/4 w-[400px] h-[400px] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
 
       <div className="relative z-10 pb-24 pt-10 px-4 lg:px-8 xl:px-16">
@@ -87,29 +86,29 @@ const FridgePage = () => {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
+          className="mb-6 text-center"
         >
           <h1 className="font-display text-2xl font-bold text-foreground">My Fridge</h1>
           <p className="text-xs text-muted-foreground mt-0.5">Digital twin of your fridge</p>
         </motion.div>
 
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
+        <div className="flex flex-col items-center gap-6 lg:flex-row lg:items-start lg:justify-center lg:gap-8">
           {/* === FRIDGE 3D === */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
-            className="flex-shrink-0 self-center lg:self-start"
+            className="flex-shrink-0"
           >
-            <div className="relative" style={{ perspective: "1200px" }}>
+            <div className="relative mx-auto" style={{ perspective: "1200px" }}>
               {/* Fridge body */}
               <div
-                className="w-[240px] rounded-2xl border border-mint/20 overflow-visible cursor-pointer select-none"
+                className="w-[280px] sm:w-[320px] rounded-2xl border border-mint/20 overflow-hidden cursor-pointer select-none"
                 style={{ boxShadow: "inset -4px 0 8px rgba(0,0,0,0.15), 2px 4px 24px rgba(0,0,0,0.35)" }}
                 onClick={() => setFridgeOpen(!fridgeOpen)}
               >
                 {/* Freezer compartment */}
-                <div className="h-[160px] relative overflow-visible" style={{ background: "linear-gradient(160deg, hsl(155 25% 28%) 0%, hsl(155 30% 20%) 100%)", borderBottom: "2px solid hsl(155 20% 30%)" }}>
+                <div className="h-[180px] sm:h-[200px] relative overflow-hidden" style={{ background: "linear-gradient(160deg, hsl(155 25% 28%) 0%, hsl(155 30% 20%) 100%)", borderBottom: "2px solid hsl(155 20% 30%)" }}>
                   <div className="text-[10px] text-muted-foreground px-3 pt-2 tracking-wider font-medium">FREEZER</div>
 
                   {/* Door */}
@@ -118,7 +117,7 @@ const FridgePage = () => {
                     style={{
                       background: "linear-gradient(160deg, hsl(155 18% 26%) 0%, hsl(155 22% 18%) 100%)",
                       transformOrigin: "left center",
-                      transform: fridgeOpen ? "perspective(1200px) rotateY(-110deg)" : "perspective(1200px) rotateY(0deg)",
+                      transform: fridgeOpen ? "perspective(1200px) rotateY(-85deg)" : "perspective(1200px) rotateY(0deg)",
                       borderRight: "1.5px solid hsl(155 20% 30%)",
                     }}
                   >
@@ -152,14 +151,14 @@ const FridgePage = () => {
                 </div>
 
                 {/* Main fridge compartment */}
-                <div className="h-[240px] relative overflow-visible" style={{ background: "linear-gradient(160deg, hsl(155 22% 24%) 0%, hsl(155 26% 17%) 100%)" }}>
+                <div className="h-[280px] sm:h-[320px] relative overflow-hidden" style={{ background: "linear-gradient(160deg, hsl(155 22% 24%) 0%, hsl(155 26% 17%) 100%)" }}>
                   {/* Door */}
                   <div
                     className="absolute inset-0 z-10 transition-transform duration-700 ease-[cubic-bezier(.25,.46,.45,.94)]"
                     style={{
                       background: "linear-gradient(160deg, hsl(155 18% 23%) 0%, hsl(155 22% 16%) 100%)",
                       transformOrigin: "left center",
-                      transform: fridgeOpen ? "perspective(1200px) rotateY(-110deg)" : "perspective(1200px) rotateY(0deg)",
+                      transform: fridgeOpen ? "perspective(1200px) rotateY(-85deg)" : "perspective(1200px) rotateY(0deg)",
                       borderRight: "1.5px solid hsl(155 20% 30%)",
                     }}
                   >
@@ -187,7 +186,7 @@ const FridgePage = () => {
                     ].map((shelf, si) => (
                       <div
                         key={si}
-                        className="flex gap-2 items-end px-1 py-1 rounded-sm min-h-[55px]"
+                        className="flex gap-2 items-end px-1 py-1 rounded-sm min-h-[70px] sm:min-h-[80px]"
                         style={{ background: "rgba(120,190,160,0.12)", borderBottom: "1.5px solid rgba(120,190,160,0.3)" }}
                       >
                         {shelf.map((item) => (
@@ -197,7 +196,7 @@ const FridgePage = () => {
                             className="flex flex-col items-center cursor-pointer"
                             onClick={(e) => { e.stopPropagation(); showTooltip(item.name, item.detail); }}
                           >
-                            <span className="text-xl">{item.emoji}</span>
+                            <span className="text-xl sm:text-2xl">{item.emoji}</span>
                             <span className={`text-[8px] font-bold ${urgencyText[item.urgency]} ${item.urgency === "urgent" ? "animate-pulse" : ""}`}>
                               {item.days}d{item.urgency === "urgent" ? "!" : ""}
                             </span>
@@ -214,7 +213,7 @@ const FridgePage = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setFridgeOpen(!fridgeOpen)}
-                className="mt-3 w-[220px] py-2.5 glass-card rounded-xl text-xs font-medium text-foreground"
+                className="mt-3 w-full py-2.5 glass-card rounded-xl text-xs font-medium text-foreground"
               >
                 🚪 {fridgeOpen ? "Close" : "Open"} Fridge
               </motion.button>
@@ -241,10 +240,10 @@ const FridgePage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex-1 w-full min-w-0"
+            className="w-full max-w-lg min-w-0"
           >
             {/* Tabs */}
-            <div className="flex gap-2 mb-5">
+            <div className="flex gap-2 mb-5 justify-center lg:justify-start">
               {(["overview", "list", "recipes"] as Tab[]).map((tab) => (
                 <motion.button
                   key={tab}

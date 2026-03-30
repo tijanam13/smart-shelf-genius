@@ -32,9 +32,9 @@ const Register = () => {
     setLoading(false);
 
     if (error) {
-      toast({ title: 'Greška', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Uspešno!', description: 'Proveri email za potvrdu naloga.' });
+      toast({ title: 'Success!', description: 'Check your email to confirm your account.' });
       navigate('/login');
     }
   };
@@ -56,14 +56,14 @@ const Register = () => {
         </div>
 
         <div className="glass-card rounded-2xl p-6">
-          <h2 className="font-display text-xl font-bold text-foreground mb-1">Kreiraj nalog</h2>
-          <p className="text-muted-foreground text-sm mb-6">Pridruži se pametnoj kupovini 🌿</p>
+          <h2 className="font-display text-xl font-bold text-foreground mb-1">Create Account</h2>
+          <p className="text-muted-foreground text-sm mb-6">Join smart shopping 🌿</p>
 
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Ime i prezime"
+                placeholder="Full name"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 className="pl-10 bg-secondary/50 border-border/50"
@@ -74,7 +74,7 @@ const Register = () => {
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="email"
-                placeholder="Email adresa"
+                placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10 bg-secondary/50 border-border/50"
@@ -85,7 +85,7 @@ const Register = () => {
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="tel"
-                placeholder="Broj telefona (opciono)"
+                placeholder="Phone number (optional)"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="pl-10 bg-secondary/50 border-border/50"
@@ -95,7 +95,7 @@ const Register = () => {
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Lozinka (min 6 karaktera)"
+                placeholder="Password (min 6 characters)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10 pr-10 bg-secondary/50 border-border/50"
@@ -112,14 +112,14 @@ const Register = () => {
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Registracija...' : 'Registruj se'}
+              {loading ? 'Creating account...' : 'Sign Up'}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Već imaš nalog?{' '}
+            Already have an account?{' '}
             <Link to="/login" className="text-primary hover:underline font-medium">
-              Prijavi se
+              Sign In
             </Link>
           </p>
         </div>
