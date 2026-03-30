@@ -2,17 +2,17 @@ import { motion } from "framer-motion";
 import { Camera, QrCode, Plus, ShoppingCart } from "lucide-react";
 
 const actions = [
-  { icon: Camera, label: "Skeniraj račun", color: "bg-primary/15 text-primary" },
-  { icon: QrCode, label: "Bar-kod", color: "bg-coral/15 text-coral" },
-  { icon: Plus, label: "Dodaj ručno", color: "bg-cream/15 text-cream" },
-  { icon: ShoppingCart, label: "Lista za kupovinu", color: "bg-token/15 text-token" },
+  { icon: Camera, label: "Scan Receipt", color: "bg-primary/15 text-primary" },
+  { icon: QrCode, label: "Barcode", color: "bg-coral/15 text-coral" },
+  { icon: Plus, label: "Add Manual", color: "bg-cream/15 text-cream" },
+  { icon: ShoppingCart, label: "Shopping List", color: "bg-token/15 text-token" },
 ];
 
 const QuickActions = () => {
   return (
     <div className="px-5 mt-6 lg:px-0">
       <h3 className="font-display text-sm font-semibold text-foreground mb-3">
-        Brze akcije
+        Quick Actions
       </h3>
       <div className="grid grid-cols-4 gap-2.5">
         {actions.map((action, idx) => (

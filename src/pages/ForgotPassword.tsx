@@ -22,7 +22,7 @@ const ForgotPassword = () => {
     setLoading(false);
 
     if (error) {
-      toast({ title: 'Greška', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
       setSent(true);
     }
@@ -46,26 +46,26 @@ const ForgotPassword = () => {
               <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
                 <Mail className="w-7 h-7 text-primary" />
               </div>
-              <h2 className="font-display text-xl font-bold text-foreground mb-2">Proveri email</h2>
+              <h2 className="font-display text-xl font-bold text-foreground mb-2">Check your email</h2>
               <p className="text-muted-foreground text-sm">
-                Poslali smo ti link za resetovanje lozinke na <span className="text-foreground font-medium">{email}</span>
+                We sent a password reset link to <span className="text-foreground font-medium">{email}</span>
               </p>
               <Link to="/login">
                 <Button variant="outline" className="mt-6">
-                  <ArrowLeft className="w-4 h-4 mr-2" /> Nazad na prijavu
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Back to Sign In
                 </Button>
               </Link>
             </div>
           ) : (
             <>
-              <h2 className="font-display text-xl font-bold text-foreground mb-1">Zaboravljena lozinka</h2>
-              <p className="text-muted-foreground text-sm mb-6">Unesi email za resetovanje 🔑</p>
+              <h2 className="font-display text-xl font-bold text-foreground mb-1">Forgot Password</h2>
+              <p className="text-muted-foreground text-sm mb-6">Enter your email to reset 🔑</p>
               <form onSubmit={handleReset} className="space-y-4">
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     type="email"
-                    placeholder="Email adresa"
+                    placeholder="Email address"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 bg-secondary/50 border-border/50"
@@ -73,12 +73,12 @@ const ForgotPassword = () => {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Slanje...' : 'Pošalji link'}
+                  {loading ? 'Sending...' : 'Send Reset Link'}
                 </Button>
               </form>
               <p className="text-center text-sm text-muted-foreground mt-6">
                 <Link to="/login" className="text-primary hover:underline font-medium">
-                  <ArrowLeft className="w-3 h-3 inline mr-1" /> Nazad na prijavu
+                  <ArrowLeft className="w-3 h-3 inline mr-1" /> Back to Sign In
                 </Link>
               </p>
             </>

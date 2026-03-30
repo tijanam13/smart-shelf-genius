@@ -28,9 +28,9 @@ const ResetPassword = () => {
     setLoading(false);
 
     if (error) {
-      toast({ title: 'Greška', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Uspešno!', description: 'Lozinka je promenjena.' });
+      toast({ title: 'Success!', description: 'Your password has been changed.' });
       navigate('/');
     }
   };
@@ -48,14 +48,14 @@ const ResetPassword = () => {
         </div>
 
         <div className="glass-card rounded-2xl p-6">
-          <h2 className="font-display text-xl font-bold text-foreground mb-1">Nova lozinka</h2>
-          <p className="text-muted-foreground text-sm mb-6">Unesi novu lozinku za tvoj nalog</p>
+          <h2 className="font-display text-xl font-bold text-foreground mb-1">New Password</h2>
+          <p className="text-muted-foreground text-sm mb-6">Enter a new password for your account</p>
           <form onSubmit={handleReset} className="space-y-4">
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type={showPassword ? 'text' : 'password'}
-                placeholder="Nova lozinka (min 6 karaktera)"
+                placeholder="New password (min 6 characters)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10 pr-10 bg-secondary/50 border-border/50"
@@ -71,7 +71,7 @@ const ResetPassword = () => {
               </button>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Čuvanje...' : 'Sačuvaj lozinku'}
+              {loading ? 'Saving...' : 'Save Password'}
             </Button>
           </form>
         </div>

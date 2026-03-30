@@ -2,9 +2,9 @@ import { motion } from "framer-motion";
 import { AlertTriangle, Clock } from "lucide-react";
 
 const expiringItems = [
-  { emoji: "🥛", name: "Mleko", days: 1, urgency: "urgent" as const },
-  { emoji: "🫙", name: "Jogurt", days: 2, urgency: "warning" as const },
-  { emoji: "🍅", name: "Paradajz", days: 3, urgency: "warning" as const },
+  { emoji: "🥛", name: "Milk", days: 1, urgency: "urgent" as const },
+  { emoji: "🫙", name: "Yogurt", days: 2, urgency: "warning" as const },
+  { emoji: "🍅", name: "Tomato", days: 3, urgency: "warning" as const },
 ];
 
 const urgencyStyles = {
@@ -26,10 +26,10 @@ const ExpiringSection = () => {
         <div className="flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-urgent" />
           <h3 className="font-display text-sm font-semibold text-foreground">
-            Ističe uskoro
+            Expiring Soon
           </h3>
         </div>
-        <span className="text-[10px] text-muted-foreground">{expiringItems.length} artikla</span>
+        <span className="text-[10px] text-muted-foreground">{expiringItems.length} items</span>
       </div>
 
       <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
@@ -47,7 +47,7 @@ const ExpiringSection = () => {
             <div className="flex items-center gap-1 mt-1.5">
               <Clock className="w-3 h-3 text-muted-foreground" />
               <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${urgencyBadgeStyles[item.urgency]}`}>
-                {item.days === 1 ? "1 dan" : `${item.days} dana`}
+                {item.days === 1 ? "1 day" : `${item.days} days`}
               </span>
             </div>
           </motion.div>
