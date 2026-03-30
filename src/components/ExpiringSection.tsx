@@ -32,15 +32,15 @@ const ExpiringSection = () => {
         <span className="text-[10px] text-muted-foreground">{expiringItems.length} items</span>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide justify-center">
         {expiringItems.map((item, idx) => (
           <motion.div
             key={item.name}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: idx * 0.08 }}
-            whileHover={{ scale: 1.03, y: -2 }}
-            className={`glass-card rounded-2xl p-4 min-w-[130px] flex-shrink-0 cursor-pointer border ${urgencyStyles[item.urgency]}`}
+            whileHover={{ scale: 1.06 }}
+            className={`glass-card rounded-2xl p-4 min-w-[130px] flex-shrink-0 cursor-pointer border transition-all duration-200 ${urgencyStyles[item.urgency]}`}
           >
             <span className="text-3xl block mb-2">{item.emoji}</span>
             <p className="text-sm font-medium text-foreground">{item.name}</p>
