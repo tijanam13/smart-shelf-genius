@@ -23,7 +23,6 @@ const Profile = () => {
       navigate('/login');
       return;
     }
-    // Set email from auth user immediately
     setEmail(user.email || '');
     setDisplayName(user.user_metadata?.display_name || user.email?.split('@')[0] || '');
 
@@ -45,9 +44,29 @@ const Profile = () => {
   const handleSave = async () => {
     if (!user) return;
     setLoading(true);
+
+    // Check phone uniqueness if phone is provided
+    if (phone.trim()) {
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('phone', phone.trim())
+        .neq('user_id', user.id)
+        .maybeSingle();
+
+      if (existing) {
+        toast({ title: 'Error', description: 'This phone number is already registered to another account.', variant: 'destructive' });
+        setLoading(false);
+        return;
+      }
+    }
+
     const { error } = await supabase
       .from('profiles')
-      .update({ display_name: displayName, phone })
+      .update({
+        display_name: displayName.trim(),
+        phone: phone.trim() || null,
+      })
       .eq('user_id', user.id);
     setLoading(false);
 
@@ -94,13 +113,14 @@ const Profile = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Name</label>
+                <label className="text-sm text-muted-foreground mb-1 block">Full Name</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     className="pl-10 bg-secondary/50 border-border/50"
+                    placeholder="Enter your full name"
                   />
                 </div>
               </div>
@@ -112,14 +132,14 @@ const Profile = () => {
                 </div>
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Phone</label>
+                <label className="text-sm text-muted-foreground mb-1 block">Phone Number</label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="pl-10 bg-secondary/50 border-border/50"
-                    placeholder="+1..."
+                    placeholder="+1 234 567 890"
                   />
                 </div>
               </div>
@@ -128,7 +148,7 @@ const Profile = () => {
             <div className="flex gap-3 pt-2">
               <Button onClick={handleSave} disabled={loading} className="flex-1">
                 <Save className="w-4 h-4 mr-2" />
-                {loading ? 'Saving...' : 'Save'}
+                {loading ? 'Saving...' : 'Save Changes'}
               </Button>
               <Button variant="outline" onClick={handleSignOut} className="text-destructive border-destructive/30 hover:bg-destructive/10">
                 <LogOut className="w-4 h-4 mr-2" />
