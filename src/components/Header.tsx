@@ -1,7 +1,12 @@
 import { motion } from "framer-motion";
-import { Bell, Leaf } from "lucide-react";
+import { Bell, Leaf, LogIn } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const Header = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   return (
     <motion.header
       initial={{ opacity: 0, y: -20 }}
@@ -24,33 +29,72 @@ const Header = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="relative"
-          >
-            <div className="w-9 h-9 glass-card rounded-xl flex items-center justify-center cursor-pointer">
-              <Bell className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-urgent rounded-full border-2 border-background" />
-          </motion.div>
-          <div className="w-9 h-9 rounded-xl bg-primary/30 flex items-center justify-center text-sm font-semibold text-primary-foreground font-display">
-            A
-          </div>
+          {user ? (
+            <>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="relative"
+              >
+                <div className="w-9 h-9 glass-card rounded-xl flex items-center justify-center cursor-pointer">
+                  <Bell className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-urgent rounded-full border-2 border-background" />
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/profile')}
+                className="w-9 h-9 rounded-xl bg-primary/30 flex items-center justify-center text-sm font-semibold text-primary cursor-pointer font-display"
+              >
+                {user.user_metadata?.display_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
+              </motion.div>
+            </>
+          ) : (
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/login')}
+              className="flex items-center gap-2 px-3 py-2 glass-card rounded-xl cursor-pointer"
+            >
+              <LogIn className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">Prijavi se</span>
+            </motion.div>
+          )}
         </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="mt-5"
-      >
-        <p className="text-muted-foreground text-sm">Zdravo, Anđela 👋</p>
-        <h2 className="font-display text-xl font-bold text-foreground mt-0.5">
-          Tvoj frižider na dlanu
-        </h2>
-      </motion.div>
+      {user && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mt-5"
+        >
+          <p className="text-muted-foreground text-sm">
+            Zdravo, {user.user_metadata?.display_name || user.email?.split('@')[0]} 👋
+          </p>
+          <h2 className="font-display text-xl font-bold text-foreground mt-0.5">
+            Tvoj frižider na dlanu
+          </h2>
+        </motion.div>
+      )}
+
+      {!user && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mt-5"
+        >
+          <h2 className="font-display text-xl font-bold text-foreground mt-0.5">
+            Tvoj frižider na dlanu
+          </h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            Prijavi se da počneš da pratiš namirnice
+          </p>
+        </motion.div>
+      )}
     </motion.header>
   );
 };

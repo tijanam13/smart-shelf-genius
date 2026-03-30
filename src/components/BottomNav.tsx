@@ -1,4 +1,4 @@
-import { Home, Refrigerator, Camera, Award, User } from "lucide-react";
+import { Home, Refrigerator, Camera, Users, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -6,7 +6,7 @@ const tabs = [
   { icon: Home, label: "Početna", path: "/" },
   { icon: Refrigerator, label: "Frižider", path: "/fridge" },
   { icon: Camera, label: "Skeniraj", path: "/scan" },
-  { icon: Award, label: "Nagrade", path: "/rewards" },
+  { icon: Users, label: "Porodica", path: "/family" },
   { icon: User, label: "Profil", path: "/profile" },
 ];
 
