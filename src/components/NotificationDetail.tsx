@@ -9,6 +9,8 @@ interface NotificationDetailProps {
   onClose: () => void;
   onMarkAsRead: (id: string) => void;
   onDelete: (id: string) => void;
+  onMarkAsConsumed: (id: string) => void;
+  onMarkAsDiscarded: (id: string) => void;
 }
 
 const NotificationDetail: React.FC<NotificationDetailProps> = ({
