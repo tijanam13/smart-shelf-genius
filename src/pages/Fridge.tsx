@@ -95,6 +95,11 @@ const FridgePage = () => {
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editLocation, setEditLocation] = useState("fridge");
   const [editExpiryDate, setEditExpiryDate] = useState<Date | undefined>();
+  const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [donationItem, setDonationItem] = useState<typeof enrichedItems[0] | null>(null);
   const { toast } = useToast();
