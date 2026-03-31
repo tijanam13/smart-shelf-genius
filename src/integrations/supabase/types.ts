@@ -70,45 +70,6 @@ export type Database = {
           },
         ]
       }
-      fridge_items: {
-        Row: {
-          category: string
-          created_at: string
-          expiry_date: string | null
-          gtin_code: string | null
-          id: string
-          name: string
-          quantity: number
-          status: string
-          unit: string
-          user_id: string
-        }
-        Insert: {
-          category?: string
-          created_at?: string
-          expiry_date?: string | null
-          gtin_code?: string | null
-          id?: string
-          name: string
-          quantity?: number
-          status?: string
-          unit?: string
-          user_id: string
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          expiry_date?: string | null
-          gtin_code?: string | null
-          id?: string
-          name?: string
-          quantity?: number
-          status?: string
-          unit?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -142,38 +103,12 @@ export type Database = {
         }
         Relationships: []
       }
-      shopping_list: {
-        Row: {
-          created_at: string
-          id: string
-          is_bought: boolean
-          item_name: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_bought?: boolean
-          item_name: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_bought?: boolean
-          item_name?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      is_family_member: { Args: { _user_id: string }; Returns: boolean }
-      is_group_owner: { Args: { _group_id: string }; Returns: boolean }
-      is_member_of_group: { Args: { _group_id: string }; Returns: boolean }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
