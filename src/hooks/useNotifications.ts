@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useFridgeItems, getDaysLeft } from './useFridgeItems';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface Notification {
   id: string;
@@ -52,6 +54,7 @@ const playNotificationSound = () => {
 export const useNotifications = () => {
   const { user } = useAuth();
   const { data: fridgeItems = [] } = useFridgeItems();
+  const queryClient = useQueryClient();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [hasNewNotification, setHasNewNotification] = useState(false);
@@ -193,6 +196,42 @@ export const useNotifications = () => {
     saveNotifications(updated);
   }, [notifications, saveNotifications]);
 
+  // Mark item as consumed (used) - updates fridge item status and removes notification
+  const markAsConsumed = useCallback(async (notificationId: string) => {
+    const notif = notifications.find((n) => n.id === notificationId);
+    if (notif) {
+      // Find the actual fridge item by name (since notif.itemId may be prefixed with user id)
+      const fridgeItem = fridgeItems.find((fi) => fi.name === notif.itemName);
+      if (fridgeItem) {
+        await supabase.from('fridge_items').update({ status: 'consumed' }).eq('id', fridgeItem.id);
+        queryClient.invalidateQueries({ queryKey: ['fridge_items'] });
+      }
+    }
+    // Remove notification
+    const updated = notifications.map((n) =>
+      n.id === notificationId ? { ...n, deletedAt: new Date().toISOString() } : n
+    );
+    setNotifications(updated);
+    saveNotifications(updated);
+  }, [notifications, fridgeItems, saveNotifications, queryClient]);
+
+  // Mark item as thrown away (wasted) - updates fridge item status and removes notification
+  const markAsDiscarded = useCallback(async (notificationId: string) => {
+    const notif = notifications.find((n) => n.id === notificationId);
+    if (notif) {
+      const fridgeItem = fridgeItems.find((fi) => fi.name === notif.itemName);
+      if (fridgeItem) {
+        await supabase.from('fridge_items').update({ status: 'discarded' }).eq('id', fridgeItem.id);
+        queryClient.invalidateQueries({ queryKey: ['fridge_items'] });
+      }
+    }
+    const updated = notifications.map((n) =>
+      n.id === notificationId ? { ...n, deletedAt: new Date().toISOString() } : n
+    );
+    setNotifications(updated);
+    saveNotifications(updated);
+  }, [notifications, fridgeItems, saveNotifications, queryClient]);
+
   // Get active notifications (not read, not deleted)
   const activeNotifications = notifications.filter((n) => !n.readAt && !n.deletedAt);
 
@@ -204,5 +243,7 @@ export const useNotifications = () => {
     markAsRead,
     deleteNotification,
     clearAll,
+    markAsConsumed,
+    markAsDiscarded,
   };
 };

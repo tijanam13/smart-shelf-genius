@@ -9,6 +9,8 @@ interface NotificationDetailProps {
   onClose: () => void;
   onMarkAsRead: (id: string) => void;
   onDelete: (id: string) => void;
+  onMarkAsConsumed: (id: string) => void;
+  onMarkAsDiscarded: (id: string) => void;
 }
 
 const NotificationDetail: React.FC<NotificationDetailProps> = ({
@@ -17,6 +19,8 @@ const NotificationDetail: React.FC<NotificationDetailProps> = ({
   onClose,
   onMarkAsRead,
   onDelete,
+  onMarkAsConsumed,
+  onMarkAsDiscarded,
 }) => {
   if (!notification) return null;
 
@@ -208,34 +212,32 @@ const NotificationDetail: React.FC<NotificationDetailProps> = ({
 
               {/* Actions */}
               <div className="flex gap-3 mt-7 pt-4 border-t border-border/30">
-                {!notification.readAt && (
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      onMarkAsRead(notification.id);
-                      onClose();
-                    }}
-                    className="flex-1 py-3 rounded-lg bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <CheckCircle className="w-4 h-4" /> Mark as Read
-                  </motion.button>
-                )}
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
-                    onDelete(notification.id);
+                    onMarkAsConsumed(notification.id);
+                    onClose();
+                  }}
+                  className="flex-1 py-3 rounded-lg bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors flex items-center justify-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" /> Iskorišćeno
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    onMarkAsDiscarded(notification.id);
                     onClose();
                   }}
                   className="flex-1 py-3 rounded-lg bg-urgent/20 text-urgent text-sm font-bold hover:bg-urgent/30 transition-colors flex items-center justify-center gap-2"
                 >
-                  <Trash2 className="w-4 h-4" /> Delete
+                  <Trash2 className="w-4 h-4" /> Bačeno
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={onClose}
                   className="flex-1 py-3 rounded-lg bg-muted/30 text-muted-foreground text-sm font-bold hover:bg-muted/50 transition-colors"
                 >
-                  Close
+                  Zatvori
                 </motion.button>
               </div>
             </div>

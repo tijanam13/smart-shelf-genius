@@ -7,7 +7,7 @@ import NotificationDetail from '@/components/NotificationDetail';
 const NotificationCenter: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
-  const { allNotifications, unreadCount, hasNewNotification, markAsRead, deleteNotification, clearAll } = useNotifications();
+  const { allNotifications, unreadCount, hasNewNotification, markAsRead, deleteNotification, clearAll, markAsConsumed, markAsDiscarded } = useNotifications();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -152,10 +152,10 @@ const NotificationCenter: React.FC = () => {
                               whileTap={{ scale: 0.9 }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                markAsRead(notification.id);
+                                markAsConsumed(notification.id);
                               }}
                               className="p-1.5 text-muted-foreground hover:text-primary transition-colors hover:bg-primary/10 rounded-lg"
-                              title="Mark as read"
+                              title="Iskorišćeno"
                             >
                               <CheckCircle2 className="w-4 h-4" />
                             </motion.button>
@@ -163,10 +163,10 @@ const NotificationCenter: React.FC = () => {
                               whileTap={{ scale: 0.9 }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                deleteNotification(notification.id);
+                                markAsDiscarded(notification.id);
                               }}
                               className="p-1.5 text-muted-foreground hover:text-urgent transition-colors hover:bg-urgent/10 rounded-lg"
-                              title="Delete"
+                              title="Bačeno"
                             >
                               <Trash2 className="w-4 h-4" />
                             </motion.button>
@@ -244,6 +244,8 @@ const NotificationCenter: React.FC = () => {
         onClose={() => setSelectedNotification(null)}
         onMarkAsRead={markAsRead}
         onDelete={deleteNotification}
+        onMarkAsConsumed={markAsConsumed}
+        onMarkAsDiscarded={markAsDiscarded}
       />
     </div>
   );
