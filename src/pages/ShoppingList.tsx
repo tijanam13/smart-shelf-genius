@@ -56,8 +56,16 @@ const STORES = [
 
 const UNITS = ["pcs", "kg", "l", "g", "ml", "package"];
 
+interface Suggestion {
+  name: string;
+  reason: string;
+  category: string;
+  priority: "high" | "medium" | "low";
+}
+
 const ShoppingList = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [lists, setLists] = useState<ShoppingListData[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [showNewListForm, setShowNewListForm] = useState(false);
@@ -70,6 +78,57 @@ const ShoppingList = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [customStore, setCustomStore] = useState("");
   const [showCustomStore, setShowCustomStore] = useState(false);
+
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const fetchSuggestions = async () => {
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in", variant: "destructive" });
+      return;
+    }
+    setLoadingSuggestions(true);
+    setShowSuggestions(true);
+    try {
+      const { data: fridgeItems } = await supabase
+        .from("fridge_items")
+        .select("name, quantity, unit, category, expiry_date")
+        .eq("user_id", user.id);
+
+      const { data, error } = await supabase.functions.invoke("suggest-shopping", {
+        body: { fridgeItems: fridgeItems || [] },
+      });
+
+      if (error) throw error;
+      setSuggestions(data.suggestions || []);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to get suggestions", variant: "destructive" });
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const addSuggestionToList = (suggestion: Suggestion) => {
+    if (!currentList) {
+      toast({ title: "Error", description: "Select a list first", variant: "destructive" });
+      return;
+    }
+    const newItem: ShoppingItem = {
+      id: Date.now().toString(),
+      name: suggestion.name,
+      quantity: 1,
+      unit: "pcs",
+      store: selectedStore,
+      checked: false,
+    };
+    const updatedLists = lists.map((list) =>
+      list.id === currentList.id ? { ...list, items: [...list.items, newItem] } : list
+    );
+    setLists(updatedLists);
+    setSuggestions(prev => prev.filter(s => s.name !== suggestion.name));
+    toast({ title: "Added!", description: `"${suggestion.name}" added to list` });
+  };
 
   // Load from LocalStorage
   useEffect(() => {
