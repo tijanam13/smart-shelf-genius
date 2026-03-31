@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useFridgeItems, getDaysLeft } from './useFridgeItems';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface Notification {
   id: string;
