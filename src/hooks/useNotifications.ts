@@ -135,27 +135,65 @@ export const useNotifications = () => {
     setTimeout(() => setHasNewNotification(false), 3000);
   }, [notifications, hasTodayNotification, saveNotifications]);
 
-  // Check items and generate notifications
+  // Check items and generate notifications - runs once per fridge data change
   useEffect(() => {
     if (!fridgeItems.length || !user) return;
 
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Read directly from localStorage to avoid stale state issues
+    let existing: Notification[] = [];
+    try {
+      const stored = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
+      if (stored) existing = JSON.parse(stored);
+    } catch {}
+
+    const newNotifications: Notification[] = [];
+
     fridgeItems.forEach((item) => {
       const days = getDaysLeft(item.expiry_date);
-
-      // Skip expired items
       if (days < 0) return;
 
-      // Level 1: Warning at 10 days
-      if (days <= 10 && days > 5) {
-        createNotification(item.id, item.name, 'warning', days);
-      }
+      const checkAndCreate = (level: 'warning' | 'high-priority') => {
+        // Check if notification already exists for this item+level+today (including deleted ones)
+        const alreadyExists = existing.some(
+          (n) => n.itemId === item.id && n.level === level && n.date === today
+        );
+        if (alreadyExists) return;
 
-      // Level 2: High priority at 5 days or less (daily persistent)
-      if (days <= 5 && days >= 0) {
-        createNotification(item.id, item.name, 'high-priority', days);
-      }
+        const message = level === 'warning'
+          ? `Item ${item.name} expires in ${days} days. Consider using it soon.`
+          : `⚠️ High Priority: ${item.name} expires in ${days} days. Donate it now to earn bonus tokens!`;
+
+        newNotifications.push({
+          id: `${item.id}-${level}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          itemId: item.id,
+          itemName: item.name,
+          message,
+          level,
+          daysLeft: days,
+          createdAt: new Date().toISOString(),
+          readAt: null,
+          deletedAt: null,
+          date: today,
+        });
+      };
+
+      if (days <= 10 && days > 5) checkAndCreate('warning');
+      if (days <= 5 && days >= 0) checkAndCreate('high-priority');
     });
-  }, [fridgeItems, user, createNotification]);
+
+    if (newNotifications.length > 0) {
+      const updated = [...newNotifications, ...existing];
+      localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updated));
+      setNotifications(updated);
+      setHasNewNotification(true);
+      playNotificationSound();
+      setTimeout(() => setHasNewNotification(false), 3000);
+    }
+  // Only run when fridgeItems data or user changes, not on notifications state change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fridgeItems, user?.id]);
 
   // Load notifications on component mount
   useEffect(() => {
