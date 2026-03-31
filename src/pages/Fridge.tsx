@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ChevronRight, ChevronLeft, Clock, Loader2, X, Trash2, Plus, Minus, Edit2, Check, Gift } from "lucide-react";
+import { Sparkles, ChevronRight, ChevronLeft, Clock, Loader2, X, Trash2, Plus, Minus, Edit2, Check, Gift, Send, MessageCircle } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import DonationModal from "@/components/DonationModal";
 import { supabase } from "@/integrations/supabase/client";
