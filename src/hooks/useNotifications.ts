@@ -54,6 +54,7 @@ const playNotificationSound = () => {
 export const useNotifications = () => {
   const { user } = useAuth();
   const { data: fridgeItems = [] } = useFridgeItems();
+  const queryClient = useQueryClient();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [hasNewNotification, setHasNewNotification] = useState(false);
