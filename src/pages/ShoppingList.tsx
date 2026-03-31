@@ -284,6 +284,58 @@ const ShoppingList = () => {
           </p>
         </motion.div>
 
+        {/* Expiry Notifications */}
+        {notifications.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl mx-auto mb-6"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-4 h-4 text-warning" />
+              <h3 className="text-sm font-semibold text-foreground">Ističe rok ({notifications.length})</h3>
+            </div>
+            <div className="space-y-2">
+              {notifications.map((n) => (
+                <motion.div
+                  key={n.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className={`glass-card rounded-xl px-4 py-3 flex items-center gap-3 ${
+                    n.level === 'high-priority' ? 'border-l-4 border-urgent' : 'border-l-4 border-warning'
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-semibold ${n.level === 'high-priority' ? 'text-urgent' : 'text-warning'}`}>
+                      {n.itemName}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => markAsConsumed(n.id)}
+                      className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                      title="Iskorišćeno"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => markAsDiscarded(n.id)}
+                      className="p-2 rounded-lg bg-urgent/10 text-urgent hover:bg-urgent/20 transition-colors"
+                      title="Bačeno"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         <div className="max-w-2xl mx-auto">
           {/* All Shopping Lists */}
           <div className="mb-6 space-y-2">
