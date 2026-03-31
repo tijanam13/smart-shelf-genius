@@ -195,7 +195,7 @@ const FridgePage = () => {
                     {[fridgeDisplayItems.slice(0, 3), fridgeDisplayItems.slice(3, 7), fridgeDisplayItems.slice(7)].map((shelf, si) => (
                       <div key={si} className="flex gap-2 items-end px-1 py-1 rounded-sm min-h-[70px] sm:min-h-[80px]" style={{ background: "rgba(120,190,160,0.12)", borderBottom: "1.5px solid rgba(120,190,160,0.3)" }}>
                         {shelf.map((item) => (
-                          <motion.div key={item.id} whileHover={{ y: -2 }} className="flex flex-col items-center cursor-pointer" onClick={(e) => { e.stopPropagation(); showTooltip(item.name, `${item.daysLabel} left`); }}>
+                          <motion.div key={item.id} whileHover={{ y: -2 }} className="flex flex-col items-center cursor-pointer" onClick={(e) => { e.stopPropagation(); showTooltip(item); }}>
                             <span className="text-xl sm:text-2xl">{item.emoji}</span>
                             <span className={`text-[8px] font-bold ${urgencyText[item.urgency]} ${item.urgency === "urgent" ? "animate-pulse" : ""}`}>{item.daysLabel}</span>
                           </motion.div>
