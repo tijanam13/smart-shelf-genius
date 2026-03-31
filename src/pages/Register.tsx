@@ -82,17 +82,7 @@ const Register = () => {
                 required
               />
             </div>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="tel"
-                placeholder="Phone number"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="pl-10 bg-secondary/50 border-border/50"
-                required
-              />
-            </div>
+            <PhoneInput value={phone} onChange={setPhone} required />
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input

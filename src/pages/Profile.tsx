@@ -134,15 +134,7 @@ const Profile = () => {
               </div>
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Phone Number</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="pl-10 bg-secondary/50 border-border/50"
-                    placeholder="+1 234 567 890"
-                  />
-                </div>
+                <PhoneInput value={phone} onChange={setPhone} />
               </div>
             </div>
 
