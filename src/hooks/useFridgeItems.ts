@@ -37,7 +37,7 @@ export function useFridgeItems() {
         .from("fridge_items")
         .select("*")
         .eq("user_id", user.id)
-        .eq("status", "in_fridge")
+        .in("status", ["fridge", "freezer", "in_fridge"])
         .order("expiry_date", { ascending: true, nullsFirst: false });
       if (error) throw error;
       return (data as FridgeItem[]) || [];

@@ -28,6 +28,11 @@ const categories = [
   { value: "Other", emoji: "📦" },
 ];
 
+const locations = [
+  { value: "fridge", label: "🧊 Fridge", emoji: "🧊" },
+  { value: "freezer", label: "❄️ Freezer", emoji: "❄️" },
+];
+
 const units = [
   { value: "pcs", label: "pcs" },
   { value: "g", label: "g" },
@@ -44,6 +49,7 @@ const ManualEntry = () => {
   const [expiryDate, setExpiryDate] = useState<Date>();
   const [quantity, setQuantity] = useState(1);
   const [unit, setUnit] = useState("pcs");
+  const [location, setLocation] = useState("fridge");
   const [saving, setSaving] = useState(false);
 
   const step = unit === "g" || unit === "ml" ? 100 : unit === "kg" || unit === "l" ? 0.1 : 1;
@@ -61,14 +67,14 @@ const ManualEntry = () => {
       expiry_date: expiryDate ? format(expiryDate, "yyyy-MM-dd") : null,
       quantity,
       unit,
-      status: "in_fridge",
+      status: location,
     });
     setSaving(false);
 
     if (error) { toast.error("Failed to add item"); return; }
 
-    toast.success("Item successfully added to your fridge!");
-    setName(""); setCategory(""); setExpiryDate(undefined); setQuantity(1); setUnit("pcs");
+    toast.success(`Item successfully added to your ${location === "freezer" ? "freezer" : "fridge"}!`);
+    setName(""); setCategory(""); setExpiryDate(undefined); setQuantity(1); setUnit("pcs"); setLocation("fridge");
   };
 
   const displayQty = Number.isInteger(quantity) ? quantity.toString() : quantity.toFixed(1);
@@ -100,6 +106,23 @@ const ManualEntry = () => {
               {categories.map((c) => (
                 <SelectItem key={c.value} value={c.value}>
                   <span className="flex items-center gap-2"><span>{c.emoji}</span><span>{c.value}</span></span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Location */}
+        <div className="space-y-2">
+          <Label className="text-sm text-muted-foreground">Storage Location</Label>
+          <Select value={location} onValueChange={setLocation}>
+            <SelectTrigger className="bg-background/50 border-border/50 rounded-xl h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {locations.map((loc) => (
+                <SelectItem key={loc.value} value={loc.value}>
+                  <span className="flex items-center gap-2"><span>{loc.emoji}</span><span>{loc.label}</span></span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -151,7 +174,7 @@ const ManualEntry = () => {
         {/* Submit */}
         <Button onClick={handleSave} disabled={saving} className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-semibold text-sm gap-2">
           <ShoppingBasket className="w-4 h-4" />
-          {saving ? "Adding..." : "Add to Fridge"}
+          {saving ? "Adding..." : `Add to ${location === "freezer" ? "Freezer" : "Fridge"}`}
         </Button>
       </motion.div>
 

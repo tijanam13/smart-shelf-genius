@@ -1,10 +1,37 @@
 import { motion } from "framer-motion";
 import { Award, ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const RewardSection = () => {
-  const tokens = 85;
+  const { user } = useAuth();
+  const [tokens, setTokens] = useState(0);
   const goal = 150;
   const progress = (tokens / goal) * 100;
+
+  useEffect(() => {
+    const fetchTokens = async () => {
+      if (!user) return;
+      
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (data) {
+          const userTokens = ((data as any).tokens ?? 0) as number;
+          setTokens(userTokens);
+        }
+      } catch (error) {
+        console.error('Error fetching tokens:', error);
+      }
+    };
+
+    fetchTokens();
+  }, [user]);
 
   return (
     <div className="px-5 mt-5 lg:px-0">

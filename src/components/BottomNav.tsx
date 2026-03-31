@@ -1,11 +1,13 @@
-import { Home, Refrigerator, Camera, Users, User } from "lucide-react";
+import { Home, Refrigerator, Camera, Users, User, Globe, ShoppingCart } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const tabs = [
   { icon: Home, label: "Home", path: "/" },
   { icon: Refrigerator, label: "Fridge", path: "/fridge" },
+  { icon: ShoppingCart, label: "Shopping", path: "/shopping-list" },
   { icon: Camera, label: "Scan", path: "/scan" },
+  { icon: Globe, label: "Planet", path: "/planet" },
   { icon: Users, label: "Family", path: "/family" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
@@ -16,7 +18,7 @@ const BottomNav = () => {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50">
-      <div className="glass-card-strong border-t border-border/50 px-2 pb-[env(safe-area-inset-bottom)] lg:max-w-lg lg:mx-auto lg:rounded-t-2xl">
+      <div className="w-full glass-card-strong border-t border-border/50 px-2 pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-center justify-around py-2">
           {tabs.map((tab) => {
             const isActive = location.pathname === tab.path;

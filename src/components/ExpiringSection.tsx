@@ -50,7 +50,7 @@ const ExpiringSection = () => {
           ))}
         </div>
       ) : (
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide justify-center">
+        <div className="flex gap-3 overflow-x-auto pb-3 pt-2 pl-5 pr-5 scrollbar-hide">
           {expiringItems.map((item, idx) => {
             const urgency = getUrgency(item.expiry_date);
             const days = getDaysLeft(item.expiry_date);
@@ -60,7 +60,7 @@ const ExpiringSection = () => {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: idx * 0.08 }}
-                whileHover={{ scale: 1.06 }}
+                whileHover={{ scale: 1.07 }}
                 className={`glass-card rounded-2xl p-4 min-w-[130px] flex-shrink-0 cursor-pointer border transition-all duration-200 ${urgencyStyles[urgency]}`}
               >
                 <span className="text-3xl block mb-2">{getCategoryEmoji(item.category)}</span>

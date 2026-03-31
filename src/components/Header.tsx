@@ -1,10 +1,13 @@
 import { motion } from "framer-motion";
-import { Bell, Leaf, LogIn } from "lucide-react";
+import { Leaf, LogIn, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useNavigate } from "react-router-dom";
+import NotificationCenter from "@/components/NotificationCenter";
 
 const Header = () => {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   return (
@@ -29,18 +32,22 @@ const Header = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={toggleTheme}
+            className="w-9 h-9 glass-card rounded-xl flex items-center justify-center cursor-pointer"
+            title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+          >
+            {theme === 'light' ? (
+              <Moon className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <Sun className="w-4 h-4 text-muted-foreground" />
+            )}
+          </motion.button>
           {user ? (
             <>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="relative"
-              >
-                <div className="w-9 h-9 glass-card rounded-xl flex items-center justify-center cursor-pointer">
-                  <Bell className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-urgent rounded-full border-2 border-background" />
-              </motion.div>
+              <NotificationCenter />
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

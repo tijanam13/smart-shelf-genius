@@ -6,6 +6,58 @@
 
 @layer base {
   :root {
+    /* Light mode - Darker, muted grass green tones */
+    --background: 155 50% 62%;
+    --foreground: 155 40% 12%;
+
+    --card: 155 55% 82%;
+    --card-foreground: 155 40% 12%;
+
+    --popover: 155 55% 84%;
+    --popover-foreground: 155 40% 12%;
+
+    --primary: 155 60% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 155 50% 78%;
+    --secondary-foreground: 155 40% 12%;
+
+    --muted: 155 40% 55%;
+    --muted-foreground: 155 30% 30%;
+
+    --accent: 155 55% 80%;
+    --accent-foreground: 155 40% 12%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 155 45% 60%;
+    --input: 155 48% 67%;
+    --ring: 155 60% 45%;
+
+    --radius: 0.75rem;
+
+    /* Custom semantic tokens */
+    --mint: 155 60% 45%;
+    --coral: 12 80% 62%;
+    --cream: 40 60% 70%;
+    --safe: 145 60% 45%;
+    --warning: 38 92% 55%;
+    --urgent: 0 72% 55%;
+    --token: 45 90% 55%;
+
+    --sidebar-background: 155 48% 70%;
+    --sidebar-foreground: 155 40% 12%;
+    --sidebar-primary: 155 60% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 155 45% 68%;
+    --sidebar-accent-foreground: 155 40% 12%;
+    --sidebar-border: 155 45% 68%;
+    --sidebar-ring: 155 60% 45%;
+  }
+
+  /* Dark mode */
+  .dark {
     --background: 155 25% 8%;
     --foreground: 150 20% 92%;
 
@@ -33,8 +85,6 @@
     --border: 155 15% 20%;
     --input: 155 15% 18%;
     --ring: 155 60% 45%;
-
-    --radius: 0.75rem;
 
     /* Custom semantic tokens */
     --mint: 155 60% 45%;
@@ -79,11 +129,22 @@
     @apply bg-card/80 backdrop-blur-2xl border border-border/60;
   }
 
-  .glow-warning {
+  /* Light mode glows - darker and more visible */
+  :not(.dark) .glow-warning {
+    box-shadow: 0 0 25px -2px hsl(38 95% 35% / 0.8);
+  }
+
+  :not(.dark) .glow-urgent {
+    box-shadow: 0 0 25px -2px hsl(0 80% 35% / 0.85);
+    animation: pulse-glow-light 2s ease-in-out infinite;
+  }
+
+  /* Dark mode glows - original */
+  .dark .glow-warning {
     box-shadow: 0 0 20px -4px hsl(38 92% 55% / 0.2);
   }
 
-  .glow-urgent {
+  .dark .glow-urgent {
     box-shadow: 0 0 20px -4px hsl(0 72% 55% / 0.25);
     animation: pulse-glow 2s ease-in-out infinite;
   }
@@ -91,5 +152,10 @@
   @keyframes pulse-glow {
     0%, 100% { box-shadow: 0 0 20px -4px hsl(0 72% 55% / 0.25); }
     50% { box-shadow: 0 0 30px -2px hsl(0 72% 55% / 0.35); }
+  }
+
+  @keyframes pulse-glow-light {
+    0%, 100% { box-shadow: 0 0 25px -2px hsl(0 80% 35% / 0.85); }
+    50% { box-shadow: 0 0 35px 0px hsl(0 80% 35% / 1); }
   }
 }
