@@ -168,7 +168,7 @@ const FridgePage = () => {
                   <div className="absolute inset-x-0 top-0 h-5 z-[1] transition-opacity duration-300 pointer-events-none" style={{ background: "linear-gradient(180deg, rgba(180,255,200,0.4) 0%, transparent 100%)", opacity: fridgeOpen ? 1 : 0 }} />
                   <div className="absolute inset-0 p-2 pt-6 flex items-end gap-2">
                     {freezerDisplayItems.map((item) => (
-                      <motion.div key={item.id} whileHover={{ y: -2 }} className="flex flex-col items-center cursor-pointer" onClick={(e) => { e.stopPropagation(); showTooltip(item.name, `${item.daysLabel} left`); }}>
+                          <motion.div key={item.id} whileHover={{ y: -2 }} className="flex flex-col items-center cursor-pointer" onClick={(e) => { e.stopPropagation(); showTooltip(item); }}>
                         <span className="text-2xl">{item.emoji}</span>
                         <span className={`text-[9px] font-bold ${urgencyText[item.urgency]}`}>{item.daysLabel}</span>
                       </motion.div>
