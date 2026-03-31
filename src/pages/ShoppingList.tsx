@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Trash2, ExternalLink, ChevronRight, ListPlus, Store, Check } from "lucide-react";
+import { Plus, X, Trash2, ExternalLink, ChevronRight, ListPlus, Store, Check, Sparkles, Loader2, ShoppingBag } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import BottomNav from "@/components/BottomNav";
 import Header from "@/components/Header";
 import { useToast } from "@/hooks/use-toast";
@@ -54,8 +56,16 @@ const STORES = [
 
 const UNITS = ["pcs", "kg", "l", "g", "ml", "package"];
 
+interface Suggestion {
+  name: string;
+  reason: string;
+  category: string;
+  priority: "high" | "medium" | "low";
+}
+
 const ShoppingList = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [lists, setLists] = useState<ShoppingListData[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [showNewListForm, setShowNewListForm] = useState(false);
@@ -68,6 +78,57 @@ const ShoppingList = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [customStore, setCustomStore] = useState("");
   const [showCustomStore, setShowCustomStore] = useState(false);
+
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const fetchSuggestions = async () => {
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in", variant: "destructive" });
+      return;
+    }
+    setLoadingSuggestions(true);
+    setShowSuggestions(true);
+    try {
+      const { data: fridgeItems } = await supabase
+        .from("fridge_items")
+        .select("name, quantity, unit, category, expiry_date")
+        .eq("user_id", user.id);
+
+      const { data, error } = await supabase.functions.invoke("suggest-shopping", {
+        body: { fridgeItems: fridgeItems || [] },
+      });
+
+      if (error) throw error;
+      setSuggestions(data.suggestions || []);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to get suggestions", variant: "destructive" });
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  const addSuggestionToList = (suggestion: Suggestion) => {
+    if (!currentList) {
+      toast({ title: "Error", description: "Select a list first", variant: "destructive" });
+      return;
+    }
+    const newItem: ShoppingItem = {
+      id: Date.now().toString(),
+      name: suggestion.name,
+      quantity: 1,
+      unit: "pcs",
+      store: selectedStore,
+      checked: false,
+    };
+    const updatedLists = lists.map((list) =>
+      list.id === currentList.id ? { ...list, items: [...list.items, newItem] } : list
+    );
+    setLists(updatedLists);
+    setSuggestions(prev => prev.filter(s => s.name !== suggestion.name));
+    toast({ title: "Added!", description: `"${suggestion.name}" added to list` });
+  };
 
   // Load from LocalStorage
   useEffect(() => {
@@ -434,6 +495,95 @@ const ShoppingList = () => {
                   <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 </div>
               </motion.a>
+
+              {/* Smart Suggestions */}
+              <div className="mb-6">
+                {!showSuggestions ? (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={fetchSuggestions}
+                    className="w-full glass-card-strong rounded-2xl p-4 flex items-center justify-center gap-3 border border-accent/30 hover:border-accent/60 transition-colors"
+                  >
+                    <Sparkles className="w-5 h-5 text-accent" />
+                    <span className="text-sm font-semibold text-foreground">Smart Suggestions</span>
+                    <span className="text-xs text-muted-foreground">Based on your fridge</span>
+                  </motion.button>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="glass-card-strong rounded-2xl p-5 border border-accent/20"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-accent" />
+                        <h3 className="text-sm font-semibold text-foreground">Smart Suggestions</h3>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={fetchSuggestions}
+                          disabled={loadingSuggestions}
+                          className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+                        >
+                          Refresh
+                        </button>
+                        <button
+                          onClick={() => setShowSuggestions(false)}
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {loadingSuggestions ? (
+                      <div className="flex items-center justify-center py-8 gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                        <span className="text-sm text-muted-foreground">Analyzing your fridge...</span>
+                      </div>
+                    ) : suggestions.length > 0 ? (
+                      <div className="space-y-2">
+                        {suggestions.map((s, idx) => (
+                          <motion.div
+                            key={s.name + idx}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                            className="glass-card rounded-xl p-3 flex items-center gap-3"
+                          >
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                              s.priority === "high" ? "bg-urgent" : s.priority === "medium" ? "bg-warning" : "bg-safe"
+                            }`} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground">{s.name}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{s.reason}</p>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full flex-shrink-0">
+                              {s.category}
+                            </span>
+                            {currentList && (
+                              <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => addSuggestionToList(s)}
+                                className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors flex-shrink-0"
+                                title="Add to list"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </motion.button>
+                            )}
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <ShoppingBag className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                        <p className="text-xs text-muted-foreground">No suggestions available. Add items to your fridge first.</p>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </div>
 
               {/* Items by Store */}
               {Object.keys(groupedByStore).length > 0 ? (

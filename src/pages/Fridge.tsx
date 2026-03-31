@@ -162,29 +162,9 @@ const FridgePage = () => {
     }
 
     try {
-      // Get current tokens
-      const { data, error: fetchError } = await supabase
-        .from("profiles")
-        .select("tokens")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (fetchError) throw fetchError;
-
-      const currentTokens = (data?.tokens ?? 0) as number;
-      const newTokens = currentTokens + recipe.tokens;
-
-      // Update tokens
-      const { error } = await supabase
-        .from("profiles")
-        .update({ tokens: newTokens })
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-
       toast({
         title: "Recipe Used!",
-        description: `You earned +${recipe.tokens} 🪙 tokens`,
+        description: `You started cooking "${recipe.title}"`,
       });
 
       queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
