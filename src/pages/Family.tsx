@@ -262,8 +262,8 @@ const Family = () => {
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-medium text-foreground">
-                            {member.profile?.display_name || 'User'}
+                        <p className="text-sm font-medium text-foreground">
+                            {member.user_id === user?.id ? 'Me' : (member.profile?.display_name || 'User')}
                           </p>
                           {member.user_id === group.owner_id && (
                             <Crown className="w-3.5 h-3.5 text-token" />

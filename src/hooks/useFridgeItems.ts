@@ -26,6 +26,9 @@ export function getConsumeStep(unit: string): number {
   return 1;
 }
 
+/**
+ * Returns fridge items for the current user AND all family group members.
+ */
 export function useFridgeItems() {
   const { user } = useAuth();
 
@@ -33,10 +36,40 @@ export function useFridgeItems() {
     queryKey: ["fridge_items", user?.id],
     queryFn: async (): Promise<FridgeItem[]> => {
       if (!user) return [];
+
+      // Get all family group member user IDs
+      const { data: myMemberships } = await supabase
+        .from("family_members")
+        .select("group_id")
+        .eq("user_id", user.id);
+
+      let userIds = [user.id];
+
+      if (myMemberships && myMemberships.length > 0) {
+        const groupIds = myMemberships.map((m) => m.group_id);
+        const { data: allMembers } = await supabase
+          .from("family_members")
+          .select("user_id")
+          .in("group_id", groupIds);
+
+        if (allMembers) {
+          const ids = new Set(allMembers.map((m) => m.user_id));
+          // Also include group owners
+          const { data: groups } = await supabase
+            .from("family_groups")
+            .select("owner_id")
+            .in("id", groupIds);
+          if (groups) {
+            groups.forEach((g) => ids.add(g.owner_id));
+          }
+          userIds = [...ids];
+        }
+      }
+
       const { data, error } = await supabase
         .from("fridge_items")
         .select("*")
-        .eq("user_id", user.id)
+        .in("user_id", userIds)
         .in("status", ["fridge", "freezer", "in_fridge"])
         .order("expiry_date", { ascending: true, nullsFirst: false });
       if (error) throw error;
