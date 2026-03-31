@@ -19,6 +19,7 @@ export interface Notification {
 
 const NOTIFICATION_STORAGE_KEY = 'smart-shelf-notifications';
 const NOTIFICATION_DATES_KEY = 'smart-shelf-notification-dates';
+let soundPlayedThisSession = false;
 
 // Placeholder notification sound - using Web Audio API
 const playNotificationSound = () => {
@@ -188,7 +189,10 @@ export const useNotifications = () => {
       localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updated));
       setNotifications(updated);
       setHasNewNotification(true);
-      playNotificationSound();
+      if (!soundPlayedThisSession) {
+        soundPlayedThisSession = true;
+        playNotificationSound();
+      }
       setTimeout(() => setHasNewNotification(false), 3000);
     }
   // Only run when fridgeItems data or user changes, not on notifications state change
