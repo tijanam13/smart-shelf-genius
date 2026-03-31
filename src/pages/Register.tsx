@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Leaf, Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
+import { Leaf, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import PhoneInput from '@/components/PhoneInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
@@ -81,17 +82,7 @@ const Register = () => {
                 required
               />
             </div>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="tel"
-                placeholder="Phone number"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="pl-10 bg-secondary/50 border-border/50"
-                required
-              />
-            </div>
+            <PhoneInput value={phone} onChange={setPhone} required />
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
