@@ -70,6 +70,45 @@ export type Database = {
           },
         ]
       }
+      fridge_items: {
+        Row: {
+          category: string
+          created_at: string
+          expiry_date: string | null
+          gtin_code: string | null
+          id: string
+          name: string
+          quantity: number
+          status: string
+          unit: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          expiry_date?: string | null
+          gtin_code?: string | null
+          id?: string
+          name: string
+          quantity?: number
+          status?: string
+          unit?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          expiry_date?: string | null
+          gtin_code?: string | null
+          id?: string
+          name?: string
+          quantity?: number
+          status?: string
+          unit?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
