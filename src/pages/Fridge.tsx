@@ -74,9 +74,8 @@ const FridgePage = () => {
   const warnItems = enrichedItems.filter((i) => i.urgency === "warning");
   const safeItems = enrichedItems.filter((i) => i.urgency === "safe");
 
-  const showTooltip = (name: string, detail: string) => {
-    setTooltip({ name, detail });
-    setTimeout(() => setTooltip(null), 2500);
+  const showTooltip = (item: typeof enrichedItems[0]) => {
+    setSelectedItem(item);
   };
 
   const handleDelete = async (id: string) => {
