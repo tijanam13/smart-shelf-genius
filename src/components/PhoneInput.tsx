@@ -68,7 +68,8 @@ const PhoneInput = ({ value, onChange, className, required }: PhoneInputProps) =
             <SelectItem key={c.code} value={c.code}>
               <span className="flex items-center gap-1.5 text-sm">
                 <span>{c.flag}</span>
-                <span>{c.code}</span>
+                <span>{c.name}</span>
+                <span className="text-muted-foreground">{c.code}</span>
               </span>
             </SelectItem>
           ))}
