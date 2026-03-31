@@ -142,38 +142,12 @@ export type Database = {
         }
         Relationships: []
       }
-      shopping_list: {
-        Row: {
-          created_at: string
-          id: string
-          is_bought: boolean
-          item_name: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_bought?: boolean
-          item_name: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_bought?: boolean
-          item_name?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      is_family_member: { Args: { _user_id: string }; Returns: boolean }
-      is_group_owner: { Args: { _group_id: string }; Returns: boolean }
-      is_member_of_group: { Args: { _group_id: string }; Returns: boolean }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
