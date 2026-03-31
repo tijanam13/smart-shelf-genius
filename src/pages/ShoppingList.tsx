@@ -61,7 +61,17 @@ interface Suggestion {
   reason: string;
   category: string;
   priority: "high" | "medium" | "low";
+  macronutrient?: string;
 }
+
+const macroEmoji: Record<string, string> = {
+  protein: "💪",
+  carbs: "🌾",
+  fats: "🥑",
+  fiber: "🥦",
+  vitamins: "🍊",
+  mixed: "⚖️",
+};
 
 const ShoppingList = () => {
   const { toast } = useToast();
@@ -558,6 +568,11 @@ const ShoppingList = () => {
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-foreground">{s.name}</p>
                               <p className="text-xs text-muted-foreground mt-0.5">{s.reason}</p>
+                              {s.macronutrient && (
+                                <span className="text-[10px] text-primary/80 mt-0.5 inline-flex items-center gap-0.5">
+                                  {macroEmoji[s.macronutrient] || "⚖️"} {s.macronutrient}
+                                </span>
+                              )}
                             </div>
                             <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full flex-shrink-0">
                               {s.category}

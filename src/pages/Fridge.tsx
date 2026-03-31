@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ChevronRight, ChevronLeft, Clock, Loader2, X, Trash2, Plus, Minus, Edit2, Check, Gift } from "lucide-react";
+import { Sparkles, ChevronRight, ChevronLeft, Clock, Loader2, X, Trash2, Plus, Minus, Edit2, Check, Gift, Send, MessageCircle } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import DonationModal from "@/components/DonationModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -95,6 +95,11 @@ const FridgePage = () => {
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editLocation, setEditLocation] = useState("fridge");
   const [editExpiryDate, setEditExpiryDate] = useState<Date | undefined>();
+  const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [donationItem, setDonationItem] = useState<typeof enrichedItems[0] | null>(null);
   const { toast } = useToast();
@@ -205,8 +210,44 @@ const FridgePage = () => {
       setGeneratingRecipes(false);
     }
   };
+  const handleSendChat = async () => {
+    if (!chatInput.trim() || chatLoading) return;
+    const userMsg = chatInput.trim();
+    setChatInput("");
+    const newMessages = [...chatMessages, { role: "user" as const, content: userMsg }];
+    setChatMessages(newMessages);
+    setChatLoading(true);
 
-  // For the 3D fridge display, show up to 13 items
+    try {
+      const { data, error } = await supabase.functions.invoke("recipe-chat", {
+        body: {
+          recipe: selectedRecipe,
+          userMessage: userMsg,
+          fridgeItems: dbItems.map(i => ({ name: i.name, category: i.category })),
+          chatHistory: chatMessages,
+        },
+      });
+      if (error) throw error;
+      setChatMessages([...newMessages, { role: "assistant", content: data.reply }]);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Chat failed", variant: "destructive" });
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  // Reset chat when recipe changes
+  useEffect(() => {
+    setChatMessages([]);
+    setShowChat(false);
+    setChatInput("");
+  }, [selectedRecipe?.title]);
+
+
   const fridgeDisplayItems = enrichedItems.filter((i) => i.status === "fridge" || i.status === "in_fridge").slice(0, 10);
   const freezerDisplayItems = enrichedItems.filter((i) => i.status === "freezer").slice(0, 5);
 
@@ -654,12 +695,72 @@ const FridgePage = () => {
                       </motion.button>
                       <motion.button
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => setSelectedRecipe(null)}
-                        className="flex-1 py-3 rounded-lg bg-muted/30 text-muted-foreground text-sm font-bold hover:bg-muted/50 transition-colors"
+                        onClick={() => setShowChat(!showChat)}
+                        className={`flex-1 py-3 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2 ${
+                          showChat ? 'bg-primary text-primary-foreground' : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                        }`}
                       >
-                        Close
+                        <MessageCircle className="w-4 h-4" /> {showChat ? "Hide Chat" : "Ask AI"}
                       </motion.button>
                     </div>
+
+                    {/* Recipe Chat */}
+                    <AnimatePresence>
+                      {showChat && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="mt-4 overflow-hidden"
+                        >
+                          <div className="glass-card rounded-xl p-3">
+                            <p className="text-[10px] text-muted-foreground mb-2">💬 Ask about this recipe — e.g. "I don't have flour, what can I use instead?"</p>
+                            
+                            {chatMessages.length > 0 && (
+                              <div className="max-h-60 overflow-y-auto space-y-2 mb-3 pr-1">
+                                {chatMessages.map((msg, i) => (
+                                  <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                                    <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs whitespace-pre-wrap ${
+                                      msg.role === "user"
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted text-foreground"
+                                    }`}>
+                                      {msg.content}
+                                    </div>
+                                  </div>
+                                ))}
+                                {chatLoading && (
+                                  <div className="flex justify-start">
+                                    <div className="bg-muted rounded-xl px-3 py-2 text-xs flex items-center gap-1.5">
+                                      <Loader2 className="w-3 h-3 animate-spin" /> Thinking...
+                                    </div>
+                                  </div>
+                                )}
+                                <div ref={chatEndRef} />
+                              </div>
+                            )}
+
+                            <div className="flex gap-2">
+                              <input
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && handleSendChat()}
+                                placeholder="e.g. I don't have flour..."
+                                className="flex-1 bg-background/50 border border-primary/10 rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+                              />
+                              <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={handleSendChat}
+                                disabled={chatLoading || !chatInput.trim()}
+                                className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground disabled:opacity-50"
+                              >
+                                <Send className="w-3.5 h-3.5" />
+                              </motion.button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </motion.div>
               )}

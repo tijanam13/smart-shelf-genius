@@ -28,20 +28,29 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a smart shopping assistant. Based on the user's current fridge items, suggest products they should buy. 
+            content: `You are a smart shopping assistant and nutritionist. Based on the user's current fridge items, suggest products they should buy.
+
+IMPORTANT - Analyze macronutrient balance:
+1. First, assess what macronutrients the current fridge items provide (proteins, carbs, fats, fiber, vitamins)
+2. Identify macronutrient gaps - e.g., if there's no meat/fish/legumes, protein is lacking; if no fruits/veggies, vitamins/fiber are lacking
+3. Prioritize suggestions that fill nutritional gaps
+
 Consider:
-- Common items that complement what they already have (e.g., if they have bread but no butter)
+- Macronutrient balance: ensure the user has sources of protein, healthy fats, complex carbs, and fiber
+- If protein sources are missing (meat, fish, eggs, legumes, tofu), suggest them as HIGH priority
+- If fruits/vegetables are lacking, suggest them for vitamins and fiber
+- Common items that complement what they already have
 - Staple items that might be running low or missing
-- Items that are commonly consumed and need regular restocking
-- Balanced nutrition - suggest fruits, vegetables, proteins, dairy etc. if missing
+- Items commonly consumed that need regular restocking
 
 Return a JSON array of suggestions. Each suggestion should have:
 - "name": product name
-- "reason": brief reason why they should buy it (1 sentence)
+- "reason": brief reason why they should buy it, mentioning the nutritional benefit (1 sentence)
 - "category": one of "Dairy", "Meat", "Vegetables", "Fruits", "Bakery", "Beverages", "Snacks", "Condiments", "Grains", "Frozen", "Other"
-- "priority": "high" (essential/missing staple), "medium" (good complement), or "low" (nice to have)
+- "priority": "high" (fills nutritional gap or essential staple), "medium" (good complement), or "low" (nice to have)
+- "macronutrient": primary macronutrient this item provides - one of "protein", "carbs", "fats", "fiber", "vitamins", "mixed"
 
-Return ONLY the JSON array, no other text. Suggest 6-10 items.`
+Return ONLY the JSON array, no other text. Suggest 8-12 items.`
           },
           {
             role: "user",
