@@ -52,6 +52,7 @@ const FridgePage = () => {
   const [fridgeOpen, setFridgeOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [tooltip, setTooltip] = useState<{ name: string; detail: string } | null>(null);
+  const [selectedItem, setSelectedItem] = useState<typeof enrichedItems[0] | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>(defaultRecipes);
   const [generatingRecipes, setGeneratingRecipes] = useState(false);
