@@ -496,6 +496,95 @@ const ShoppingList = () => {
                 </div>
               </motion.a>
 
+              {/* Smart Suggestions */}
+              <div className="mb-6">
+                {!showSuggestions ? (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={fetchSuggestions}
+                    className="w-full glass-card-strong rounded-2xl p-4 flex items-center justify-center gap-3 border border-accent/30 hover:border-accent/60 transition-colors"
+                  >
+                    <Sparkles className="w-5 h-5 text-accent" />
+                    <span className="text-sm font-semibold text-foreground">Smart Suggestions</span>
+                    <span className="text-xs text-muted-foreground">Based on your fridge</span>
+                  </motion.button>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="glass-card-strong rounded-2xl p-5 border border-accent/20"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-accent" />
+                        <h3 className="text-sm font-semibold text-foreground">Smart Suggestions</h3>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={fetchSuggestions}
+                          disabled={loadingSuggestions}
+                          className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+                        >
+                          Refresh
+                        </button>
+                        <button
+                          onClick={() => setShowSuggestions(false)}
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {loadingSuggestions ? (
+                      <div className="flex items-center justify-center py-8 gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                        <span className="text-sm text-muted-foreground">Analyzing your fridge...</span>
+                      </div>
+                    ) : suggestions.length > 0 ? (
+                      <div className="space-y-2">
+                        {suggestions.map((s, idx) => (
+                          <motion.div
+                            key={s.name + idx}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                            className="glass-card rounded-xl p-3 flex items-center gap-3"
+                          >
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                              s.priority === "high" ? "bg-urgent" : s.priority === "medium" ? "bg-warning" : "bg-safe"
+                            }`} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground">{s.name}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{s.reason}</p>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full flex-shrink-0">
+                              {s.category}
+                            </span>
+                            {currentList && (
+                              <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => addSuggestionToList(s)}
+                                className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors flex-shrink-0"
+                                title="Add to list"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </motion.button>
+                            )}
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <ShoppingBag className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                        <p className="text-xs text-muted-foreground">No suggestions available. Add items to your fridge first.</p>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </div>
+
               {/* Items by Store */}
               {Object.keys(groupedByStore).length > 0 ? (
                 <div className="space-y-6">
