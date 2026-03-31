@@ -244,6 +244,8 @@ const NotificationCenter: React.FC = () => {
         onClose={() => setSelectedNotification(null)}
         onMarkAsRead={markAsRead}
         onDelete={deleteNotification}
+        onMarkAsConsumed={markAsConsumed}
+        onMarkAsDiscarded={markAsDiscarded}
       />
     </div>
   );
