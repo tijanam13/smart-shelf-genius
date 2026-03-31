@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Trash2, ExternalLink, ChevronRight, ListPlus, Store, Check, Sparkles, Loader2, ShoppingBag } from "lucide-react";
+import { Plus, X, Trash2, ExternalLink, ChevronRight, ListPlus, Store, Check, Sparkles, Loader2, ShoppingBag, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import BottomNav from "@/components/BottomNav";
 import Header from "@/components/Header";
 import { useToast } from "@/hooks/use-toast";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface ShoppingItem {
   id: string;
