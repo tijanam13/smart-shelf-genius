@@ -189,7 +189,10 @@ export const useNotifications = () => {
       localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updated));
       setNotifications(updated);
       setHasNewNotification(true);
-      playNotificationSound();
+      if (!soundPlayedThisSession) {
+        soundPlayedThisSession = true;
+        playNotificationSound();
+      }
       setTimeout(() => setHasNewNotification(false), 3000);
     }
   // Only run when fridgeItems data or user changes, not on notifications state change
