@@ -28,7 +28,7 @@ const Profile = () => {
     setDisplayName(user.user_metadata?.display_name || user.email?.split('@')[0] || '');
 
     const fetchProfile = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
@@ -36,7 +36,10 @@ const Profile = () => {
       if (data) {
         setDisplayName(data.display_name || user.user_metadata?.display_name || '');
         setEmail(data.email || user.email || '');
-        setPhone(data.phone || '');
+        setPhone(data.phone || user.user_metadata?.phone || '');
+      } else {
+        // Fallback to user metadata if profile fetch fails
+        setPhone(user.user_metadata?.phone || '');
       }
     };
     fetchProfile();

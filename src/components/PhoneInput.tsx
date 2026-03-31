@@ -60,7 +60,7 @@ const PhoneInput = ({ value, onChange, className, required }: PhoneInputProps) =
   return (
     <div className={`flex gap-2 ${className || ''}`}>
       <Select value={prefix} onValueChange={handlePrefixChange}>
-        <SelectTrigger className="w-[120px] bg-secondary/50 border-border/50 shrink-0">
+        <SelectTrigger className="w-[180px] bg-secondary/50 border-border/50 shrink-0">
           <SelectValue />
         </SelectTrigger>
         <SelectContent className="max-h-60">
@@ -68,7 +68,8 @@ const PhoneInput = ({ value, onChange, className, required }: PhoneInputProps) =
             <SelectItem key={c.code} value={c.code}>
               <span className="flex items-center gap-1.5 text-sm">
                 <span>{c.flag}</span>
-                <span>{c.code}</span>
+                <span>{c.name}</span>
+                <span className="text-muted-foreground">{c.code}</span>
               </span>
             </SelectItem>
           ))}
