@@ -7,7 +7,7 @@ import NotificationDetail from '@/components/NotificationDetail';
 const NotificationCenter: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
-  const { allNotifications, unreadCount, hasNewNotification, markAsRead, deleteNotification, clearAll } = useNotifications();
+  const { allNotifications, unreadCount, hasNewNotification, markAsRead, deleteNotification, clearAll, markAsConsumed, markAsDiscarded } = useNotifications();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
