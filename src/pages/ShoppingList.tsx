@@ -61,7 +61,17 @@ interface Suggestion {
   reason: string;
   category: string;
   priority: "high" | "medium" | "low";
+  macronutrient?: string;
 }
+
+const macroEmoji: Record<string, string> = {
+  protein: "💪",
+  carbs: "🌾",
+  fats: "🥑",
+  fiber: "🥦",
+  vitamins: "🍊",
+  mixed: "⚖️",
+};
 
 const ShoppingList = () => {
   const { toast } = useToast();
