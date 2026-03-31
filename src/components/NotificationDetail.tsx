@@ -19,6 +19,8 @@ const NotificationDetail: React.FC<NotificationDetailProps> = ({
   onClose,
   onMarkAsRead,
   onDelete,
+  onMarkAsConsumed,
+  onMarkAsDiscarded,
 }) => {
   if (!notification) return null;
 
