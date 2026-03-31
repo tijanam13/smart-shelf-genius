@@ -210,8 +210,44 @@ const FridgePage = () => {
       setGeneratingRecipes(false);
     }
   };
+  const handleSendChat = async () => {
+    if (!chatInput.trim() || chatLoading) return;
+    const userMsg = chatInput.trim();
+    setChatInput("");
+    const newMessages = [...chatMessages, { role: "user" as const, content: userMsg }];
+    setChatMessages(newMessages);
+    setChatLoading(true);
 
-  // For the 3D fridge display, show up to 13 items
+    try {
+      const { data, error } = await supabase.functions.invoke("recipe-chat", {
+        body: {
+          recipe: selectedRecipe,
+          userMessage: userMsg,
+          fridgeItems: dbItems.map(i => ({ name: i.name, category: i.category })),
+          chatHistory: chatMessages,
+        },
+      });
+      if (error) throw error;
+      setChatMessages([...newMessages, { role: "assistant", content: data.reply }]);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Chat failed", variant: "destructive" });
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  // Reset chat when recipe changes
+  useEffect(() => {
+    setChatMessages([]);
+    setShowChat(false);
+    setChatInput("");
+  }, [selectedRecipe?.title]);
+
+
   const fridgeDisplayItems = enrichedItems.filter((i) => i.status === "fridge" || i.status === "in_fridge").slice(0, 10);
   const freezerDisplayItems = enrichedItems.filter((i) => i.status === "freezer").slice(0, 5);
 
