@@ -19,6 +19,7 @@ export interface Notification {
 
 const NOTIFICATION_STORAGE_KEY = 'smart-shelf-notifications';
 const NOTIFICATION_DATES_KEY = 'smart-shelf-notification-dates';
+let soundPlayedThisSession = false;
 
 // Placeholder notification sound - using Web Audio API
 const playNotificationSound = () => {
