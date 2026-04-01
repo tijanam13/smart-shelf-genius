@@ -570,69 +570,6 @@ const FridgePage = () => {
                       ))}
                     </div>
 
-                    {/* Expired Item Detail Popup */}
-                    <AnimatePresence>
-                      {selectedExpiredItem && (
-                        <>
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setSelectedExpiredItem(null)}
-                            className="fixed inset-0 bg-black/50 z-[9998] backdrop-blur-md"
-                          />
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] w-[280px] rounded-2xl border border-urgent/30 p-5 shadow-2xl"
-                            style={{ background: "linear-gradient(160deg, hsl(0 15% 18%) 0%, hsl(0 12% 14%) 100%)" }}
-                          >
-                            <div className="flex flex-col items-center gap-3">
-                              <div className="w-16 h-16 flex items-center justify-center text-4xl bg-urgent/10 rounded-2xl border border-urgent/20">
-                                {getProductImage(selectedExpiredItem.name)}
-                              </div>
-                              <h3 className="text-sm font-bold text-foreground">{selectedExpiredItem.name}</h3>
-                              <div className="w-full space-y-2 text-xs">
-                                <div className="flex justify-between items-center py-1.5 px-3 rounded-lg bg-urgent/10">
-                                  <span className="text-muted-foreground">Expiry Date</span>
-                                  <span className="text-urgent font-semibold">
-                                    {selectedExpiredItem.expiry_date ? new Date(selectedExpiredItem.expiry_date).toLocaleDateString() : "N/A"}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between items-center py-1.5 px-3 rounded-lg bg-urgent/10">
-                                  <span className="text-muted-foreground">Quantity</span>
-                                  <span className="text-urgent font-semibold">
-                                    {formatQtyUnit(selectedExpiredItem.quantity, selectedExpiredItem.unit)}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="flex gap-2 w-full mt-2">
-                                <motion.button
-                                  whileTap={{ scale: 0.95 }}
-                                  onClick={() => setSelectedExpiredItem(null)}
-                                  className="flex-1 py-2 rounded-lg bg-muted/20 text-muted-foreground text-[11px] font-semibold hover:bg-muted/30 transition-colors"
-                                >
-                                  Close
-                                </motion.button>
-                                <motion.button
-                                  whileTap={{ scale: 0.95 }}
-                                  onClick={async () => {
-                                    await supabase.from("fridge_items").delete().eq("id", selectedExpiredItem.id);
-                                    queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
-                                    toast({ title: "Deleted", description: `${selectedExpiredItem.name} removed.` });
-                                    setSelectedExpiredItem(null);
-                                  }}
-                                  className="flex-1 py-2 rounded-lg bg-urgent/15 text-urgent text-[11px] font-semibold hover:bg-urgent/25 transition-colors flex items-center justify-center gap-1.5"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" /> Delete
-                                </motion.button>
-                              </div>
-                            </div>
-                          </motion.div>
-                        </>
-                      )}
-                    </AnimatePresence>
                     <div className="px-3 pb-3">
                       <motion.button
                         whileTap={{ scale: 0.95 }}
