@@ -240,13 +240,14 @@ const FridgePage = () => {
       .update({
         status: editLocation,
         expiry_date: editExpiryDate ? format(editExpiryDate, "yyyy-MM-dd") : null,
+        quantity: editQuantity,
       })
       .eq("id", selectedItem.id);
     if (!error) {
       queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
       toast({ title: "Updated!", description: "Item updated successfully" });
       setEditingItem(null);
-      setSelectedItem(null); // Close modal after update
+      setSelectedItem(null);
     }
   };
 
