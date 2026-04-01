@@ -133,6 +133,8 @@ const FridgePage = () => {
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [donationItem, setDonationItem] = useState<typeof enrichedItems[0] | null>(null);
   const [usedRecipeTitles, setUsedRecipeTitles] = useState<Set<string>>(new Set());
+  const [fridgeExpanded, setFridgeExpanded] = useState(false);
+  const [freezerExpanded, setFreezerExpanded] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -381,8 +383,14 @@ const FridgePage = () => {
   }, [selectedRecipe?.title]);
 
 
-  const fridgeDisplayItems = enrichedItems.filter((i) => i.status === "fridge" || i.status === "in_fridge").slice(0, 10);
-  const freezerDisplayItems = enrichedItems.filter((i) => i.status === "freezer").slice(0, 5);
+  const fridgeDisplayItems = enrichedItems.filter((i) => i.status === "fridge" || i.status === "in_fridge");
+  const freezerDisplayItems = enrichedItems.filter((i) => i.status === "freezer");
+  const maxFridgeVisible = 9;
+  const maxFreezerVisible = 5;
+  const visibleFridgeItems = fridgeExpanded ? fridgeDisplayItems : fridgeDisplayItems.slice(0, maxFridgeVisible);
+  const visibleFreezerItems = freezerExpanded ? freezerDisplayItems : freezerDisplayItems.slice(0, maxFreezerVisible);
+  const hasMoreFridge = fridgeDisplayItems.length > maxFridgeVisible;
+  const hasMoreFreezer = freezerDisplayItems.length > maxFreezerVisible;
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
@@ -406,19 +414,30 @@ const FridgePage = () => {
                 onClick={() => setFridgeOpen(!fridgeOpen)}
               >
                 {/* Freezer */}
-                <div className="h-[180px] sm:h-[200px] relative overflow-hidden" style={{ background: "linear-gradient(160deg, hsl(155 25% 28%) 0%, hsl(155 30% 20%) 100%)", borderBottom: "2px solid hsl(155 20% 30%)" }}>
+                <div className={`relative overflow-hidden transition-all duration-500 ${freezerExpanded ? 'min-h-[200px]' : 'h-[180px] sm:h-[200px]'}`} style={{ background: "linear-gradient(160deg, hsl(155 25% 28%) 0%, hsl(155 30% 20%) 100%)", borderBottom: "2px solid hsl(155 20% 30%)" }}>
                   <div className="text-[10px] text-muted-foreground px-3 pt-2 tracking-wider font-medium">❄️ FREEZER</div>
                   
-                  {/* Freezer items - display first */}
-                  <div className="absolute inset-0 p-2 pt-6 flex items-end gap-2 z-[5]">
-                    {freezerDisplayItems.map((item) => (
-                      <motion.div key={item.id} whileHover={{ y: -2, scale: 1.1 }} className="flex flex-col items-center cursor-pointer flex-1 justify-center" onClick={(e) => { e.stopPropagation(); showTooltip(item); }}>
-                        <div className="w-12 h-12 flex items-center justify-center text-3xl bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
-                          {getProductImage(item.name)}
-                        </div>
-                        <span className={`text-[9px] font-bold ${urgencyText[item.urgency]} mt-1`}>{item.daysLabel}</span>
-                      </motion.div>
-                    ))}
+                  {/* Freezer items */}
+                  <div className="absolute inset-0 p-2 pt-6 z-[5] overflow-y-auto">
+                    <div className="flex flex-wrap gap-2 items-end">
+                      {visibleFreezerItems.map((item) => (
+                        <motion.div key={item.id} whileHover={{ y: -2, scale: 1.1 }} className="flex flex-col items-center cursor-pointer" style={{ width: '48px' }} onClick={(e) => { e.stopPropagation(); showTooltip(item); }}>
+                          <div className="w-12 h-12 flex items-center justify-center text-3xl bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
+                            {getProductImage(item.name)}
+                          </div>
+                          <span className={`text-[9px] font-bold ${urgencyText[item.urgency]} mt-1`}>{item.daysLabel}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                    {hasMoreFreezer && (
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={(e) => { e.stopPropagation(); setFreezerExpanded(!freezerExpanded); }}
+                        className="mt-2 w-full text-[10px] text-center py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-muted-foreground font-medium z-[25] relative"
+                      >
+                        {freezerExpanded ? '▲ Show less' : `▼ +${freezerDisplayItems.length - maxFreezerVisible} more items`}
+                      </motion.button>
+                    )}
                   </div>
 
                   {/* Door overlay */}
@@ -439,21 +458,38 @@ const FridgePage = () => {
                 </div>
 
                 {/* Main compartment */}
-                <div className="h-[280px] sm:h-[320px] relative overflow-hidden" style={{ background: "linear-gradient(160deg, hsl(155 22% 24%) 0%, hsl(155 26% 17%) 100%)" }}>
-                  {/* Shelves with items - display first */}
-                  <div className="absolute inset-0 p-2 flex flex-col gap-1 z-[5]">
-                    {[fridgeDisplayItems.slice(0, 3), fridgeDisplayItems.slice(3, 6), fridgeDisplayItems.slice(6)].map((shelf, si) => (
-                      <div key={si} className="flex gap-2 items-end px-1 py-1 rounded-sm flex-1 overflow-hidden" style={{ background: "rgba(120,190,160,0.12)", borderBottom: "1.5px solid rgba(120,190,160,0.3)" }}>
-                        {shelf.map((item) => (
-                          <motion.div key={item.id} whileHover={{ y: -3, scale: 1.1 }} className="flex flex-col items-center cursor-pointer flex-1 justify-end" onClick={(e) => { e.stopPropagation(); showTooltip(item); }}>
-                            <div className="w-12 h-12 flex items-center justify-center text-3xl bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
-                              {getProductImage(item.name)}
-                            </div>
-                            <span className={`text-[8px] font-bold ${urgencyText[item.urgency]} ${item.urgency === "urgent" ? "animate-pulse" : ""} mt-1`}>{item.daysLabel}</span>
-                          </motion.div>
-                        ))}
-                      </div>
-                    ))}
+                <div className={`relative overflow-hidden transition-all duration-500 ${fridgeExpanded ? 'min-h-[320px]' : 'h-[280px] sm:h-[320px]'}`} style={{ background: "linear-gradient(160deg, hsl(155 22% 24%) 0%, hsl(155 26% 17%) 100%)" }}>
+                  {/* Shelves with items */}
+                  <div className="absolute inset-0 p-2 flex flex-col gap-1 z-[5] overflow-y-auto">
+                    {(() => {
+                      const itemsPerShelf = 3;
+                      const shelves: typeof visibleFridgeItems[] = [];
+                      for (let i = 0; i < visibleFridgeItems.length; i += itemsPerShelf) {
+                        shelves.push(visibleFridgeItems.slice(i, i + itemsPerShelf));
+                      }
+                      if (shelves.length === 0) shelves.push([]);
+                      return shelves.map((shelf, si) => (
+                        <div key={si} className="flex gap-2 items-end px-1 py-1 rounded-sm" style={{ background: "rgba(120,190,160,0.12)", borderBottom: "1.5px solid rgba(120,190,160,0.3)", minHeight: '70px' }}>
+                          {shelf.map((item) => (
+                            <motion.div key={item.id} whileHover={{ y: -3, scale: 1.1 }} className="flex flex-col items-center cursor-pointer flex-1 justify-end" onClick={(e) => { e.stopPropagation(); showTooltip(item); }}>
+                              <div className="w-12 h-12 flex items-center justify-center text-3xl bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
+                                {getProductImage(item.name)}
+                              </div>
+                              <span className={`text-[8px] font-bold ${urgencyText[item.urgency]} ${item.urgency === "urgent" ? "animate-pulse" : ""} mt-1`}>{item.daysLabel}</span>
+                            </motion.div>
+                          ))}
+                        </div>
+                      ));
+                    })()}
+                    {hasMoreFridge && (
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={(e) => { e.stopPropagation(); setFridgeExpanded(!fridgeExpanded); }}
+                        className="mt-1 w-full text-[10px] text-center py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-muted-foreground font-medium z-[25] relative"
+                      >
+                        {fridgeExpanded ? '▲ Show less' : `▼ +${fridgeDisplayItems.length - maxFridgeVisible} more items`}
+                      </motion.button>
+                    )}
                   </div>
 
                   {/* Door overlay */}
