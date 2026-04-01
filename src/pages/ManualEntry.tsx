@@ -52,7 +52,7 @@ const ManualEntry = () => {
   const [location, setLocation] = useState("fridge");
   const [saving, setSaving] = useState(false);
 
-  const step = unit === "g" || unit === "ml" ? 100 : unit === "kg" || unit === "l" ? 0.1 : 1;
+  const step = 1;
 
   const handleSave = async () => {
     if (!user) { toast.error("Please log in first"); return; }
