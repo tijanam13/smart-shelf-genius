@@ -1,73 +1,20 @@
 import { motion } from "framer-motion";
-import { Award, ArrowRight, ShoppingBag } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { Award, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useFamilyTokens, useFamilyStats } from "@/hooks/useFamilyData";
 
 const RewardSection = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const [tokens, setTokens] = useState(0);
-  const [donationsCount, setDonationsCount] = useState(0);
-  const [usedRecipesCount, setUsedRecipesCount] = useState(0);
-  const [lessWaste, setLessWaste] = useState("0kg");
+  const { data: tokenData } = useFamilyTokens();
+  const { data: statsData } = useFamilyStats();
+
+  const tokens = tokenData?.tokens ?? 0;
+  const donationsCount = statsData?.donationsCount ?? 0;
+  const usedRecipesCount = statsData?.usedRecipesCount ?? 0;
+  const lessWaste = statsData?.lessWaste ?? "0g";
+
   const goal = 500;
   const progress = Math.min((tokens / goal) * 100, 100);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchData = async () => {
-      try {
-        // Fetch tokens
-        const { data: tokenData } = await supabase
-          .from('user_tokens')
-          .select('total_tokens')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        setTokens((tokenData as any)?.total_tokens ?? 0);
-
-        // Fetch donations count
-        const { data: donationData } = await supabase
-          .from('donations')
-          .select('id, quantity, unit')
-          .eq('user_id', user.id);
-        setDonationsCount(donationData?.length ?? 0);
-
-        // Fetch used recipes count  
-        const { data: recipesData } = await supabase
-          .from('used_recipes')
-          .select('id')
-          .eq('user_id', user.id);
-        setUsedRecipesCount(recipesData?.length ?? 0);
-
-        // Calculate less waste: donations weight + used recipe items saved from expiry
-        let totalKg = 0;
-        if (donationData) {
-          for (const d of donationData) {
-            const qty = Number(d.quantity) || 0;
-            const unit = (d as any).unit || 'pcs';
-            if (unit === 'kg') totalKg += qty;
-            else if (unit === 'g') totalKg += qty / 1000;
-            else totalKg += qty * 0.2; // estimate ~200g per piece
-          }
-        }
-        // Each used recipe saves ~0.5kg on average
-        totalKg += (recipesData?.length ?? 0) * 0.5;
-
-        if (totalKg >= 1) {
-          setLessWaste(`${totalKg.toFixed(1)}kg`);
-        } else {
-          setLessWaste(`${Math.round(totalKg * 1000)}g`);
-        }
-      } catch (error) {
-        console.error('Error fetching rewards:', error);
-      }
-    };
-
-    fetchData();
-  }, [user]);
 
   return (
     <div className="px-5 mt-5 lg:px-0">
