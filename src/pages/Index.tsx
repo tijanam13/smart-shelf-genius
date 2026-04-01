@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Clock, X, ChevronLeft } from "lucide-react";
 import Header from "@/components/Header";
 import ExpiringSection from "@/components/ExpiringSection";
+import NotificationsSection from "@/components/NotificationsSection";
 import QuickActions from "@/components/QuickActions";
 import AIInsightCard from "@/components/AIInsightCard";
 import RewardSection from "@/components/RewardSection";
