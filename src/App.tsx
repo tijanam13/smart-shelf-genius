@@ -45,6 +45,7 @@ const App = () => (
             <Route path="/barcode-scanner" element={<BarcodeScanner />} />
             <Route path="/scan" element={<ReceiptScanner />} />
             <Route path="/manual-entry" element={<ManualEntry />} />
+            <Route path="/store" element={<Store />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
