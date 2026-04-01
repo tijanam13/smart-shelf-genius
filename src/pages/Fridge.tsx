@@ -863,29 +863,59 @@ const FridgePage = () => {
               {/* Recipes */}
               {activeTab === "recipes" && !selectedRecipe && (
                 <motion.div key="recipes" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">AI Suggestions — use before they expire</p>
-                  {recipes.map((r, idx) => {
-                    const isUsed = usedRecipeTitles.has(r.title);
+                  {(() => {
+                    const unusedRecipes = recipes.filter(r => !usedRecipeTitles.has(r.title));
+                    const usedRecipes = recipes.filter(r => usedRecipeTitles.has(r.title));
                     return (
-                    <motion.div key={`${r.title}-${idx}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.08 }} whileHover={{ scale: 1.01 }} className={`glass-card rounded-xl p-4 mb-3 cursor-pointer ${isUsed ? 'opacity-60' : ''}`} onClick={() => setSelectedRecipe(r)}>
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-foreground">{r.title}</p>
-                        {isUsed && <span className="text-[10px] font-semibold text-safe bg-safe/15 px-2 py-0.5 rounded-full">✅ Used</span>}
-                      </div>
-                      {r.sub && <p className="text-[11px] text-muted-foreground mt-1">{r.sub}</p>}
-                      <div className="flex items-center justify-between mt-3">
-                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> {r.time}
-                          {r.difficulty && <span className="ml-2">· {r.difficulty}</span>}
-                        </span>
-                        <span className="text-[11px] font-semibold text-token bg-token/10 px-2 py-0.5 rounded-full">{isUsed ? 'Earned' : '+'}{r.tokens} 🪙</span>
-                      </div>
-                    </motion.div>
+                      <>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">AI Suggestions — use before they expire</p>
+                        {unusedRecipes.length === 0 && (
+                          <div className="glass-card rounded-xl p-4 mb-3 text-center">
+                            <p className="text-sm text-muted-foreground">All recipes used! Generate more below.</p>
+                          </div>
+                        )}
+                        {unusedRecipes.map((r, idx) => (
+                          <motion.div key={`${r.title}-${idx}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.08 }} whileHover={{ scale: 1.01 }} className="glass-card rounded-xl p-4 mb-3 cursor-pointer" onClick={() => setSelectedRecipe(r)}>
+                            <p className="text-sm font-medium text-foreground">{r.title}</p>
+                            {r.sub && <p className="text-[11px] text-muted-foreground mt-1">{r.sub}</p>}
+                            <div className="flex items-center justify-between mt-3">
+                              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                <Clock className="w-3 h-3" /> {r.time}
+                                {r.difficulty && <span className="ml-2">· {r.difficulty}</span>}
+                              </span>
+                              <span className="text-[11px] font-semibold text-token bg-token/10 px-2 py-0.5 rounded-full">+{r.tokens} 🪙</span>
+                            </div>
+                          </motion.div>
+                        ))}
+
+                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={handleGenerateRecipes} disabled={generatingRecipes} className="w-full glass-card rounded-xl py-2.5 text-xs font-medium text-foreground flex items-center justify-center gap-1.5 mt-1 disabled:opacity-50">
+                          {generatingRecipes ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating recipes...</>) : (<><Sparkles className="h-3.5 w-3.5" /> Generate more recipes <ChevronRight className="h-3.5 w-3.5" /></>)}
+                        </motion.button>
+
+                        {usedRecipes.length > 0 && (
+                          <div className="mt-6">
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">✅ Used Recipes ({usedRecipes.length})</p>
+                            {usedRecipes.map((r, idx) => (
+                              <motion.div key={`used-${r.title}-${idx}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} whileHover={{ scale: 1.01 }} className="glass-card rounded-xl p-4 mb-2 cursor-pointer opacity-60" onClick={() => setSelectedRecipe(r)}>
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm font-medium text-foreground">{r.title}</p>
+                                  <span className="text-[10px] font-semibold text-safe bg-safe/15 px-2 py-0.5 rounded-full">✅ Used</span>
+                                </div>
+                                {r.sub && <p className="text-[11px] text-muted-foreground mt-1">{r.sub}</p>}
+                                <div className="flex items-center justify-between mt-3">
+                                  <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                    <Clock className="w-3 h-3" /> {r.time}
+                                    {r.difficulty && <span className="ml-2">· {r.difficulty}</span>}
+                                  </span>
+                                  <span className="text-[11px] font-semibold text-safe bg-safe/10 px-2 py-0.5 rounded-full">Earned {r.tokens} 🪙</span>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                        )}
+                      </>
                     );
-                  })}
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={handleGenerateRecipes} disabled={generatingRecipes} className="w-full glass-card rounded-xl py-2.5 text-xs font-medium text-foreground flex items-center justify-center gap-1.5 mt-1 disabled:opacity-50">
-                    {generatingRecipes ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating recipes...</>) : (<><Sparkles className="h-3.5 w-3.5" /> Generate more recipes <ChevronRight className="h-3.5 w-3.5" /></>)}
-                  </motion.button>
+                  })()}
                 </motion.div>
               )}
 
