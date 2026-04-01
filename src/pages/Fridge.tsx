@@ -414,19 +414,30 @@ const FridgePage = () => {
                 onClick={() => setFridgeOpen(!fridgeOpen)}
               >
                 {/* Freezer */}
-                <div className="h-[180px] sm:h-[200px] relative overflow-hidden" style={{ background: "linear-gradient(160deg, hsl(155 25% 28%) 0%, hsl(155 30% 20%) 100%)", borderBottom: "2px solid hsl(155 20% 30%)" }}>
+                <div className={`relative overflow-hidden transition-all duration-500 ${freezerExpanded ? 'min-h-[200px]' : 'h-[180px] sm:h-[200px]'}`} style={{ background: "linear-gradient(160deg, hsl(155 25% 28%) 0%, hsl(155 30% 20%) 100%)", borderBottom: "2px solid hsl(155 20% 30%)" }}>
                   <div className="text-[10px] text-muted-foreground px-3 pt-2 tracking-wider font-medium">❄️ FREEZER</div>
                   
-                  {/* Freezer items - display first */}
-                  <div className="absolute inset-0 p-2 pt-6 flex items-end gap-2 z-[5]">
-                    {freezerDisplayItems.map((item) => (
-                      <motion.div key={item.id} whileHover={{ y: -2, scale: 1.1 }} className="flex flex-col items-center cursor-pointer flex-1 justify-center" onClick={(e) => { e.stopPropagation(); showTooltip(item); }}>
-                        <div className="w-12 h-12 flex items-center justify-center text-3xl bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
-                          {getProductImage(item.name)}
-                        </div>
-                        <span className={`text-[9px] font-bold ${urgencyText[item.urgency]} mt-1`}>{item.daysLabel}</span>
-                      </motion.div>
-                    ))}
+                  {/* Freezer items */}
+                  <div className="absolute inset-0 p-2 pt-6 z-[5] overflow-y-auto">
+                    <div className="flex flex-wrap gap-2 items-end">
+                      {visibleFreezerItems.map((item) => (
+                        <motion.div key={item.id} whileHover={{ y: -2, scale: 1.1 }} className="flex flex-col items-center cursor-pointer" style={{ width: '48px' }} onClick={(e) => { e.stopPropagation(); showTooltip(item); }}>
+                          <div className="w-12 h-12 flex items-center justify-center text-3xl bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
+                            {getProductImage(item.name)}
+                          </div>
+                          <span className={`text-[9px] font-bold ${urgencyText[item.urgency]} mt-1`}>{item.daysLabel}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                    {hasMoreFreezer && (
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={(e) => { e.stopPropagation(); setFreezerExpanded(!freezerExpanded); }}
+                        className="mt-2 w-full text-[10px] text-center py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-muted-foreground font-medium z-[25] relative"
+                      >
+                        {freezerExpanded ? '▲ Show less' : `▼ +${freezerDisplayItems.length - maxFreezerVisible} more items`}
+                      </motion.button>
+                    )}
                   </div>
 
                   {/* Door overlay */}
