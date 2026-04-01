@@ -381,8 +381,16 @@ const FridgePage = () => {
   }, [selectedRecipe?.title]);
 
 
-  const fridgeDisplayItems = enrichedItems.filter((i) => i.status === "fridge" || i.status === "in_fridge").slice(0, 10);
-  const freezerDisplayItems = enrichedItems.filter((i) => i.status === "freezer").slice(0, 5);
+  const fridgeDisplayItems = enrichedItems.filter((i) => i.status === "fridge" || i.status === "in_fridge");
+  const freezerDisplayItems = enrichedItems.filter((i) => i.status === "freezer");
+  const [fridgeExpanded, setFridgeExpanded] = useState(false);
+  const [freezerExpanded, setFreezerExpanded] = useState(false);
+  const maxFridgeVisible = 9;
+  const maxFreezerVisible = 5;
+  const visibleFridgeItems = fridgeExpanded ? fridgeDisplayItems : fridgeDisplayItems.slice(0, maxFridgeVisible);
+  const visibleFreezerItems = freezerExpanded ? freezerDisplayItems : freezerDisplayItems.slice(0, maxFreezerVisible);
+  const hasMoreFridge = fridgeDisplayItems.length > maxFridgeVisible;
+  const hasMoreFreezer = freezerDisplayItems.length > maxFreezerVisible;
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
