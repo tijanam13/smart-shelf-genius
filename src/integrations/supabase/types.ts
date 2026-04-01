@@ -197,6 +197,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          total_points: number
           total_tokens: number
           updated_at: string
           user_id: string
@@ -204,6 +205,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          total_points?: number
           total_tokens?: number
           updated_at?: string
           user_id: string
@@ -211,6 +213,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          total_points?: number
           total_tokens?: number
           updated_at?: string
           user_id?: string
