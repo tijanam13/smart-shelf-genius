@@ -33,6 +33,8 @@ const Planet = () => {
           <p className="text-sm text-muted-foreground">Track your planet's growth through points</p>
         </motion.div>
 
+        <DailyEcoTip />
+
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
