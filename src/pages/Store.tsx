@@ -273,7 +273,7 @@ const Store = () => {
               <div className="text-center py-16">
                 <p className="text-4xl mb-3">🎫</p>
                 <p className="text-muted-foreground text-sm">No active coupons yet</p>
-                <p className="text-muted-foreground text-xs mt-1">Redeem tokens in the Store tab</p>
+                <p className="text-muted-foreground text-xs mt-1">Activate coupons in the Store tab</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
