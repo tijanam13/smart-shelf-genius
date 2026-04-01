@@ -103,10 +103,44 @@ const FridgePage = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [donationItem, setDonationItem] = useState<typeof enrichedItems[0] | null>(null);
+  const [usedRecipeTitles, setUsedRecipeTitles] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: dbItems = [], isLoading } = useFridgeItems();
+
+  // Load used recipes from DB
+  useEffect(() => {
+    if (!user) return;
+    const loadUsedRecipes = async () => {
+      const { data } = await supabase
+        .from('used_recipes')
+        .select('recipe_title')
+        .eq('user_id', user.id);
+      if (data) {
+        setUsedRecipeTitles(new Set(data.map((r: any) => r.recipe_title)));
+      }
+    };
+    loadUsedRecipes();
+  }, [user]);
+
+  // Realtime subscription for fridge_items
+  useEffect(() => {
+    const channel = supabase
+      .channel('fridge-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'fridge_items' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const enrichedItems = dbItems.map((item) => {
     const days = getDaysLeft(item.expiry_date);
