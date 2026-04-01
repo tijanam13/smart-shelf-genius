@@ -95,7 +95,9 @@ export function getDaysLeft(expiryDate: string | null): number {
 export function getCategoryEmoji(category: string): string {
   const map: Record<string, string> = {
     Dairy: "🥛", Meat: "🥩", Fruit: "🍎", Vegetable: "🥬",
-    Bakery: "🍞", Pantry: "🫙", Beverage: "🧃", Other: "📦",
+    Bakery: "🍞", Pantry: "🫙", Beverage: "🧃", Fish: "🐟",
+    Seafood: "🦐", Eggs: "🥚", Frozen: "🧊", Snacks: "🍿",
+    Condiments: "🫙", Sweets: "🍫", Other: "🍽️",
   };
-  return map[category] || "📦";
+  return map[category] || "🍽️";
 }

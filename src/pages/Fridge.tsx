@@ -57,24 +57,53 @@ const urgencyText: Record<Urgency, string> = { safe: "text-safe", warning: "text
 const urgencyBadge: Record<Urgency, string> = { safe: "bg-safe/15 text-safe", warning: "bg-warning/15 text-warning", urgent: "bg-urgent/15 text-urgent" };
 const urgencyGlow: Record<Urgency, string> = { safe: "", warning: "glow-warning", urgent: "glow-urgent" };
 
-// Product images mapping
+// Product images mapping - comprehensive food emoji map
 const productImages: Record<string, string> = {
-  "apple": "🍎",
-  "cucumber": "🥒",
-  "milk": "🥛",
-  "eggs": "🥚",
-  "butter": "🧈",
-  "cheese": "🧀",
-  "bread": "🍞",
-  "tomato": "🍅",
-  "lettuce": "🥬",
-  "carrot": "🥕",
-  "chicken": "🍗",
-  "beef": "🥩",
-  "fish": "🐟",
-  "yogurt": "🥛",
-  "juice": "🧃",
-  "ice cream": "🍦",
+  // Fruits
+  "apple": "🍎", "banana": "🍌", "orange": "🍊", "lemon": "🍋", "lime": "🍋‍🟩",
+  "grape": "🍇", "strawberry": "🍓", "blueberry": "🫐", "cherry": "🍒",
+  "peach": "🍑", "pear": "🍐", "watermelon": "🍉", "melon": "🍈",
+  "pineapple": "🍍", "mango": "🥭", "coconut": "🥥", "kiwi": "🥝",
+  "avocado": "🥑", "plum": "🫐", "fig": "🫐",
+  // Vegetables
+  "cucumber": "🥒", "tomato": "🍅", "lettuce": "🥬", "carrot": "🥕",
+  "corn": "🌽", "pepper": "🌶️", "paprika": "🫑", "broccoli": "🥦",
+  "garlic": "🧄", "onion": "🧅", "potato": "🥔", "sweet potato": "🍠",
+  "mushroom": "🍄", "eggplant": "🍆", "cabbage": "🥬", "spinach": "🥬",
+  "celery": "🥬", "zucchini": "🥒", "peas": "🫛", "bean": "🫘",
+  "salad": "🥗", "radish": "🥬",
+  // Dairy
+  "milk": "🥛", "cheese": "🧀", "butter": "🧈", "yogurt": "🥛",
+  "cream": "🥛", "sour cream": "🥛", "kefir": "🥛",
+  // Bakery & Grains
+  "bread": "🍞", "white bread": "🍞", "toast": "🍞", "bagel": "🥯",
+  "croissant": "🥐", "pretzel": "🥨", "pancake": "🥞", "waffle": "🧇",
+  "rice": "🍚", "pasta": "🍝", "noodle": "🍜", "flour": "🌾",
+  "cereal": "🥣", "oat": "🌾", "tortilla": "🫓", "flatbread": "🫓",
+  // Meat & Protein
+  "chicken": "🍗", "beef": "🥩", "pork": "🥩", "steak": "🥩",
+  "ham": "🥓", "bacon": "🥓", "sausage": "🌭", "turkey": "🍗",
+  "lamb": "🥩", "meat": "🥩", "salami": "🥩", "prosciutto": "🥩",
+  // Fish & Seafood
+  "fish": "🐟", "salmon": "🍣", "tuna": "🐟", "shrimp": "🦐",
+  "crab": "🦀", "lobster": "🦞", "squid": "🦑", "oyster": "🦪",
+  // Eggs
+  "egg": "🥚", "eggs": "🥚",
+  // Beverages
+  "juice": "🧃", "water": "💧", "coffee": "☕", "tea": "🍵",
+  "soda": "🥤", "beer": "🍺", "wine": "🍷", "smoothie": "🥤",
+  // Sweets & Snacks
+  "ice cream": "🍦", "chocolate": "🍫", "cake": "🍰", "cookie": "🍪",
+  "pie": "🥧", "candy": "🍬", "honey": "🍯", "jam": "🍯",
+  "peanut": "🥜", "nuts": "🥜", "almond": "🥜", "walnut": "🥜",
+  "popcorn": "🍿", "chips": "🍿",
+  // Condiments & Sauces
+  "ketchup": "🫙", "mustard": "🫙", "mayo": "🫙", "sauce": "🫙",
+  "oil": "🫒", "olive": "🫒", "vinegar": "🫙", "salt": "🧂",
+  // Other
+  "soup": "🍲", "stew": "🍲", "pizza": "🍕", "burger": "🍔",
+  "sandwich": "🥪", "taco": "🌮", "sushi": "🍣", "dumpling": "🥟",
+  "tofu": "🧊", "can": "🥫",
 };
 
 const getProductImage = (name: string): string => {
@@ -82,7 +111,7 @@ const getProductImage = (name: string): string => {
   for (const [k, v] of Object.entries(productImages)) {
     if (key.includes(k)) return v;
   }
-  return "📦"; // default
+  return "🍽️"; // default food icon
 };
 
 const FridgePage = () => {
@@ -145,7 +174,7 @@ const FridgePage = () => {
   const enrichedItems = dbItems.map((item) => {
     const days = getDaysLeft(item.expiry_date);
     const urgency = getUrgency(item.expiry_date);
-    const emoji = getCategoryEmoji(item.category);
+    const emoji = getProductImage(item.name);
     const freshness = Math.max(0, Math.min(100, Math.round((days / 30) * 100)));
     const daysLabel = item.expiry_date ? (days <= 0 ? "Today!" : `${days}d`) : "N/A";
     return { ...item, days, urgency, emoji, freshness, daysLabel };
