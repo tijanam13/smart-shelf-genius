@@ -536,7 +536,57 @@ const FridgePage = () => {
                 🚪 {fridgeOpen ? "Close" : "Open"} Fridge
               </motion.button>
 
-              <AnimatePresence>
+              {/* Trash Can - Expired Items */}
+              {expiredItems.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 w-full"
+                >
+                  <div className="rounded-2xl border border-urgent/20 overflow-hidden" style={{ background: "linear-gradient(160deg, hsl(0 15% 18%) 0%, hsl(0 12% 14%) 100%)" }}>
+                    <div className="px-4 py-2.5 flex items-center justify-between border-b border-urgent/15">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">🗑️</span>
+                        <span className="text-xs font-semibold text-urgent">Expired Items</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">{expiredItems.length} items</span>
+                    </div>
+                    <div className="p-3 flex flex-wrap gap-2 max-h-[160px] overflow-y-auto">
+                      {expiredItems.map((item) => (
+                        <motion.div
+                          key={item.id}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="flex flex-col items-center opacity-60"
+                          style={{ width: '52px' }}
+                        >
+                          <div className="w-10 h-10 flex items-center justify-center text-2xl bg-urgent/10 rounded-lg border border-urgent/20 relative">
+                            {getProductImage(item.name)}
+                            <span className="absolute -top-1 -right-1 text-[8px]">❌</span>
+                          </div>
+                          <span className="text-[8px] text-urgent font-medium mt-1 text-center truncate w-full">{item.name}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                    <div className="px-3 pb-3">
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={async () => {
+                          for (const item of expiredItems) {
+                            await supabase.from("fridge_items").delete().eq("id", item.id);
+                          }
+                          queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
+                          toast({ title: "Trash emptied", description: `${expiredItems.length} expired items removed.` });
+                        }}
+                        className="w-full py-2 rounded-lg bg-urgent/15 text-urgent text-[11px] font-semibold hover:bg-urgent/25 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Empty Trash
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
                 {selectedItem && (
                   <>
                     <motion.div
