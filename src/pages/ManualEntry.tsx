@@ -154,7 +154,7 @@ const ManualEntry = () => {
                 <Minus className="w-4 h-4 text-foreground" />
               </motion.button>
               <span className="text-lg font-bold text-foreground w-12 text-center">{displayQty}</span>
-              <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQuantity((q) => +(q + step).toFixed(1))} className="w-10 h-10 rounded-xl glass-card flex items-center justify-center">
+              <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQuantity((q) => q + 1)} className="w-10 h-10 rounded-xl glass-card flex items-center justify-center">
                 <Plus className="w-4 h-4 text-foreground" />
               </motion.button>
             </div>
