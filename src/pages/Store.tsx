@@ -128,7 +128,7 @@ const Store = () => {
       coupon_category: item.category,
     } as any);
 
-    if (insertErr) { toast.error("Failed to redeem coupon"); setRedeeming(false); return; }
+    if (insertErr) { toast.error("Failed to activate coupon"); setRedeeming(false); return; }
 
     await supabase
       .from('user_tokens')
@@ -137,7 +137,7 @@ const Store = () => {
 
     setTokens(prev => prev - item.cost);
     queryClient.invalidateQueries({ queryKey: ["family_tokens"] });
-    toast.success(`Redeemed "${item.name}"!`);
+    toast.success(`Activated "${item.name}"!`);
     await fetchData();
     setRedeeming(false);
   };
@@ -177,7 +177,7 @@ const Store = () => {
               <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
                 <ShoppingBag className="w-6 h-6 text-primary" /> Store
               </h1>
-              <p className="text-muted-foreground text-sm mt-1">Redeem tokens for discounts & rewards</p>
+              <p className="text-muted-foreground text-sm mt-1">Activate coupons with your tokens</p>
             </div>
             <div className="glass-card rounded-xl px-4 py-2 text-center">
               <p className="text-lg font-bold text-token">{tokens} 🪙</p>
@@ -254,7 +254,7 @@ const Store = () => {
                                 : "bg-muted/30 text-muted-foreground cursor-not-allowed"
                             }`}
                           >
-                            {canAfford ? "Redeem" : "Not enough"}
+                            {canAfford ? "Activate" : "Not enough"}
                           </motion.button>
                         </div>
                       </div>
@@ -273,7 +273,7 @@ const Store = () => {
               <div className="text-center py-16">
                 <p className="text-4xl mb-3">🎫</p>
                 <p className="text-muted-foreground text-sm">No active coupons yet</p>
-                <p className="text-muted-foreground text-xs mt-1">Redeem tokens in the Store tab</p>
+                <p className="text-muted-foreground text-xs mt-1">Activate coupons in the Store tab</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
