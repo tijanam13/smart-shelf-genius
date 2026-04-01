@@ -147,26 +147,26 @@ const NotificationCenter: React.FC = () => {
                           </div>
 
                           {/* Actions */}
-                          <div className="flex gap-2 flex-shrink-0">
+                          <div className="flex gap-1 flex-shrink-0">
                             <motion.button
                               whileTap={{ scale: 0.9 }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                markAsConsumed(notification.id);
+                                markAsRead(notification.id);
                               }}
                               className="p-1.5 text-muted-foreground hover:text-primary transition-colors hover:bg-primary/10 rounded-lg"
-                              title="Iskorišćeno"
+                              title="Označi kao pročitano"
                             >
-                              <CheckCircle2 className="w-4 h-4" />
+                              <Eye className="w-4 h-4" />
                             </motion.button>
                             <motion.button
                               whileTap={{ scale: 0.9 }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                markAsDiscarded(notification.id);
+                                deleteNotification(notification.id);
                               }}
                               className="p-1.5 text-muted-foreground hover:text-urgent transition-colors hover:bg-urgent/10 rounded-lg"
-                              title="Bačeno"
+                              title="Obriši"
                             >
                               <Trash2 className="w-4 h-4" />
                             </motion.button>
