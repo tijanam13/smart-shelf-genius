@@ -587,6 +587,7 @@ const FridgePage = () => {
                 </motion.div>
               )}
 
+              <AnimatePresence>
                 {selectedItem && (
                   <>
                     <motion.div
