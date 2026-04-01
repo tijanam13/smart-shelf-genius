@@ -128,7 +128,7 @@ const Store = () => {
       coupon_category: item.category,
     } as any);
 
-    if (insertErr) { toast.error("Failed to redeem coupon"); setRedeeming(false); return; }
+    if (insertErr) { toast.error("Failed to activate coupon"); setRedeeming(false); return; }
 
     await supabase
       .from('user_tokens')
