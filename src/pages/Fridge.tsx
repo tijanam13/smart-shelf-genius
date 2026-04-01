@@ -201,10 +201,42 @@ const FridgePage = () => {
       return;
     }
 
+    if (usedRecipeTitles.has(recipe.title)) {
+      toast({ title: "Already used", description: "You already used this recipe.", variant: "destructive" });
+      return;
+    }
+
     try {
+      // Record used recipe
+      const { error: recipeError } = await supabase
+        .from('used_recipes')
+        .insert({ user_id: user.id, recipe_title: recipe.title, tokens_earned: recipe.tokens });
+
+      if (recipeError) throw recipeError;
+
+      // Update tokens - upsert
+      const { data: existing } = await supabase
+        .from('user_tokens')
+        .select('total_tokens')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('user_tokens')
+          .update({ total_tokens: existing.total_tokens + recipe.tokens, updated_at: new Date().toISOString() })
+          .eq('user_id', user.id);
+      } else {
+        await supabase
+          .from('user_tokens')
+          .insert({ user_id: user.id, total_tokens: recipe.tokens });
+      }
+
+      setUsedRecipeTitles(prev => new Set([...prev, recipe.title]));
+
       toast({
-        title: "Recipe Used!",
-        description: `You started cooking "${recipe.title}"`,
+        title: "Recipe Used! 🎉",
+        description: `You earned +${recipe.tokens} 🪙 tokens!`,
       });
 
       queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
