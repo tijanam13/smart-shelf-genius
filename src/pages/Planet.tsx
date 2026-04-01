@@ -5,6 +5,7 @@ import PlanetProgress from '@/components/PlanetProgress';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useFamilyTokens } from '@/hooks/useFamilyData';
+import DailyEcoTip from '@/components/DailyEcoTip';
 
 const Planet = () => {
   const { user } = useAuth();
@@ -31,6 +32,8 @@ const Planet = () => {
           <h1 className="font-display text-3xl font-bold text-foreground mb-2">Your Planet</h1>
           <p className="text-sm text-muted-foreground">Track your planet's growth through points</p>
         </motion.div>
+
+        <DailyEcoTip />
 
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
