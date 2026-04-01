@@ -1081,39 +1081,46 @@ const FridgePage = () => {
               className="fixed inset-0 bg-black/50 z-[9998] backdrop-blur-md"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed z-[9999] w-[280px] rounded-2xl border border-urgent/30 p-5 shadow-2xl"
-              style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)", background: "linear-gradient(160deg, hsl(0 15% 18%) 0%, hsl(0 12% 14%) 100%)" }}
+              initial={{ opacity: 0, scale: 0.8, y: 60 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 60 }}
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
+              className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none"
             >
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-16 h-16 flex items-center justify-center text-4xl bg-urgent/10 rounded-2xl border border-urgent/20">
-                  {getProductImage(selectedExpiredItem.name)}
+              <div className="w-full max-w-[500px] glass-card-strong rounded-3xl p-7 shadow-2xl pointer-events-auto">
+                <div className="flex items-start justify-between mb-5">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{getProductImage(selectedExpiredItem.name)}</span>
+                    <div>
+                      <p className="text-lg font-bold text-foreground">{selectedExpiredItem.name}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">{selectedExpiredItem.category}</p>
+                    </div>
+                  </div>
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setSelectedExpiredItem(null)}
+                    className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+                  >
+                    <X className="w-6 h-6" />
+                  </motion.button>
                 </div>
-                <h3 className="text-sm font-bold text-foreground">{selectedExpiredItem.name}</h3>
-                <div className="w-full space-y-2 text-xs">
-                  <div className="flex justify-between items-center py-1.5 px-3 rounded-lg bg-urgent/10">
-                    <span className="text-muted-foreground">Expiry Date</span>
-                    <span className="text-urgent font-semibold">
+
+                <div className="space-y-3">
+                  <div className="flex justify-between py-3 px-3 rounded-lg bg-background/30 border border-border/30">
+                    <span className="text-sm text-muted-foreground">Expiry Date</span>
+                    <span className="text-sm font-semibold text-urgent">
                       {selectedExpiredItem.expiry_date ? new Date(selectedExpiredItem.expiry_date).toLocaleDateString() : "N/A"}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center py-1.5 px-3 rounded-lg bg-urgent/10">
-                    <span className="text-muted-foreground">Quantity</span>
-                    <span className="text-urgent font-semibold">
+                  <div className="flex justify-between py-3 px-3 rounded-lg bg-background/30 border border-border/30">
+                    <span className="text-sm text-muted-foreground">Quantity</span>
+                    <span className="text-sm font-semibold text-foreground">
                       {formatQtyUnit(selectedExpiredItem.quantity, selectedExpiredItem.unit)}
                     </span>
                   </div>
                 </div>
-                <div className="flex gap-2 w-full mt-2">
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setSelectedExpiredItem(null)}
-                    className="flex-1 py-2 rounded-lg bg-muted/20 text-muted-foreground text-[11px] font-semibold hover:bg-muted/30 transition-colors"
-                  >
-                    Close
-                  </motion.button>
+
+                <div className="flex gap-3 mt-6 pt-4 border-t border-border/30">
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={async () => {
@@ -1122,9 +1129,9 @@ const FridgePage = () => {
                       toast({ title: "Deleted", description: `${selectedExpiredItem.name} removed.` });
                       setSelectedExpiredItem(null);
                     }}
-                    className="flex-1 py-2 rounded-lg bg-urgent/15 text-urgent text-[11px] font-semibold hover:bg-urgent/25 transition-colors flex items-center justify-center gap-1.5"
+                    className="flex-1 py-3 rounded-lg bg-urgent/20 text-urgent text-sm font-bold hover:bg-urgent/30 transition-colors flex items-center justify-center gap-2"
                   >
-                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                    <Trash2 className="w-4 h-4" /> Delete
                   </motion.button>
                 </div>
               </div>
