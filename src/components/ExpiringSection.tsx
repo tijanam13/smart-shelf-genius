@@ -53,8 +53,7 @@ const ExpiringSection = () => {
     .filter((item) => {
       const days = getDaysLeft(item.expiry_date);
       return days <= 5 && days >= 0;
-    })
-    .slice(0, 8);
+    });
 
   if (!user || (expiringItems.length === 0 && !isLoading)) {
     return null;
