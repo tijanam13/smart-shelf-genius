@@ -1084,8 +1084,8 @@ const FridgePage = () => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] w-[280px] rounded-2xl border border-urgent/30 p-5 shadow-2xl"
-              style={{ background: "linear-gradient(160deg, hsl(0 15% 18%) 0%, hsl(0 12% 14%) 100%)" }}
+              className="fixed z-[9999] w-[280px] rounded-2xl border border-urgent/30 p-5 shadow-2xl"
+              style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)", background: "linear-gradient(160deg, hsl(0 15% 18%) 0%, hsl(0 12% 14%) 100%)" }}
             >
               <div className="flex flex-col items-center gap-3">
                 <div className="w-16 h-16 flex items-center justify-center text-4xl bg-urgent/10 rounded-2xl border border-urgent/20">
