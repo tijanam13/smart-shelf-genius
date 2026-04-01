@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, X, Trash2, CheckCircle2, Trash } from 'lucide-react';
+import { Bell, X, Trash2, CheckCircle2, Trash, Eye } from 'lucide-react';
 import { useNotifications, Notification } from '@/hooks/useNotifications';
 import NotificationDetail from '@/components/NotificationDetail';
 
