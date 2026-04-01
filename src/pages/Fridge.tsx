@@ -261,6 +261,26 @@ const FridgePage = () => {
           .insert({ user_id: user.id, total_tokens: recipe.tokens });
       }
 
+      // Reduce fridge item quantities based on recipe ingredients
+      if (recipe.ingredients && recipe.ingredients.length > 0) {
+        for (const ingredient of recipe.ingredients) {
+          const ingName = ingredient.toLowerCase().replace(/^\d+[\s/]*\w*\s*/, '').trim();
+          // Find matching fridge item
+          const matchingItem = enrichedItems.find(item => 
+            ingName.includes(item.name.toLowerCase()) || item.name.toLowerCase().includes(ingName.split(' ').pop() || '')
+          );
+          if (matchingItem) {
+            const step = getConsumeStep(matchingItem.unit);
+            const newQty = Math.max(0, matchingItem.quantity - step);
+            if (newQty <= 0) {
+              await supabase.from("fridge_items").delete().eq("id", matchingItem.id);
+            } else {
+              await supabase.from("fridge_items").update({ quantity: newQty }).eq("id", matchingItem.id);
+            }
+          }
+        }
+      }
+
       setUsedRecipeTitles(prev => new Set([...prev, recipe.title]));
 
       toast({
