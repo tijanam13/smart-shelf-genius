@@ -261,30 +261,12 @@ const FridgePage = () => {
     }
 
     try {
-      // Record used recipe
+      // Record used recipe (no tokens awarded)
       const { error: recipeError } = await supabase
         .from('used_recipes')
-        .insert({ user_id: user.id, recipe_title: recipe.title, tokens_earned: recipe.tokens });
+        .insert({ user_id: user.id, recipe_title: recipe.title, tokens_earned: 0 });
 
       if (recipeError) throw recipeError;
-
-      // Update tokens - upsert
-      const { data: existing } = await supabase
-        .from('user_tokens')
-        .select('total_tokens')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (existing) {
-        await supabase
-          .from('user_tokens')
-          .update({ total_tokens: existing.total_tokens + recipe.tokens, updated_at: new Date().toISOString() })
-          .eq('user_id', user.id);
-      } else {
-        await supabase
-          .from('user_tokens')
-          .insert({ user_id: user.id, total_tokens: recipe.tokens });
-      }
 
       // Reduce fridge item quantities based on recipe ingredients
       if (recipe.ingredients && recipe.ingredients.length > 0) {
@@ -327,7 +309,7 @@ const FridgePage = () => {
 
       toast({
         title: "Recipe Used! 🎉",
-        description: `You earned +${recipe.tokens} 🪙 tokens!`,
+        description: "Ingredients have been deducted from your fridge.",
       });
 
       queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
