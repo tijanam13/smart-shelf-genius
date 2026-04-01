@@ -162,11 +162,11 @@ export const useNotifications = () => {
       if (days < 0) return;
 
       const checkAndCreate = (level: 'warning' | 'high-priority') => {
-        // Check if notification already exists for this item name+level+today (including deleted ones)
+        // Check if notification already exists for this item ID+level+today (including deleted ones)
         const alreadyExists = existing.some(
-          (n) => n.itemName === item.name && n.level === level && n.date === today
+          (n) => n.itemId === item.id && n.level === level && n.date === today
         ) || newNotifications.some(
-          (n) => n.itemName === item.name && n.level === level && n.date === today
+          (n) => n.itemId === item.id && n.level === level && n.date === today
         );
         if (alreadyExists) return;
 
