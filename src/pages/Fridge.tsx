@@ -133,6 +133,8 @@ const FridgePage = () => {
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [donationItem, setDonationItem] = useState<typeof enrichedItems[0] | null>(null);
   const [usedRecipeTitles, setUsedRecipeTitles] = useState<Set<string>>(new Set());
+  const [fridgeExpanded, setFridgeExpanded] = useState(false);
+  const [freezerExpanded, setFreezerExpanded] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
