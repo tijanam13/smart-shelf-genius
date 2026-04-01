@@ -125,6 +125,7 @@ const FridgePage = () => {
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editLocation, setEditLocation] = useState("fridge");
   const [editExpiryDate, setEditExpiryDate] = useState<Date | undefined>();
+  const [editQuantity, setEditQuantity] = useState<number>(1);
   const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
