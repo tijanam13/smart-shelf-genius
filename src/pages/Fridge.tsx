@@ -174,7 +174,7 @@ const FridgePage = () => {
   const enrichedItems = dbItems.map((item) => {
     const days = getDaysLeft(item.expiry_date);
     const urgency = getUrgency(item.expiry_date);
-    const emoji = getCategoryEmoji(item.category);
+    const emoji = getProductImage(item.name);
     const freshness = Math.max(0, Math.min(100, Math.round((days / 30) * 100)));
     const daysLabel = item.expiry_date ? (days <= 0 ? "Today!" : `${days}d`) : "N/A";
     return { ...item, days, urgency, emoji, freshness, daysLabel };
