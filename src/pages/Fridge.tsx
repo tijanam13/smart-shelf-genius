@@ -659,7 +659,14 @@ const FridgePage = () => {
                             <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditQuantity(q => Math.max(q - 1, 1))} className="w-10 h-10 rounded-lg bg-muted/40 hover:bg-muted/60 flex items-center justify-center transition-colors">
                               <Minus className="w-4 h-4 text-foreground" />
                             </motion.button>
-                            <span className="text-lg font-bold text-foreground min-w-[80px] text-center">{formatQtyUnit(editQuantity, selectedItem.unit)}</span>
+                            <input
+                              type="number"
+                              min={1}
+                              value={editQuantity}
+                              onChange={(e) => { const v = parseInt(e.target.value); setEditQuantity(isNaN(v) || v < 1 ? 1 : v); }}
+                              className="w-20 text-center text-lg font-bold text-foreground bg-background/50 border border-border/50 rounded-lg h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <span className="text-sm text-muted-foreground">{selectedItem.unit}</span>
                             <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditQuantity(q => q + 1)} className="w-10 h-10 rounded-lg bg-muted/40 hover:bg-muted/60 flex items-center justify-center transition-colors">
                               <Plus className="w-4 h-4 text-foreground" />
                             </motion.button>

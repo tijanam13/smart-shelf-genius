@@ -153,7 +153,13 @@ const ManualEntry = () => {
               <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="w-10 h-10 rounded-xl glass-card flex items-center justify-center">
                 <Minus className="w-4 h-4 text-foreground" />
               </motion.button>
-              <span className="text-lg font-bold text-foreground w-12 text-center">{displayQty}</span>
+              <input
+                type="number"
+                min={1}
+                value={quantity}
+                onChange={(e) => { const v = parseInt(e.target.value); setQuantity(isNaN(v) || v < 1 ? 1 : v); }}
+                className="w-16 text-center text-lg font-bold text-foreground bg-background/50 border border-border/50 rounded-xl h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
               <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQuantity((q) => q + 1)} className="w-10 h-10 rounded-xl glass-card flex items-center justify-center">
                 <Plus className="w-4 h-4 text-foreground" />
               </motion.button>
