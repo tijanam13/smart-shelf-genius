@@ -122,8 +122,6 @@ const AIInsightCard = ({ onRecipeClick }: AIInsightCardProps) => {
                   <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                     <Clock className="w-3 h-3" /> {suggestedRecipe.time}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">·</span>
-                  <span className="text-[10px] font-semibold text-token">+{suggestedRecipe.tokens} 🪙</span>
                 </div>
               </motion.div>
             </AnimatePresence>

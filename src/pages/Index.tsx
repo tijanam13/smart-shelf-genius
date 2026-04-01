@@ -52,7 +52,6 @@ const Index = () => {
                         <Clock className="w-3 h-3" /> {selectedRecipe.time}
                       </span>
                       {selectedRecipe.difficulty && <span className="text-[11px] text-muted-foreground">· {selectedRecipe.difficulty}</span>}
-                      <span className="text-[11px] font-semibold text-token bg-token/10 px-2 py-0.5 rounded-full">+{selectedRecipe.tokens} 🪙</span>
                     </div>
                   </div>
                   <button onClick={() => setSelectedRecipe(null)} className="text-muted-foreground hover:text-foreground">
