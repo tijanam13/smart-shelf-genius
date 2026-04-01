@@ -125,6 +125,7 @@ const FridgePage = () => {
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editLocation, setEditLocation] = useState("fridge");
   const [editExpiryDate, setEditExpiryDate] = useState<Date | undefined>();
+  const [editQuantity, setEditQuantity] = useState<number>(1);
   const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
@@ -239,13 +240,14 @@ const FridgePage = () => {
       .update({
         status: editLocation,
         expiry_date: editExpiryDate ? format(editExpiryDate, "yyyy-MM-dd") : null,
+        quantity: editQuantity,
       })
       .eq("id", selectedItem.id);
     if (!error) {
       queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
       toast({ title: "Updated!", description: "Item updated successfully" });
       setEditingItem(null);
-      setSelectedItem(null); // Close modal after update
+      setSelectedItem(null);
     }
   };
 
@@ -652,6 +654,19 @@ const FridgePage = () => {
                         </div>
 
                         <div className="space-y-2">
+                          <label className="text-sm text-muted-foreground font-semibold">📦 Quantity</label>
+                          <div className="flex items-center gap-3">
+                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditQuantity(q => Math.max(+(q - getConsumeStep(selectedItem.unit)).toFixed(1), getConsumeStep(selectedItem.unit)))} className="w-10 h-10 rounded-lg bg-muted/40 hover:bg-muted/60 flex items-center justify-center transition-colors">
+                              <Minus className="w-4 h-4 text-foreground" />
+                            </motion.button>
+                            <span className="text-lg font-bold text-foreground min-w-[80px] text-center">{formatQtyUnit(editQuantity, selectedItem.unit)}</span>
+                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditQuantity(q => +(q + getConsumeStep(selectedItem.unit)).toFixed(1))} className="w-10 h-10 rounded-lg bg-muted/40 hover:bg-muted/60 flex items-center justify-center transition-colors">
+                              <Plus className="w-4 h-4 text-foreground" />
+                            </motion.button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
                           <label className="text-sm text-muted-foreground font-semibold">📅 Expiry Date</label>
                           <Popover>
                             <PopoverTrigger asChild>
@@ -676,7 +691,7 @@ const FridgePage = () => {
                           </motion.button>
                           <motion.button
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => { setEditingItem(null); setEditLocation(selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status); setEditExpiryDate(selectedItem.expiry_date ? new Date(selectedItem.expiry_date) : undefined); }}
+                            onClick={() => { setEditingItem(null); setEditLocation(selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status); setEditExpiryDate(selectedItem.expiry_date ? new Date(selectedItem.expiry_date) : undefined); setEditQuantity(selectedItem.quantity); }}
                             className="flex-1 py-2.5 rounded-lg bg-muted/30 text-muted-foreground text-sm font-bold hover:bg-muted/50 transition-colors"
                           >
                             Cancel
@@ -691,6 +706,7 @@ const FridgePage = () => {
                             setEditingItem(selectedItem.id); 
                             setEditLocation(selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status); 
                             setEditExpiryDate(selectedItem.expiry_date ? new Date(selectedItem.expiry_date) : undefined);
+                            setEditQuantity(selectedItem.quantity);
                           }}
                           className="flex-1 min-w-[100px] py-3 rounded-lg bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors flex items-center justify-center gap-2"
                         >
