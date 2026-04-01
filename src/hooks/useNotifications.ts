@@ -178,7 +178,8 @@ export const useNotifications = () => {
         });
       };
 
-      if (days <= 5 && days >= 0) checkAndCreate('high-priority');
+      if (days === 5) checkAndCreate('warning');
+      if (days === 1) checkAndCreate('high-priority');
     });
 
     if (newNotifications.length > 0) {
