@@ -63,16 +63,16 @@ const PLANET_COLORS: Record<Stage, [string, string, string]> = {
 };
 
 const PILL_TOKENS: Record<Stage, number> = {
-  seedling: 0, sprouting: 15, growing: 35, blooming: 75, lush: 300, cosmic: 500,
+  seedling: 0, sprouting: 40, growing: 125, blooming: 350, lush: 750, cosmic: 1000,
 };
 
 // ─── Helper Functions ─────────────────────────────────────────────────────────
 function getStage(t: number): Stage {
-  if (t <= 10)  return "seedling";
-  if (t <= 20)  return "sprouting";
-  if (t <= 50)  return "growing";
-  if (t <= 200) return "blooming";
-  if (t <= 500) return "lush";
+  if (t <= 25)   return "seedling";
+  if (t <= 75)   return "sprouting";
+  if (t <= 200)  return "growing";
+  if (t <= 500)  return "blooming";
+  if (t <= 999)  return "lush";
   return "cosmic";
 }
 
