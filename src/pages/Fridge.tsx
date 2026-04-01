@@ -385,8 +385,6 @@ const FridgePage = () => {
 
   const fridgeDisplayItems = enrichedItems.filter((i) => i.status === "fridge" || i.status === "in_fridge");
   const freezerDisplayItems = enrichedItems.filter((i) => i.status === "freezer");
-  const [fridgeExpanded, setFridgeExpanded] = useState(false);
-  const [freezerExpanded, setFreezerExpanded] = useState(false);
   const maxFridgeVisible = 9;
   const maxFreezerVisible = 5;
   const visibleFridgeItems = fridgeExpanded ? fridgeDisplayItems : fridgeDisplayItems.slice(0, maxFridgeVisible);
