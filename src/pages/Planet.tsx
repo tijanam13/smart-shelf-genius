@@ -5,6 +5,7 @@ import PlanetProgress from '@/components/PlanetProgress';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useFamilyTokens } from '@/hooks/useFamilyData';
+import DailyEcoTip from '@/components/DailyEcoTip';
 
 const Planet = () => {
   const { user } = useAuth();
