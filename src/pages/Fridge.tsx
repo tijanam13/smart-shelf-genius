@@ -173,7 +173,7 @@ const FridgePage = () => {
     };
   }, [queryClient]);
 
-  const enrichedItems = dbItems.map((item) => {
+  const allEnrichedItems = dbItems.map((item) => {
     const days = getDaysLeft(item.expiry_date);
     const urgency = getUrgency(item.expiry_date);
     const emoji = getProductImage(item.name);
@@ -182,9 +182,31 @@ const FridgePage = () => {
     return { ...item, days, urgency, emoji, freshness, daysLabel };
   });
 
+  // Expired items = expiry_date is yesterday or earlier (days < 0)
+  const expiredItems = allEnrichedItems.filter((i) => i.expiry_date && i.days < 0);
+  // Active items = not expired
+  const enrichedItems = allEnrichedItems.filter((i) => !i.expiry_date || i.days >= 0);
+
   const urgentItems = enrichedItems.filter((i) => i.urgency === "urgent");
   const warnItems = enrichedItems.filter((i) => i.urgency === "warning");
   const safeItems = enrichedItems.filter((i) => i.urgency === "safe");
+
+  // Auto-move expired items to "expired" status in DB
+  useEffect(() => {
+    if (!user || expiredItems.length === 0) return;
+    const moveToExpired = async () => {
+      for (const item of expiredItems) {
+        if (item.status !== "expired") {
+          await supabase
+            .from("fridge_items")
+            .update({ status: "expired" })
+            .eq("id", item.id);
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
+    };
+    moveToExpired();
+  }, [dbItems, user]);
 
   const showTooltip = (item: typeof enrichedItems[0]) => {
     setSelectedItem(item);
@@ -514,6 +536,57 @@ const FridgePage = () => {
                 🚪 {fridgeOpen ? "Close" : "Open"} Fridge
               </motion.button>
 
+              {/* Trash Can - Expired Items */}
+              {expiredItems.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 w-full"
+                >
+                  <div className="rounded-2xl border border-urgent/20 overflow-hidden" style={{ background: "linear-gradient(160deg, hsl(0 15% 18%) 0%, hsl(0 12% 14%) 100%)" }}>
+                    <div className="px-4 py-2.5 flex items-center justify-between border-b border-urgent/15">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">🗑️</span>
+                        <span className="text-xs font-semibold text-urgent">Expired Items</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">{expiredItems.length} items</span>
+                    </div>
+                    <div className="p-3 flex flex-wrap gap-2 max-h-[160px] overflow-y-auto">
+                      {expiredItems.map((item) => (
+                        <motion.div
+                          key={item.id}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="flex flex-col items-center opacity-60"
+                          style={{ width: '52px' }}
+                        >
+                          <div className="w-10 h-10 flex items-center justify-center text-2xl bg-urgent/10 rounded-lg border border-urgent/20 relative">
+                            {getProductImage(item.name)}
+                            <span className="absolute -top-1 -right-1 text-[8px]">❌</span>
+                          </div>
+                          <span className="text-[8px] text-urgent font-medium mt-1 text-center truncate w-full">{item.name}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                    <div className="px-3 pb-3">
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={async () => {
+                          for (const item of expiredItems) {
+                            await supabase.from("fridge_items").delete().eq("id", item.id);
+                          }
+                          queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
+                          toast({ title: "Trash emptied", description: `${expiredItems.length} expired items removed.` });
+                        }}
+                        className="w-full py-2 rounded-lg bg-urgent/15 text-urgent text-[11px] font-semibold hover:bg-urgent/25 transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Empty Trash
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
               <AnimatePresence>
                 {selectedItem && (
                   <>
@@ -712,7 +785,7 @@ const FridgePage = () => {
                   )}
 
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">Alerts</p>
-                  {enrichedItems.filter((i) => i.urgency !== "safe").slice(0, 4).map((item, idx) => (
+                  {enrichedItems.filter((i) => i.urgency !== "safe").map((item, idx) => (
                     <motion.div key={item.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className={`glass-card rounded-xl p-3 mb-2 flex items-center gap-3 ${urgencyGlow[item.urgency]}`}>
                       <span className="text-2xl flex-shrink-0">{item.emoji}</span>
                       <div className="flex-1 min-w-0">
