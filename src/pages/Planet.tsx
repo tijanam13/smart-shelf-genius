@@ -94,7 +94,7 @@ const Planet = () => {
                     <span className="font-semibold">11-20</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Growing (�)</span>
+                    <span className="text-muted-foreground">Growing (🌳)</span>
                     <span className="font-semibold">21-50</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
@@ -103,11 +103,11 @@ const Planet = () => {
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Lush (🌺)</span>
-                    <span className="font-semibold">101-200</span>
+                    <span className="font-semibold">101-250</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Cosmic (✨)</span>
-                    <span className="font-semibold">200+</span>
+                    <span className="font-semibold">250-500+</span>
                   </div>
                 </div>
 

@@ -63,7 +63,7 @@ const PLANET_COLORS: Record<Stage, [string, string, string]> = {
 };
 
 const PILL_TOKENS: Record<Stage, number> = {
-  seedling: 0, sprouting: 15, growing: 35, blooming: 75, lush: 110, cosmic: 500,
+  seedling: 0, sprouting: 15, growing: 35, blooming: 75, lush: 150, cosmic: 250,
 };
 
 // ─── Helper Functions ─────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ function getStage(t: number): Stage {
   if (t <= 20)  return "sprouting";
   if (t <= 50)  return "growing";
   if (t <= 100) return "blooming";
-  if (t <= 200) return "lush";
+  if (t <= 250) return "lush";
   return "cosmic";
 }
 
@@ -530,9 +530,9 @@ const PlanetProgress = ({ tokens = 0, showLabel = true, className = "" }: Planet
   const stage = getStage(tokens);
   const sd = STAGES[stage];
 
-  const barPct = tokens < 1000
-    ? Math.min((tokens / 100) * 100, 100)
-    : Math.min(((tokens - 1000) / 1000) * 100, 100);
+  const barPct = tokens < 500
+    ? Math.min((tokens / 500) * 100, 100)
+    : Math.min(((tokens - 500) / 500) * 100, 100);
 
   const renderLoop = useCallback(() => {
     const canvas = canvasRef.current;
@@ -624,9 +624,9 @@ const PlanetProgress = ({ tokens = 0, showLabel = true, className = "" }: Planet
             fontSize: 10,
             color: "var(--muted-foreground)",
           }}>
-            {tokens < 1000
-              ? <><span>0</span><span>50</span><span>100+</span></>
-              : <><span>1000</span><span>1500</span><span>2000+</span></>
+            {tokens < 500
+              ? <><span>0</span><span>250</span><span>500+</span></>
+              : <><span>500</span><span>750</span><span>1000+</span></>
             }
           </div>
         </div>

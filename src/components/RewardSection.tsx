@@ -12,7 +12,7 @@ const RewardSection = () => {
   const [donationsCount, setDonationsCount] = useState(0);
   const [usedRecipesCount, setUsedRecipesCount] = useState(0);
   const [lessWaste, setLessWaste] = useState("0kg");
-  const goal = 150;
+  const goal = 500;
   const progress = Math.min((tokens / goal) * 100, 100);
 
   useEffect(() => {

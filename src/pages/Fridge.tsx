@@ -263,15 +263,32 @@ const FridgePage = () => {
 
       // Reduce fridge item quantities based on recipe ingredients
       if (recipe.ingredients && recipe.ingredients.length > 0) {
+        const usedItemIds = new Set<string>();
         for (const ingredient of recipe.ingredients) {
-          const ingName = ingredient.toLowerCase().replace(/^\d+[\s/]*\w*\s*/, '').trim();
-          // Find matching fridge item
-          const matchingItem = enrichedItems.find(item => 
-            ingName.includes(item.name.toLowerCase()) || item.name.toLowerCase().includes(ingName.split(' ').pop() || '')
-          );
+          const qtyMatch = ingredient.match(/^(\d+\.?\d*)\s*/);
+          const ingQty = qtyMatch ? parseFloat(qtyMatch[1]) : 1;
+          const ingName = ingredient.toLowerCase()
+            .replace(/^\d+\.?\d*\s*/, '')
+            .replace(/^(g|kg|ml|l|pcs|cups?|tbsp|tsp|pieces?|slices?|cloves?)\s+/i, '')
+            .replace(/^of\s+/i, '')
+            .trim();
+          
+          const matchingItem = enrichedItems.find(item => {
+            if (usedItemIds.has(item.id)) return false;
+            const itemName = item.name.toLowerCase();
+            const lastWord = ingName.split(/\s+/).pop() || '';
+            if (itemName === ingName) return true;
+            if (itemName.includes(ingName) || ingName.includes(itemName)) return true;
+            if (lastWord.length > 2 && (
+              itemName.includes(lastWord) || lastWord.includes(itemName.replace(/s$/, '')) ||
+              itemName.replace(/s$/, '') === lastWord.replace(/s$/, '')
+            )) return true;
+            return false;
+          });
+          
           if (matchingItem) {
-            const step = getConsumeStep(matchingItem.unit);
-            const newQty = Math.max(0, matchingItem.quantity - step);
+            usedItemIds.add(matchingItem.id);
+            const newQty = Math.max(0, matchingItem.quantity - ingQty);
             if (newQty <= 0) {
               await supabase.from("fridge_items").delete().eq("id", matchingItem.id);
             } else {
