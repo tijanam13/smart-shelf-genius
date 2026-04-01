@@ -169,6 +169,51 @@ export type Database = {
         }
         Relationships: []
       }
+      purchased_coupons: {
+        Row: {
+          coupon_category: string
+          coupon_cost: number
+          coupon_description: string
+          coupon_icon: string
+          coupon_id: string
+          coupon_name: string
+          id: string
+          purchased_at: string
+          qr_code: string
+          status: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          coupon_category?: string
+          coupon_cost: number
+          coupon_description: string
+          coupon_icon?: string
+          coupon_id: string
+          coupon_name: string
+          id?: string
+          purchased_at?: string
+          qr_code?: string
+          status?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          coupon_category?: string
+          coupon_cost?: number
+          coupon_description?: string
+          coupon_icon?: string
+          coupon_id?: string
+          coupon_name?: string
+          id?: string
+          purchased_at?: string
+          qr_code?: string
+          status?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       used_recipes: {
         Row: {
           id: string

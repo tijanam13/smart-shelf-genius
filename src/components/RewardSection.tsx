@@ -59,11 +59,11 @@ const RewardSection = () => {
         <div className="mt-3 flex gap-2">
           <div className="glass-card rounded-xl px-3 py-2 flex-1 text-center">
             <p className="text-lg font-bold font-display text-safe">{usedRecipesCount}</p>
-            <p className="text-[9px] text-muted-foreground">Used</p>
+            <p className="text-[9px] text-muted-foreground">Used Food</p>
           </div>
           <div className="glass-card rounded-xl px-3 py-2 flex-1 text-center">
             <p className="text-lg font-bold font-display text-primary">{donationsCount}</p>
-            <p className="text-[9px] text-muted-foreground">Donated</p>
+            <p className="text-[9px] text-muted-foreground">Donated Food</p>
           </div>
           <div className="glass-card rounded-xl px-3 py-2 flex-1 text-center">
             <p className="text-lg font-bold font-display text-coral">{lessWaste}</p>
