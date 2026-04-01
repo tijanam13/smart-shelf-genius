@@ -111,7 +111,7 @@ const getProductImage = (name: string): string => {
   for (const [k, v] of Object.entries(productImages)) {
     if (key.includes(k)) return v;
   }
-  return "📦"; // default
+  return "🍽️"; // default food icon
 };
 
 const FridgePage = () => {
