@@ -734,7 +734,7 @@ const FridgePage = () => {
                   )}
 
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">Alerts</p>
-                  {enrichedItems.filter((i) => i.urgency !== "safe").slice(0, 4).map((item, idx) => (
+                  {enrichedItems.filter((i) => i.urgency !== "safe").map((item, idx) => (
                     <motion.div key={item.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className={`glass-card rounded-xl p-3 mb-2 flex items-center gap-3 ${urgencyGlow[item.urgency]}`}>
                       <span className="text-2xl flex-shrink-0">{item.emoji}</span>
                       <div className="flex-1 min-w-0">
