@@ -67,8 +67,13 @@ export const useNotifications = () => {
       const stored = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
       if (stored) {
         const parsed: Notification[] = JSON.parse(stored);
-        setNotifications(parsed);
-        const unread = parsed.filter((n: Notification) => !n.readAt && !n.deletedAt).length;
+        // Only keep notifications for 5-day warning and 1-day reminder
+        const filtered = parsed.filter((n) => n.daysLeft === 5 || n.daysLeft === 1);
+        if (filtered.length !== parsed.length) {
+          localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(filtered));
+        }
+        setNotifications(filtered);
+        const unread = filtered.filter((n) => !n.readAt && !n.deletedAt).length;
         setUnreadCount(unread);
       }
     } catch (error) {
