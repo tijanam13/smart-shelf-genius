@@ -66,11 +66,9 @@ export const useNotifications = () => {
     try {
       const stored = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored);
-        // Filter to only this user's notifications
-        const userNotifications = parsed.filter((n: Notification) => n.itemId.startsWith(user.id));
-        setNotifications(userNotifications);
-        const unread = userNotifications.filter((n: Notification) => !n.readAt && !n.deletedAt).length;
+        const parsed: Notification[] = JSON.parse(stored);
+        setNotifications(parsed);
+        const unread = parsed.filter((n: Notification) => !n.readAt && !n.deletedAt).length;
         setUnreadCount(unread);
       }
     } catch (error) {
