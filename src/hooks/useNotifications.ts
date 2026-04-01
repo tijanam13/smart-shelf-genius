@@ -67,8 +67,11 @@ export const useNotifications = () => {
       const stored = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
       if (stored) {
         const parsed: Notification[] = JSON.parse(stored);
-        // Only keep notifications for 5-day warning and 1-day reminder
-        const filtered = parsed.filter((n) => n.daysLeft === 5 || n.daysLeft === 1);
+        // Only keep notifications for exactly 5-day warning and 1-day high-priority
+        const filtered = parsed.filter((n) => 
+          (n.daysLeft === 5 && n.level === 'warning') || 
+          (n.daysLeft === 1 && n.level === 'high-priority')
+        );
         if (filtered.length !== parsed.length) {
           localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(filtered));
         }
