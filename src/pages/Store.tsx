@@ -177,7 +177,7 @@ const Store = () => {
               <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
                 <ShoppingBag className="w-6 h-6 text-primary" /> Store
               </h1>
-              <p className="text-muted-foreground text-sm mt-1">Redeem tokens for discounts & rewards</p>
+              <p className="text-muted-foreground text-sm mt-1">Activate coupons with your tokens</p>
             </div>
             <div className="glass-card rounded-xl px-4 py-2 text-center">
               <p className="text-lg font-bold text-token">{tokens} 🪙</p>
