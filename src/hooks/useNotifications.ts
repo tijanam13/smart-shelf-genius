@@ -67,11 +67,17 @@ export const useNotifications = () => {
       const stored = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
       if (stored) {
         const parsed: Notification[] = JSON.parse(stored);
-        // Only keep notifications for exactly 5-day warning and 1-day high-priority
-        const filtered = parsed.filter((n) => 
-          (n.daysLeft === 5 && n.level === 'warning') || 
-          (n.daysLeft === 1 && n.level === 'high-priority')
-        );
+        // Deduplicate: keep only one notification per itemId+level+date
+        const seen = new Set<string>();
+        const filtered = parsed.filter((n) => {
+          if ((n.daysLeft === 5 && n.level === 'warning') || (n.daysLeft === 1 && n.level === 'high-priority')) {
+            const key = `${n.itemId}-${n.level}-${n.date}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          }
+          return false;
+        });
         if (filtered.length !== parsed.length) {
           localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(filtered));
         }
@@ -162,11 +168,11 @@ export const useNotifications = () => {
       if (days < 0) return;
 
       const checkAndCreate = (level: 'warning' | 'high-priority') => {
-        // Check if notification already exists for this item name+level+today (including deleted ones)
+        // Check if notification already exists for this item ID+level+today (including deleted ones)
         const alreadyExists = existing.some(
-          (n) => n.itemName === item.name && n.level === level && n.date === today
+          (n) => n.itemId === item.id && n.level === level && n.date === today
         ) || newNotifications.some(
-          (n) => n.itemName === item.name && n.level === level && n.date === today
+          (n) => n.itemId === item.id && n.level === level && n.date === today
         );
         if (alreadyExists) return;
 
