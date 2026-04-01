@@ -691,7 +691,7 @@ const FridgePage = () => {
                           </motion.button>
                           <motion.button
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => { setEditingItem(null); setEditLocation(selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status); setEditExpiryDate(selectedItem.expiry_date ? new Date(selectedItem.expiry_date) : undefined); }}
+                            onClick={() => { setEditingItem(null); setEditLocation(selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status); setEditExpiryDate(selectedItem.expiry_date ? new Date(selectedItem.expiry_date) : undefined); setEditQuantity(selectedItem.quantity); }}
                             className="flex-1 py-2.5 rounded-lg bg-muted/30 text-muted-foreground text-sm font-bold hover:bg-muted/50 transition-colors"
                           >
                             Cancel
