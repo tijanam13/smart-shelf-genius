@@ -918,7 +918,8 @@ const FridgePage = () => {
                         <div className="flex items-center gap-3 mt-1.5">
                           <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> {selectedRecipe.time}</span>
                           {selectedRecipe.difficulty && <span className="text-[11px] text-muted-foreground">· {selectedRecipe.difficulty}</span>}
-                          <span className="text-[11px] font-semibold text-token bg-token/10 px-2 py-0.5 rounded-full">{usedRecipeTitles.has(selectedRecipe.title) ? `Earned ${selectedRecipe.tokens}` : `+${selectedRecipe.tokens}`} 🪙</span>
+                          {!usedRecipeTitles.has(selectedRecipe.title) && <span className="text-[11px] font-semibold text-token bg-token/10 px-2 py-0.5 rounded-full">+{selectedRecipe.tokens} 🪙</span>}
+                          {usedRecipeTitles.has(selectedRecipe.title) && <span className="text-[11px] font-semibold text-safe bg-safe/10 px-2 py-0.5 rounded-full">✅ Used</span>}
                         </div>
                       </div>
                       <button onClick={() => setSelectedRecipe(null)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
