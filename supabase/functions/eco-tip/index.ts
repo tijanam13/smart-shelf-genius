@@ -12,6 +12,36 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    const topics = [
+      "global food waste statistics and shocking numbers",
+      "how much money households lose to food waste annually",
+      "CO2 emissions from food waste compared to countries or industries",
+      "water footprint of wasted food",
+      "landfill methane from rotting food",
+      "benefits of composting food scraps",
+      "seasonal eating and reducing food miles",
+      "how proper fridge organization reduces waste",
+      "food waste in restaurants vs homes",
+      "the energy wasted when food is thrown away",
+      "how food waste affects world hunger",
+      "creative ways to use leftovers",
+      "the journey of food from farm to trash",
+      "biodiversity loss caused by unnecessary food production",
+      "how reducing food waste helps save forests",
+    ];
+    
+    const tones = [
+      "shocking statistic with a call to action",
+      "motivational and empowering",
+      "poetic and philosophical",
+      "personal finance angle showing money saved",
+      "humorous and witty",
+      "progress-oriented celebrating small wins",
+    ];
+
+    const topic = topics[Math.floor(Math.random() * topics.length)];
+    const tone = tones[Math.floor(Math.random() * tones.length)];
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -23,32 +53,16 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an eco-awareness message generator for a food waste reduction app called EatSmart. 
-
-Your job is to generate ONE short, powerful, unique message about food waste and ecology. Each message MUST be completely different from the last.
-
-STYLE EXAMPLES (use these as inspiration, but create NEW ones every time):
-- "🌍 1 in 3 meals ends up in the trash worldwide — that's 1.3 billion tonnes of food wasted every year. Your fridge can change that, one item at a time."
-- "💸 The average household throws away $1,500 worth of food every year. EatSmart helps you keep more of it — on your plate and in your wallet."
-- "🥦 Eat what you buy. Save what you earn. Protect what we share. Every item you use before it expires is a small win for your home — and the planet."
-- "🧠❄️ Your fridge has a memory problem. We fixed it. Globally, food waste produces more greenhouse gases than the entire aviation industry."
-- "🌱 Did you know? If food waste were a country, it would be the 3rd largest emitter of CO₂ on Earth. Every green checkmark in your fridge = one less emission."
-
-RULES:
-- Always start with an emoji
-- Mix tones: shocking stats, motivational, poetic, financial, humorous, progress-oriented
-- 1-3 sentences, max 300 characters
-- NEVER mention carrots, apples, or any specific food unless it's part of a surprising stat
-- Make each message feel like a unique discovery
-- Reference real-world stats when possible
-- Reply with ONLY the message text, nothing else`
+            content: `You write ONE short eco-awareness message for a food waste app. 
+Rules: Start with a relevant emoji. Max 2 sentences. Under 250 characters total. 
+Reply ONLY with the message, nothing else.`
           },
           {
             role: "user",
-            content: `Generate a completely unique eco-tip. Random seed: ${Date.now()}-${Math.random().toString(36).slice(2)}`
+            content: `Topic: ${topic}. Tone: ${tone}. Write a unique message. ID: ${crypto.randomUUID()}`
           }
         ],
-        temperature: 1.0,
+        temperature: 1.2,
       }),
     });
 
