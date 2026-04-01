@@ -158,7 +158,7 @@ const ManualEntry = () => {
                 <Plus className="w-4 h-4 text-foreground" />
               </motion.button>
             </div>
-            <Select value={unit} onValueChange={(v) => { setUnit(v); setQuantity(v === "g" || v === "ml" ? 100 : v === "kg" || v === "l" ? 1 : 1); }}>
+            <Select value={unit} onValueChange={(v) => { setUnit(v); setQuantity(1); }}>
               <SelectTrigger className="bg-background/50 border-border/50 rounded-xl h-10 w-24">
                 <SelectValue />
               </SelectTrigger>

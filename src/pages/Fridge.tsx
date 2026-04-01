@@ -656,11 +656,11 @@ const FridgePage = () => {
                         <div className="space-y-2">
                           <label className="text-sm text-muted-foreground font-semibold">📦 Quantity</label>
                           <div className="flex items-center gap-3">
-                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditQuantity(q => Math.max(+(q - getConsumeStep(selectedItem.unit)).toFixed(1), getConsumeStep(selectedItem.unit)))} className="w-10 h-10 rounded-lg bg-muted/40 hover:bg-muted/60 flex items-center justify-center transition-colors">
+                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditQuantity(q => Math.max(q - 1, 1))} className="w-10 h-10 rounded-lg bg-muted/40 hover:bg-muted/60 flex items-center justify-center transition-colors">
                               <Minus className="w-4 h-4 text-foreground" />
                             </motion.button>
                             <span className="text-lg font-bold text-foreground min-w-[80px] text-center">{formatQtyUnit(editQuantity, selectedItem.unit)}</span>
-                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditQuantity(q => +(q + getConsumeStep(selectedItem.unit)).toFixed(1))} className="w-10 h-10 rounded-lg bg-muted/40 hover:bg-muted/60 flex items-center justify-center transition-colors">
+                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditQuantity(q => q + 1)} className="w-10 h-10 rounded-lg bg-muted/40 hover:bg-muted/60 flex items-center justify-center transition-colors">
                               <Plus className="w-4 h-4 text-foreground" />
                             </motion.button>
                           </div>
