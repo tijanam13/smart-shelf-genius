@@ -624,9 +624,9 @@ const PlanetProgress = ({ tokens = 0, showLabel = true, className = "" }: Planet
             fontSize: 10,
             color: "var(--muted-foreground)",
           }}>
-            {tokens < 500
-              ? <><span>0</span><span>250</span><span>500+</span></>
-              : <><span>500</span><span>750</span><span>1000+</span></>
+            {tokens < 1000
+              ? <><span>0</span><span>500</span><span>1000+</span></>
+              : <><span>1000</span><span>1250</span><span>1500+</span></>
             }
           </div>
         </div>
