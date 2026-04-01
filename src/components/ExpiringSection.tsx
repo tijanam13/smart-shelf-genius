@@ -1,7 +1,36 @@
 import { motion } from "framer-motion";
 import { AlertTriangle, Clock } from "lucide-react";
-import { useFridgeItems, getUrgency, getDaysLeft, getCategoryEmoji } from "@/hooks/useFridgeItems";
+import { useFridgeItems, getUrgency, getDaysLeft } from "@/hooks/useFridgeItems";
 import { useAuth } from "@/contexts/AuthContext";
+
+// Product-specific emoji mapping (reused from Fridge)
+const productImages: Record<string, string> = {
+  "apple": "🍎", "banana": "🍌", "orange": "🍊", "lemon": "🍋",
+  "grape": "🍇", "strawberry": "🍓", "blueberry": "🫐", "cherry": "🍒",
+  "peach": "🍑", "pear": "🍐", "watermelon": "🍉", "pineapple": "🍍",
+  "mango": "🥭", "avocado": "🥑", "kiwi": "🥝",
+  "cucumber": "🥒", "tomato": "🍅", "lettuce": "🥬", "carrot": "🥕",
+  "corn": "🌽", "pepper": "🌶️", "paprika": "🫑", "broccoli": "🥦",
+  "garlic": "🧄", "onion": "🧅", "potato": "🥔", "mushroom": "🍄",
+  "eggplant": "🍆", "cabbage": "🥬", "spinach": "🥬", "zucchini": "🥒",
+  "milk": "🥛", "cheese": "🧀", "butter": "🧈", "yogurt": "🥛",
+  "cream": "🥛", "bread": "🍞", "white bread": "🍞", "croissant": "🥐",
+  "rice": "🍚", "pasta": "🍝", "flour": "🌾",
+  "chicken": "🍗", "beef": "🥩", "pork": "🥩", "steak": "🥩",
+  "ham": "🥓", "bacon": "🥓", "sausage": "🌭", "meat": "🥩",
+  "fish": "🐟", "salmon": "🍣", "tuna": "🐟", "shrimp": "🦐",
+  "egg": "🥚", "eggs": "🥚",
+  "juice": "🧃", "coffee": "☕", "tea": "🍵",
+  "ice cream": "🍦", "chocolate": "🍫", "honey": "🍯",
+};
+
+const getProductEmoji = (name: string): string => {
+  const key = name.toLowerCase();
+  for (const [k, v] of Object.entries(productImages)) {
+    if (key.includes(k)) return v;
+  }
+  return "🍽️";
+};
 
 const urgencyStyles = {
   urgent: "border-urgent/30 glow-urgent",
@@ -19,13 +48,13 @@ const ExpiringSection = () => {
   const { user } = useAuth();
   const { data: items = [], isLoading } = useFridgeItems();
 
-  // Show items expiring within 7 days
+  // Show items expiring within 5 days
   const expiringItems = items
     .filter((item) => {
       const days = getDaysLeft(item.expiry_date);
-      return days <= 7 && days >= 0;
+      return days <= 5 && days >= 0;
     })
-    .slice(0, 5);
+    .slice(0, 8);
 
   if (!user || (expiringItems.length === 0 && !isLoading)) {
     return null;
@@ -63,7 +92,7 @@ const ExpiringSection = () => {
                 whileHover={{ scale: 1.07 }}
                 className={`glass-card rounded-2xl p-4 min-w-[130px] flex-shrink-0 cursor-pointer border transition-all duration-200 ${urgencyStyles[urgency]}`}
               >
-                <span className="text-3xl block mb-2">{getCategoryEmoji(item.category)}</span>
+                <span className="text-3xl block mb-2">{getProductEmoji(item.name)}</span>
                 <p className="text-sm font-medium text-foreground">{item.name}</p>
                 <div className="flex items-center gap-1 mt-1.5">
                   <Clock className="w-3 h-3 text-muted-foreground" />

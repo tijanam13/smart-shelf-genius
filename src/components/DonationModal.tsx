@@ -2,6 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface DonationModalProps {
   isOpen: boolean;
@@ -9,6 +12,8 @@ interface DonationModalProps {
   itemId: string;
   itemName: string;
   daysLeft: number;
+  quantity?: number;
+  unit?: string;
   userWalletAddress: string;
 }
 
@@ -18,10 +23,15 @@ const DonationModal: React.FC<DonationModalProps> = ({
   itemId,
   itemName,
   daysLeft,
+  quantity = 1,
+  unit = 'pcs',
   userWalletAddress,
 }) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const isCritical = daysLeft <= 5 && daysLeft >= 0;
   const isExpired = daysLeft < 0;
+  const bonusTokens = isCritical ? 5 : 3;
 
   const qrData = JSON.stringify({
     itemId,
@@ -29,6 +39,50 @@ const DonationModal: React.FC<DonationModalProps> = ({
     isCritical,
     userWalletAddress,
   });
+
+  const handleDonate = async () => {
+    if (!user) return;
+
+    try {
+      // Record donation
+      await supabase.from('donations').insert({
+        user_id: user.id,
+        item_name: itemName,
+        quantity,
+        unit,
+      });
+
+      // Add bonus tokens
+      const { data: existing } = await supabase
+        .from('user_tokens')
+        .select('total_tokens')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('user_tokens')
+          .update({ total_tokens: (existing as any).total_tokens + bonusTokens, updated_at: new Date().toISOString() })
+          .eq('user_id', user.id);
+      } else {
+        await supabase
+          .from('user_tokens')
+          .insert({ user_id: user.id, total_tokens: bonusTokens });
+      }
+
+      // Remove item from fridge
+      await supabase.from('fridge_items').delete().eq('id', itemId);
+
+      toast({
+        title: "Donated! 🎉",
+        description: `You earned +${bonusTokens} 🪙 tokens for donating ${itemName}!`,
+      });
+
+      onClose();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -53,7 +107,6 @@ const DonationModal: React.FC<DonationModalProps> = ({
             ? 'glass-card-strong bg-warning/10 border border-warning/30'
             : 'glass-card-strong'
         }`}>
-          {/* Header */}
           <div className="absolute top-5 right-5">
             <motion.button
               whileTap={{ scale: 0.9 }}
@@ -64,14 +117,12 @@ const DonationModal: React.FC<DonationModalProps> = ({
             </motion.button>
           </div>
 
-          {/* Priority Badge */}
           {isCritical && (
             <div className="mb-3 px-3 py-1 rounded-full bg-warning/20 text-warning text-xs font-semibold">
-              ⏰ Priority Donation (+Bonus Tokens)
+              ⏰ Priority Donation (+{bonusTokens} Tokens)
             </div>
           )}
 
-          {/* Item Name */}
           <h2 className="text-xl font-bold text-foreground mt-2 text-center">
             {isExpired ? '🗑️ Item Expired' : '🎁 Donate Item'}
           </h2>
@@ -85,7 +136,6 @@ const DonationModal: React.FC<DonationModalProps> = ({
             )}
           </div>
 
-          {/* Message */}
           {!isExpired && (
             <div className="mb-6 text-center">
               <p className="text-sm text-muted-foreground">
@@ -94,7 +144,6 @@ const DonationModal: React.FC<DonationModalProps> = ({
             </div>
           )}
 
-          {/* QR Code */}
           {!isExpired && (
             <div className="bg-white rounded-2xl p-5 mb-6">
               <QRCodeSVG
@@ -116,23 +165,21 @@ const DonationModal: React.FC<DonationModalProps> = ({
             </div>
           )}
 
-          {/* Info Section */}
           {!isExpired && (
             <div className="w-full text-center mb-4 space-y-1 text-xs text-muted-foreground">
-              <p>✅ Earn tokens for donating</p>
+              <p>✅ Earn +{bonusTokens} tokens for donating</p>
               <p>🎁 Help others in need</p>
               <p>🌱 Impact your planet growth</p>
             </div>
           )}
 
-          {/* Close Button */}
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.95 }}
-            onClick={onClose}
+            onClick={isExpired ? onClose : handleDonate}
             className="w-full py-3 rounded-lg bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors mt-auto"
           >
-            {isExpired ? 'Close' : 'Done'}
+            {isExpired ? 'Close' : '🎁 Confirm Donation'}
           </motion.button>
         </div>
       </motion.div>

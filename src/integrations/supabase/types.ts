@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      donations: {
+        Row: {
+          donated_at: string
+          id: string
+          item_name: string
+          quantity: number
+          unit: string
+          user_id: string
+        }
+        Insert: {
+          donated_at?: string
+          id?: string
+          item_name: string
+          quantity?: number
+          unit?: string
+          user_id: string
+        }
+        Update: {
+          donated_at?: string
+          id?: string
+          item_name?: string
+          quantity?: number
+          unit?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       family_groups: {
         Row: {
           created_at: string

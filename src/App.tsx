@@ -18,6 +18,7 @@ import BarcodeScanner from "./pages/BarcodeScanner.tsx";
 import ReceiptScanner from "./pages/ReceiptScanner.tsx";
 import ManualEntry from "./pages/ManualEntry.tsx";
 import Planet from "./pages/Planet.tsx";
+import Store from "./pages/Store.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/barcode-scanner" element={<BarcodeScanner />} />
             <Route path="/scan" element={<ReceiptScanner />} />
             <Route path="/manual-entry" element={<ManualEntry />} />
+            <Route path="/store" element={<Store />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
