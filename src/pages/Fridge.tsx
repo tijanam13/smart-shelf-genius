@@ -261,30 +261,12 @@ const FridgePage = () => {
     }
 
     try {
-      // Record used recipe
+      // Record used recipe (no tokens awarded)
       const { error: recipeError } = await supabase
         .from('used_recipes')
-        .insert({ user_id: user.id, recipe_title: recipe.title, tokens_earned: recipe.tokens });
+        .insert({ user_id: user.id, recipe_title: recipe.title, tokens_earned: 0 });
 
       if (recipeError) throw recipeError;
-
-      // Update tokens - upsert
-      const { data: existing } = await supabase
-        .from('user_tokens')
-        .select('total_tokens')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (existing) {
-        await supabase
-          .from('user_tokens')
-          .update({ total_tokens: existing.total_tokens + recipe.tokens, updated_at: new Date().toISOString() })
-          .eq('user_id', user.id);
-      } else {
-        await supabase
-          .from('user_tokens')
-          .insert({ user_id: user.id, total_tokens: recipe.tokens });
-      }
 
       // Reduce fridge item quantities based on recipe ingredients
       if (recipe.ingredients && recipe.ingredients.length > 0) {
@@ -327,7 +309,7 @@ const FridgePage = () => {
 
       toast({
         title: "Recipe Used! 🎉",
-        description: `You earned +${recipe.tokens} 🪙 tokens!`,
+        description: "Ingredients have been deducted from your fridge.",
       });
 
       queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
@@ -911,7 +893,7 @@ const FridgePage = () => {
                                     <Clock className="w-3 h-3" /> {r.time}
                                     {r.difficulty && <span className="ml-2">· {r.difficulty}</span>}
                                   </span>
-                                  <span className="text-[11px] font-semibold text-safe bg-safe/10 px-2 py-0.5 rounded-full">Earned {r.tokens} 🪙</span>
+                                  <span className="text-[11px] font-semibold text-safe bg-safe/10 px-2 py-0.5 rounded-full">✅ Used</span>
                                 </div>
                               </motion.div>
                             ))}
@@ -936,7 +918,8 @@ const FridgePage = () => {
                         <div className="flex items-center gap-3 mt-1.5">
                           <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> {selectedRecipe.time}</span>
                           {selectedRecipe.difficulty && <span className="text-[11px] text-muted-foreground">· {selectedRecipe.difficulty}</span>}
-                          <span className="text-[11px] font-semibold text-token bg-token/10 px-2 py-0.5 rounded-full">{usedRecipeTitles.has(selectedRecipe.title) ? `Earned ${selectedRecipe.tokens}` : `+${selectedRecipe.tokens}`} 🪙</span>
+                          {!usedRecipeTitles.has(selectedRecipe.title) && <span className="text-[11px] font-semibold text-token bg-token/10 px-2 py-0.5 rounded-full">+{selectedRecipe.tokens} 🪙</span>}
+                          {usedRecipeTitles.has(selectedRecipe.title) && <span className="text-[11px] font-semibold text-safe bg-safe/10 px-2 py-0.5 rounded-full">✅ Used</span>}
                         </div>
                       </div>
                       <button onClick={() => setSelectedRecipe(null)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
@@ -978,7 +961,7 @@ const FridgePage = () => {
                           onClick={() => handleUseRecipe(selectedRecipe)}
                           className="flex-1 py-3 rounded-lg bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors flex items-center justify-center gap-2"
                         >
-                          <Check className="w-4 h-4" /> Use Recipe (+{selectedRecipe.tokens} 🪙)
+                          <Check className="w-4 h-4" /> Use Recipe
                         </motion.button>
                       )}
                       <motion.button
