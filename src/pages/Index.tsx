@@ -100,6 +100,7 @@ const Index = () => {
             >
               <div>
                 <ExpiringSection />
+                <NotificationsSection />
                 <AIInsightCard onRecipeClick={setSelectedRecipe} />
               </div>
               <div>
