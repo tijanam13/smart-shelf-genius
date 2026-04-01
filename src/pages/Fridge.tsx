@@ -759,13 +759,19 @@ const FridgePage = () => {
                       <p className="text-sm text-muted-foreground">{selectedRecipe.sub || "No detailed instructions available."}</p>
                     )}
                     <div className="mt-6 pt-4 border-t border-primary/10 flex gap-3">
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleUseRecipe(selectedRecipe)}
-                        className="flex-1 py-3 rounded-lg bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Check className="w-4 h-4" /> Use Recipe
-                      </motion.button>
+                      {usedRecipeTitles.has(selectedRecipe.title) ? (
+                        <div className="flex-1 py-3 rounded-lg bg-safe/15 text-safe text-sm font-bold flex items-center justify-center gap-2">
+                          <Check className="w-4 h-4" /> Already Used
+                        </div>
+                      ) : (
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleUseRecipe(selectedRecipe)}
+                          className="flex-1 py-3 rounded-lg bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Check className="w-4 h-4" /> Use Recipe (+{selectedRecipe.tokens} 🪙)
+                        </motion.button>
+                      )}
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setShowChat(!showChat)}
