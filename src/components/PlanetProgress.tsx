@@ -589,7 +589,7 @@ const PlanetProgress = ({ tokens = 0, showLabel = true, className = "" }: Planet
             textAlign: "center",
             transition: "color .5s",
           }}>
-            {tokens} 🪙 Tokens
+            {tokens} ⭐ Points
             {tokens >= 1000 && <span style={{ marginLeft: 6 }}>✨</span>}
           </div>
           <div style={{
