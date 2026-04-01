@@ -137,7 +137,7 @@ const Store = () => {
 
     setTokens(prev => prev - item.cost);
     queryClient.invalidateQueries({ queryKey: ["family_tokens"] });
-    toast.success(`Redeemed "${item.name}"!`);
+    toast.success(`Activated "${item.name}"!`);
     await fetchData();
     setRedeeming(false);
   };
