@@ -63,16 +63,16 @@ const PLANET_COLORS: Record<Stage, [string, string, string]> = {
 };
 
 const PILL_TOKENS: Record<Stage, number> = {
-  seedling: 0, sprouting: 15, growing: 35, blooming: 75, lush: 300, cosmic: 500,
+  seedling: 0, sprouting: 40, growing: 125, blooming: 350, lush: 750, cosmic: 1000,
 };
 
 // ─── Helper Functions ─────────────────────────────────────────────────────────
 function getStage(t: number): Stage {
-  if (t <= 10)  return "seedling";
-  if (t <= 20)  return "sprouting";
-  if (t <= 50)  return "growing";
-  if (t <= 200) return "blooming";
-  if (t <= 500) return "lush";
+  if (t <= 25)   return "seedling";
+  if (t <= 75)   return "sprouting";
+  if (t <= 200)  return "growing";
+  if (t <= 500)  return "blooming";
+  if (t <= 999)  return "lush";
   return "cosmic";
 }
 
@@ -530,9 +530,9 @@ const PlanetProgress = ({ tokens = 0, showLabel = true, className = "" }: Planet
   const stage = getStage(tokens);
   const sd = STAGES[stage];
 
-  const barPct = tokens < 500
-    ? Math.min((tokens / 500) * 100, 100)
-    : Math.min(((tokens - 500) / 500) * 100, 100);
+  const barPct = tokens < 1000
+    ? Math.min((tokens / 1000) * 100, 100)
+    : Math.min(((tokens - 1000) / 500) * 100, 100);
 
   const renderLoop = useCallback(() => {
     const canvas = canvasRef.current;
@@ -589,7 +589,7 @@ const PlanetProgress = ({ tokens = 0, showLabel = true, className = "" }: Planet
             textAlign: "center",
             transition: "color .5s",
           }}>
-            {tokens} 🪙 Tokens
+            {tokens} ⭐ Points
             {tokens >= 1000 && <span style={{ marginLeft: 6 }}>✨</span>}
           </div>
           <div style={{
@@ -624,9 +624,9 @@ const PlanetProgress = ({ tokens = 0, showLabel = true, className = "" }: Planet
             fontSize: 10,
             color: "var(--muted-foreground)",
           }}>
-            {tokens < 500
-              ? <><span>0</span><span>250</span><span>500+</span></>
-              : <><span>500</span><span>750</span><span>1000+</span></>
+            {tokens < 1000
+              ? <><span>0</span><span>500</span><span>1000+</span></>
+              : <><span>1000</span><span>1250</span><span>1500+</span></>
             }
           </div>
         </div>

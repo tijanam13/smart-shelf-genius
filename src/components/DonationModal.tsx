@@ -55,19 +55,23 @@ const DonationModal: React.FC<DonationModalProps> = ({
       // Add bonus tokens
       const { data: existing } = await supabase
         .from('user_tokens')
-        .select('total_tokens')
+        .select('total_tokens, total_points')
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (existing) {
         await supabase
           .from('user_tokens')
-          .update({ total_tokens: (existing as any).total_tokens + bonusTokens, updated_at: new Date().toISOString() })
+          .update({ 
+            total_tokens: (existing as any).total_tokens + bonusTokens, 
+            total_points: ((existing as any).total_points || 0) + bonusTokens,
+            updated_at: new Date().toISOString() 
+          })
           .eq('user_id', user.id);
       } else {
         await supabase
           .from('user_tokens')
-          .insert({ user_id: user.id, total_tokens: bonusTokens });
+          .insert({ user_id: user.id, total_tokens: bonusTokens, total_points: bonusTokens } as any);
       }
 
       // Remove item from fridge

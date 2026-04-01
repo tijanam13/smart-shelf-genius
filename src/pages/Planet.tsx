@@ -10,6 +10,7 @@ const Planet = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [tokens, setTokens] = useState(0);
+  const [points, setPoints] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,11 +23,12 @@ const Planet = () => {
       try {
         const { data } = await supabase
           .from('user_tokens')
-          .select('total_tokens')
+          .select('total_tokens, total_points')
           .eq('user_id', user.id)
           .maybeSingle();
 
         setTokens(data?.total_tokens ?? 0);
+        setPoints((data as any)?.total_points ?? 0);
       } catch (error) {
         console.error('Error fetching tokens:', error);
         setTokens(0);
@@ -53,7 +55,7 @@ const Planet = () => {
           className="pt-8 pb-6"
         >
           <h1 className="font-display text-3xl font-bold text-foreground mb-2">Your Planet</h1>
-          <p className="text-sm text-muted-foreground">Track your planet's growth through tokens</p>
+          <p className="text-sm text-muted-foreground">Track your planet's growth through points</p>
         </motion.div>
 
         {/* Planet Progress Section */}
@@ -65,54 +67,60 @@ const Planet = () => {
           {loading ? (
             <div className="text-center">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-              <p className="mt-4 text-muted-foreground">Loading tokens...</p>
+              <p className="mt-4 text-muted-foreground">Loading...</p>
             </div>
           ) : (
             <>
-              <PlanetProgress tokens={tokens} showLabel={true} className="mb-8" />
+              <PlanetProgress tokens={points} showLabel={true} className="mb-8" />
 
-              {/* Token Info Section */}
+              {/* Points & Tokens Info Section */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
                 className="glass-card-strong rounded-2xl p-8 max-w-md w-full text-center mt-8"
               >
-                <div className="mb-6">
-                  <p className="text-5xl font-bold text-primary mb-2">🪙 {tokens}</p>
-                  <p className="text-sm text-muted-foreground">Your Tokens</p>
+                <div className="flex justify-center gap-8 mb-6">
+                  <div>
+                    <p className="text-4xl font-bold text-primary mb-1">⭐ {points}</p>
+                    <p className="text-sm text-muted-foreground">Total Points</p>
+                  </div>
+                  <div>
+                    <p className="text-4xl font-bold text-token mb-1">🪙 {tokens}</p>
+                    <p className="text-sm text-muted-foreground">Spendable Tokens</p>
+                  </div>
                 </div>
 
                 {/* Growth Info */}
                 <div className="space-y-3 border-t border-border/50 pt-6">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Seedling (🌱)</span>
-                    <span className="font-semibold">0-10</span>
+                    <span className="font-semibold">0-25 pts</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Sprouting (🌿)</span>
-                    <span className="font-semibold">11-20</span>
+                    <span className="font-semibold">26-75 pts</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Growing (🌳)</span>
-                    <span className="font-semibold">21-50</span>
+                    <span className="font-semibold">76-200 pts</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Blooming (🌸)</span>
-                    <span className="font-semibold">51-200</span>
+                    <span className="font-semibold">201-500 pts</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Lush (🌺)</span>
-                    <span className="font-semibold">201-500</span>
+                    <span className="font-semibold">501-999 pts</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Cosmic (✨)</span>
-                    <span className="font-semibold">500+</span>
+                    <span className="font-semibold">1000+ pts</span>
                   </div>
                 </div>
 
                 <p className="text-xs text-muted-foreground mt-6">
-                  Earn tokens by using recipes from your fridge
+                  Points grow permanently. Tokens can be spent in the Store.
                 </p>
               </motion.div>
             </>
