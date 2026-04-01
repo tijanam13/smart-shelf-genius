@@ -29,8 +29,8 @@ const categories = [
 ];
 
 const locations = [
-  { value: "fridge", label: "🧊 Fridge", emoji: "🧊" },
-  { value: "freezer", label: "❄️ Freezer", emoji: "❄️" },
+  { value: "fridge", label: "Fridge", emoji: "🧊" },
+  { value: "freezer", label: "Freezer", emoji: "❄️" },
 ];
 
 const units = [

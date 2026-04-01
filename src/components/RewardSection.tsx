@@ -98,10 +98,6 @@ const RewardSection = () => {
             {tokens} 🪙
           </div>
           <div className="flex-1">
-            <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-              <span>Until next discount</span>
-              <span>{Math.max(0, goal - tokens)} tokens</span>
-            </div>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
               <motion.div
                 className="h-full rounded-full bg-token"
