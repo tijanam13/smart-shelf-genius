@@ -24,7 +24,9 @@ const NotificationCenter: React.FC = () => {
     }
   }, [isOpen]);
 
-  const activeNotifications = allNotifications.filter((n) => !n.readAt && !n.deletedAt);
+  const activeNotifications = allNotifications
+    .filter((n) => !n.readAt && !n.deletedAt)
+    .sort((a, b) => (a.level === 'warning' && b.level === 'high-priority' ? -1 : a.level === 'high-priority' && b.level === 'warning' ? 1 : 0));
   const readNotifications = allNotifications.filter((n) => n.readAt && !n.deletedAt);
 
   return (
