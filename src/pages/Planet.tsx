@@ -10,6 +10,7 @@ const Planet = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [tokens, setTokens] = useState(0);
+  const [points, setPoints] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
