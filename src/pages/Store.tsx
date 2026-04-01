@@ -254,7 +254,7 @@ const Store = () => {
                                 : "bg-muted/30 text-muted-foreground cursor-not-allowed"
                             }`}
                           >
-                            {canAfford ? "Redeem" : "Not enough"}
+                            {canAfford ? "Activate" : "Not enough"}
                           </motion.button>
                         </div>
                       </div>
