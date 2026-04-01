@@ -18,6 +18,7 @@ import BarcodeScanner from "./pages/BarcodeScanner.tsx";
 import ReceiptScanner from "./pages/ReceiptScanner.tsx";
 import ManualEntry from "./pages/ManualEntry.tsx";
 import Planet from "./pages/Planet.tsx";
+import Store from "./pages/Store.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
