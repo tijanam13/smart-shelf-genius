@@ -20,19 +20,13 @@ const Planet = () => {
 
     const fetchTokens = async () => {
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
+        const { data } = await supabase
+          .from('user_tokens')
+          .select('total_tokens')
           .eq('user_id', user.id)
           .maybeSingle();
 
-        if (data) {
-          // Use tokens if column exists, otherwise default to 0
-          const userTokens = ((data as any).tokens ?? 0) as number;
-          setTokens(userTokens);
-        } else {
-          setTokens(0);
-        }
+        setTokens(data?.total_tokens ?? 0);
       } catch (error) {
         console.error('Error fetching tokens:', error);
         setTokens(0);

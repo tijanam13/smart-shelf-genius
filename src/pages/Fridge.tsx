@@ -24,6 +24,7 @@ interface Recipe {
   time: string;
   difficulty?: string;
   tokens: number;
+  used?: boolean;
 }
 
 const defaultRecipes: Recipe[] = [
@@ -102,10 +103,44 @@ const FridgePage = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [donationItem, setDonationItem] = useState<typeof enrichedItems[0] | null>(null);
+  const [usedRecipeTitles, setUsedRecipeTitles] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: dbItems = [], isLoading } = useFridgeItems();
+
+  // Load used recipes from DB
+  useEffect(() => {
+    if (!user) return;
+    const loadUsedRecipes = async () => {
+      const { data } = await supabase
+        .from('used_recipes')
+        .select('recipe_title')
+        .eq('user_id', user.id);
+      if (data) {
+        setUsedRecipeTitles(new Set(data.map((r: any) => r.recipe_title)));
+      }
+    };
+    loadUsedRecipes();
+  }, [user]);
+
+  // Realtime subscription for fridge_items
+  useEffect(() => {
+    const channel = supabase
+      .channel('fridge-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'fridge_items' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const enrichedItems = dbItems.map((item) => {
     const days = getDaysLeft(item.expiry_date);
@@ -166,10 +201,42 @@ const FridgePage = () => {
       return;
     }
 
+    if (usedRecipeTitles.has(recipe.title)) {
+      toast({ title: "Already used", description: "You already used this recipe.", variant: "destructive" });
+      return;
+    }
+
     try {
+      // Record used recipe
+      const { error: recipeError } = await supabase
+        .from('used_recipes')
+        .insert({ user_id: user.id, recipe_title: recipe.title, tokens_earned: recipe.tokens });
+
+      if (recipeError) throw recipeError;
+
+      // Update tokens - upsert
+      const { data: existing } = await supabase
+        .from('user_tokens')
+        .select('total_tokens')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('user_tokens')
+          .update({ total_tokens: existing.total_tokens + recipe.tokens, updated_at: new Date().toISOString() })
+          .eq('user_id', user.id);
+      } else {
+        await supabase
+          .from('user_tokens')
+          .insert({ user_id: user.id, total_tokens: recipe.tokens });
+      }
+
+      setUsedRecipeTitles(prev => new Set([...prev, recipe.title]));
+
       toast({
-        title: "Recipe Used!",
-        description: `You started cooking "${recipe.title}"`,
+        title: "Recipe Used! 🎉",
+        description: `You earned +${recipe.tokens} 🪙 tokens!`,
       });
 
       queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
@@ -622,19 +689,25 @@ const FridgePage = () => {
               {activeTab === "recipes" && !selectedRecipe && (
                 <motion.div key="recipes" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">AI Suggestions — use before they expire</p>
-                  {recipes.map((r, idx) => (
-                    <motion.div key={`${r.title}-${idx}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.08 }} whileHover={{ scale: 1.01 }} className="glass-card rounded-xl p-4 mb-3 cursor-pointer" onClick={() => setSelectedRecipe(r)}>
-                      <p className="text-sm font-medium text-foreground">{r.title}</p>
+                  {recipes.map((r, idx) => {
+                    const isUsed = usedRecipeTitles.has(r.title);
+                    return (
+                    <motion.div key={`${r.title}-${idx}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.08 }} whileHover={{ scale: 1.01 }} className={`glass-card rounded-xl p-4 mb-3 cursor-pointer ${isUsed ? 'opacity-60' : ''}`} onClick={() => setSelectedRecipe(r)}>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-foreground">{r.title}</p>
+                        {isUsed && <span className="text-[10px] font-semibold text-safe bg-safe/15 px-2 py-0.5 rounded-full">✅ Used</span>}
+                      </div>
                       {r.sub && <p className="text-[11px] text-muted-foreground mt-1">{r.sub}</p>}
                       <div className="flex items-center justify-between mt-3">
                         <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                           <Clock className="w-3 h-3" /> {r.time}
                           {r.difficulty && <span className="ml-2">· {r.difficulty}</span>}
                         </span>
-                        <span className="text-[11px] font-semibold text-token bg-token/10 px-2 py-0.5 rounded-full">+{r.tokens} 🪙</span>
+                        <span className="text-[11px] font-semibold text-token bg-token/10 px-2 py-0.5 rounded-full">{isUsed ? 'Earned' : '+'}{r.tokens} 🪙</span>
                       </div>
                     </motion.div>
-                  ))}
+                    );
+                  })}
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={handleGenerateRecipes} disabled={generatingRecipes} className="w-full glass-card rounded-xl py-2.5 text-xs font-medium text-foreground flex items-center justify-center gap-1.5 mt-1 disabled:opacity-50">
                     {generatingRecipes ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating recipes...</>) : (<><Sparkles className="h-3.5 w-3.5" /> Generate more recipes <ChevronRight className="h-3.5 w-3.5" /></>)}
                   </motion.button>
@@ -686,13 +759,19 @@ const FridgePage = () => {
                       <p className="text-sm text-muted-foreground">{selectedRecipe.sub || "No detailed instructions available."}</p>
                     )}
                     <div className="mt-6 pt-4 border-t border-primary/10 flex gap-3">
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleUseRecipe(selectedRecipe)}
-                        className="flex-1 py-3 rounded-lg bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Check className="w-4 h-4" /> Use Recipe
-                      </motion.button>
+                      {usedRecipeTitles.has(selectedRecipe.title) ? (
+                        <div className="flex-1 py-3 rounded-lg bg-safe/15 text-safe text-sm font-bold flex items-center justify-center gap-2">
+                          <Check className="w-4 h-4" /> Already Used
+                        </div>
+                      ) : (
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleUseRecipe(selectedRecipe)}
+                          className="flex-1 py-3 rounded-lg bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Check className="w-4 h-4" /> Use Recipe (+{selectedRecipe.tokens} 🪙)
+                        </motion.button>
+                      )}
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setShowChat(!showChat)}

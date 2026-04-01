@@ -142,6 +142,54 @@ export type Database = {
         }
         Relationships: []
       }
+      used_recipes: {
+        Row: {
+          id: string
+          recipe_title: string
+          tokens_earned: number
+          used_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          recipe_title: string
+          tokens_earned?: number
+          used_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          recipe_title?: string
+          tokens_earned?: number
+          used_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          total_tokens: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          total_tokens?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          total_tokens?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
