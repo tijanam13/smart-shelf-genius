@@ -530,9 +530,9 @@ const PlanetProgress = ({ tokens = 0, showLabel = true, className = "" }: Planet
   const stage = getStage(tokens);
   const sd = STAGES[stage];
 
-  const barPct = tokens < 1000
-    ? Math.min((tokens / 100) * 100, 100)
-    : Math.min(((tokens - 1000) / 1000) * 100, 100);
+  const barPct = tokens < 500
+    ? Math.min((tokens / 500) * 100, 100)
+    : Math.min(((tokens - 500) / 500) * 100, 100);
 
   const renderLoop = useCallback(() => {
     const canvas = canvasRef.current;
