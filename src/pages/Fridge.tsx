@@ -24,6 +24,7 @@ interface Recipe {
   time: string;
   difficulty?: string;
   tokens: number;
+  used?: boolean;
 }
 
 const defaultRecipes: Recipe[] = [
