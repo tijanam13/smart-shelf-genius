@@ -52,7 +52,7 @@ const ManualEntry = () => {
   const [location, setLocation] = useState("fridge");
   const [saving, setSaving] = useState(false);
 
-  const step = unit === "g" || unit === "ml" ? 100 : unit === "kg" || unit === "l" ? 0.1 : 1;
+  const step = 1;
 
   const handleSave = async () => {
     if (!user) { toast.error("Please log in first"); return; }
@@ -150,15 +150,15 @@ const ManualEntry = () => {
           <Label className="text-sm text-muted-foreground">Quantity & Unit</Label>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQuantity((q) => Math.max(step, +(q - step).toFixed(1)))} className="w-10 h-10 rounded-xl glass-card flex items-center justify-center">
+              <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="w-10 h-10 rounded-xl glass-card flex items-center justify-center">
                 <Minus className="w-4 h-4 text-foreground" />
               </motion.button>
               <span className="text-lg font-bold text-foreground w-12 text-center">{displayQty}</span>
-              <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQuantity((q) => +(q + step).toFixed(1))} className="w-10 h-10 rounded-xl glass-card flex items-center justify-center">
+              <motion.button whileTap={{ scale: 0.9 }} onClick={() => setQuantity((q) => q + 1)} className="w-10 h-10 rounded-xl glass-card flex items-center justify-center">
                 <Plus className="w-4 h-4 text-foreground" />
               </motion.button>
             </div>
-            <Select value={unit} onValueChange={(v) => { setUnit(v); setQuantity(v === "g" || v === "ml" ? 100 : v === "kg" || v === "l" ? 1 : 1); }}>
+            <Select value={unit} onValueChange={(v) => { setUnit(v); setQuantity(1); }}>
               <SelectTrigger className="bg-background/50 border-border/50 rounded-xl h-10 w-24">
                 <SelectValue />
               </SelectTrigger>
