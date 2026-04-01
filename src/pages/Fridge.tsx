@@ -135,6 +135,7 @@ const FridgePage = () => {
   const [usedRecipeTitles, setUsedRecipeTitles] = useState<Set<string>>(new Set());
   const [fridgeExpanded, setFridgeExpanded] = useState(false);
   const [freezerExpanded, setFreezerExpanded] = useState(false);
+  const [selectedExpiredItem, setSelectedExpiredItem] = useState<any | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
