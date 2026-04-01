@@ -706,6 +706,7 @@ const FridgePage = () => {
                             setEditingItem(selectedItem.id); 
                             setEditLocation(selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status); 
                             setEditExpiryDate(selectedItem.expiry_date ? new Date(selectedItem.expiry_date) : undefined);
+                            setEditQuantity(selectedItem.quantity);
                           }}
                           className="flex-1 min-w-[100px] py-3 rounded-lg bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors flex items-center justify-center gap-2"
                         >
