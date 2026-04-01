@@ -23,11 +23,12 @@ const Planet = () => {
       try {
         const { data } = await supabase
           .from('user_tokens')
-          .select('total_tokens')
+          .select('total_tokens, total_points')
           .eq('user_id', user.id)
           .maybeSingle();
 
         setTokens(data?.total_tokens ?? 0);
+        setPoints((data as any)?.total_points ?? 0);
       } catch (error) {
         console.error('Error fetching tokens:', error);
         setTokens(0);
