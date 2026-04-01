@@ -220,24 +220,24 @@ const NotificationDetail: React.FC<NotificationDetailProps> = ({
                   }}
                   className="flex-1 py-3 rounded-lg bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors flex items-center justify-center gap-2"
                 >
-                  <CheckCircle className="w-4 h-4" /> Iskorišćeno
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    onMarkAsDiscarded(notification.id);
-                    onClose();
-                  }}
-                  className="flex-1 py-3 rounded-lg bg-urgent/20 text-urgent text-sm font-bold hover:bg-urgent/30 transition-colors flex items-center justify-center gap-2"
-                >
-                  <Trash2 className="w-4 h-4" /> Bačeno
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={onClose}
-                  className="flex-1 py-3 rounded-lg bg-muted/30 text-muted-foreground text-sm font-bold hover:bg-muted/50 transition-colors"
-                >
-                  Zatvori
+                   <CheckCircle className="w-4 h-4" /> Consumed
+                 </motion.button>
+                 <motion.button
+                   whileTap={{ scale: 0.95 }}
+                   onClick={() => {
+                     onMarkAsDiscarded(notification.id);
+                     onClose();
+                   }}
+                   className="flex-1 py-3 rounded-lg bg-urgent/20 text-urgent text-sm font-bold hover:bg-urgent/30 transition-colors flex items-center justify-center gap-2"
+                 >
+                   <Trash2 className="w-4 h-4" /> Discarded
+                 </motion.button>
+                 <motion.button
+                   whileTap={{ scale: 0.95 }}
+                   onClick={onClose}
+                   className="flex-1 py-3 rounded-lg bg-muted/30 text-muted-foreground text-sm font-bold hover:bg-muted/50 transition-colors"
+                 >
+                   Close
                 </motion.button>
               </div>
             </div>
