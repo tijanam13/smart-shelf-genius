@@ -55,7 +55,7 @@ const Planet = () => {
           className="pt-8 pb-6"
         >
           <h1 className="font-display text-3xl font-bold text-foreground mb-2">Your Planet</h1>
-          <p className="text-sm text-muted-foreground">Track your planet's growth through tokens</p>
+          <p className="text-sm text-muted-foreground">Track your planet's growth through points</p>
         </motion.div>
 
         {/* Planet Progress Section */}
