@@ -180,7 +180,6 @@ export const useNotifications = () => {
         });
       };
 
-      if (days <= 10 && days > 5) checkAndCreate('warning');
       if (days <= 5 && days >= 0) checkAndCreate('high-priority');
     });
 
