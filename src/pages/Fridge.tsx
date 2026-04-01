@@ -900,10 +900,12 @@ const FridgePage = () => {
       {(selectedItem || donationItem) && (
         <DonationModal
           isOpen={showDonationModal}
-          onClose={() => { setShowDonationModal(false); setDonationItem(null); }}
+          onClose={() => { setShowDonationModal(false); setDonationItem(null); queryClient.invalidateQueries({ queryKey: ["fridge_items"] }); }}
           itemId={(donationItem || selectedItem)?.id || ""}
           itemName={(donationItem || selectedItem)?.name || ""}
           daysLeft={(donationItem || selectedItem)?.days || 0}
+          quantity={(donationItem || selectedItem)?.quantity || 1}
+          unit={(donationItem || selectedItem)?.unit || "pcs"}
           userWalletAddress={user?.id || "unknown"}
         />
       )}
