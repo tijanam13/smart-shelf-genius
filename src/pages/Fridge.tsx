@@ -869,7 +869,7 @@ const FridgePage = () => {
                                 <Clock className="w-3 h-3" /> {r.time}
                                 {r.difficulty && <span className="ml-2">· {r.difficulty}</span>}
                               </span>
-                              <span className="text-[11px] font-semibold text-token bg-token/10 px-2 py-0.5 rounded-full">+{r.tokens} 🪙</span>
+                              
                             </div>
                           </motion.div>
                         ))}
