@@ -173,7 +173,7 @@ const FridgePage = () => {
     };
   }, [queryClient]);
 
-  const enrichedItems = dbItems.map((item) => {
+  const allEnrichedItems = dbItems.map((item) => {
     const days = getDaysLeft(item.expiry_date);
     const urgency = getUrgency(item.expiry_date);
     const emoji = getProductImage(item.name);
@@ -182,9 +182,31 @@ const FridgePage = () => {
     return { ...item, days, urgency, emoji, freshness, daysLabel };
   });
 
+  // Expired items = expiry_date is yesterday or earlier (days < 0)
+  const expiredItems = allEnrichedItems.filter((i) => i.expiry_date && i.days < 0);
+  // Active items = not expired
+  const enrichedItems = allEnrichedItems.filter((i) => !i.expiry_date || i.days >= 0);
+
   const urgentItems = enrichedItems.filter((i) => i.urgency === "urgent");
   const warnItems = enrichedItems.filter((i) => i.urgency === "warning");
   const safeItems = enrichedItems.filter((i) => i.urgency === "safe");
+
+  // Auto-move expired items to "expired" status in DB
+  useEffect(() => {
+    if (!user || expiredItems.length === 0) return;
+    const moveToExpired = async () => {
+      for (const item of expiredItems) {
+        if (item.status !== "expired") {
+          await supabase
+            .from("fridge_items")
+            .update({ status: "expired" })
+            .eq("id", item.id);
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
+    };
+    moveToExpired();
+  }, [dbItems, user]);
 
   const showTooltip = (item: typeof enrichedItems[0]) => {
     setSelectedItem(item);
