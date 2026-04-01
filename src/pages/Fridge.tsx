@@ -961,7 +961,7 @@ const FridgePage = () => {
                           onClick={() => handleUseRecipe(selectedRecipe)}
                           className="flex-1 py-3 rounded-lg bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors flex items-center justify-center gap-2"
                         >
-                          <Check className="w-4 h-4" /> Use Recipe (+{selectedRecipe.tokens} 🪙)
+                          <Check className="w-4 h-4" /> Use Recipe
                         </motion.button>
                       )}
                       <motion.button
