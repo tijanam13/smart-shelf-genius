@@ -35,12 +35,15 @@ const Store = () => {
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
     const fetchTokens = async () => {
+      // Get family member IDs
+      const { getFamilyUserIds } = await import('@/hooks/useFamilyData');
+      const userIds = await getFamilyUserIds(user.id);
       const { data } = await supabase
         .from('user_tokens')
         .select('total_tokens')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      setTokens((data as any)?.total_tokens ?? 0);
+        .in('user_id', userIds);
+      const total = (data || []).reduce((sum, r) => sum + ((r as any).total_tokens || 0), 0);
+      setTokens(total);
     };
     fetchTokens();
   }, [user, navigate]);
