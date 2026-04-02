@@ -124,15 +124,14 @@ export function getMetaMaskDeepLink(currentUrl?: string): string {
 }
 
 /**
- * Generiše MetaMask deep link koji vodi na /login stranicu.
- * Koristi se na mobilnom uređaju — admin se prijavljuje unutar
- * MetaMask in-app browsera, gde window.ethereum postoji i
- * transakcije mogu biti potpisane bez napuštanja stranice.
+ * Generiše MetaMask deep link koji vodi na trenutnu stranicu.
+ * Na mobilnom uređaju otvara MetaMask in-app browser gde
+ * window.ethereum postoji i transakcije mogu biti potpisane.
  */
-export function getMetaMaskLoginDeepLink(): string {
-  const origin = window.location.origin;
-  const cleanOrigin = origin.replace(/^https?:\/\//, "");
-  return `https://metamask.app.link/dapp/${cleanOrigin}/login`;
+export function getMetaMaskDeepLinkForCurrentPage(): string {
+  const url = window.location.href;
+  const cleanUrl = url.replace(/^https?:\/\//, "");
+  return `https://metamask.app.link/dapp/${cleanUrl}`;
 }
 
 // ─── WALLET CONNECTION ───────────────────────────────────────────────────────

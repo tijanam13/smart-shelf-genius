@@ -19,7 +19,7 @@ import {
   recordDonationOnChain,
   isMetaMaskAvailable,
   isMobileDevice,
-  getMetaMaskLoginDeepLink,
+  getMetaMaskDeepLinkForCurrentPage,
   switchToSepolia,
   checkNetwork,
   isValidEthAddress,
@@ -223,7 +223,7 @@ const AdminScan = () => {
 
     // Mobile without MetaMask browser → open MetaMask app
     if (!isMetaMaskAvailable() && isMobileDevice()) {
-      window.location.href = getMetaMaskLoginDeepLink();
+      window.location.href = getMetaMaskDeepLinkForCurrentPage();
       return;
     }
 
@@ -399,7 +399,7 @@ const AdminScan = () => {
                 {isConnectingWallet ? "Connecting..." : "Connect MetaMask to sign transactions"}
               </button>
             ) : onMobile ? (
-              <a href={getMetaMaskLoginDeepLink()} className="flex items-center gap-2 text-xs text-orange-400">
+              <a href={getMetaMaskDeepLinkForCurrentPage()} className="flex items-center gap-2 text-xs text-orange-400">
                 <ExternalLink className="w-3.5 h-3.5" />
                 Sign in via MetaMask browser
               </a>
