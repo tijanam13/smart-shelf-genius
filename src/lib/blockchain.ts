@@ -243,17 +243,32 @@ export async function recordDonationOnChain(
       };
     }
 
-    const provider = new BrowserProvider((window as any).ethereum);
-    await provider.send("eth_requestAccounts", []);
+    const ethereum = (window as any).ethereum;
+
+    // Step 1: Request accounts (connect wallet)
+    await ethereum.request({ method: "eth_requestAccounts" });
+
+    // Step 2: Switch to Sepolia BEFORE creating provider/signer
     await switchToSepolia();
 
-    const signer = await provider.getSigner();
-    const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+    // Step 3: Small delay to let MetaMask settle after chain switch
+    await new Promise((r) => setTimeout(r, 500));
 
-    // Trigger the contract function
+    // Step 4: Now create provider & signer on the correct chain
+    const provider = new BrowserProvider(ethereum);
+    const signer = await provider.getSigner();
+
+    // Step 5: Verify we're on Sepolia
+    const network = await provider.getNetwork();
+    if (Number(network.chainId) !== 11155111) {
+      return { success: false, error: "Please switch to Sepolia testnet in MetaMask and try again." };
+    }
+
+    // Step 6: Create contract and send transaction
+    const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
     const tx = await (contract as any).recordDonation(donorAddress, itemName, isCritical);
 
-    // Wait for network confirmation (~15-30 seconds)
+    // Step 7: Wait for confirmation
     await tx.wait();
 
     const tokensAwarded = isCritical ? 5 : 3;
@@ -272,6 +287,7 @@ export async function recordDonationOnChain(
     if (err.message?.includes("insufficient funds")) {
       return { success: false, error: "Not enough Sepolia ETH for gas. Use a faucet." };
     }
+    console.error("Blockchain error:", err);
     return { success: false, error: err.message || "Blockchain transaction failed." };
   }
 }
