@@ -84,6 +84,7 @@ const AdminScan = () => {
   const [scannedData, setScannedData] = useState<QRDonationData | null>(null);
   const [txResult, setTxResult] = useState<DonationResult | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [manualDonorWallet, setManualDonorWallet] = useState("");
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
