@@ -8,7 +8,7 @@
 import { BrowserProvider, Contract } from "ethers";
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
-export const CONTRACT_ADDRESS = "0xPASTE_YOUR_CONTRACT_ADDRESS_HERE";
+export const CONTRACT_ADDRESS = "0xb4aF266E08659B6C18da330b7596fA8b92e42783";
 
 // Sepolia Chain ID
 const SEPOLIA_CHAIN_ID = "0xaa36a7"; // = 11155111 decimal
