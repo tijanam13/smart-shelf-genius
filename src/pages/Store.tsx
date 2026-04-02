@@ -130,10 +130,11 @@ const Store = () => {
 
     if (insertErr) { toast.error("Failed to activate coupon"); setRedeeming(false); return; }
 
-    await supabase
-      .from('user_tokens')
-      .update({ total_tokens: tokens - item.cost, updated_at: new Date().toISOString() })
-      .eq('user_id', user.id);
+    await supabase.rpc('adjust_user_tokens', {
+      _user_id: user.id,
+      _token_delta: -item.cost,
+      _point_delta: 0,
+    });
 
     setTokens(prev => prev - item.cost);
     queryClient.invalidateQueries({ queryKey: ["family_tokens"] });
