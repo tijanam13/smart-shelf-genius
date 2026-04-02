@@ -298,6 +298,7 @@ export type Database = {
     Functions: {
       get_family_member_ids: { Args: { _user_id: string }; Returns: string[] }
       get_user_group_ids: { Args: { _user_id: string }; Returns: string[] }
+      join_family_by_code: { Args: { _invite_code: string }; Returns: Json }
       update_own_profile: {
         Args: {
           _avatar_url?: string
