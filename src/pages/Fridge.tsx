@@ -1513,7 +1513,7 @@ const FridgePage = () => {
           daysLeft={(donationItem || selectedItem)?.days || 0}
           quantity={(donationItem || selectedItem)?.quantity || 1}
           unit={(donationItem || selectedItem)?.unit || "pcs"}
-          userWalletAddress={userWalletAddress || "unknown"}
+          userWalletAddress={userWalletAddress}
         />
       )}
 

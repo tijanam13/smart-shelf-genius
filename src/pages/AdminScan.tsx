@@ -515,7 +515,22 @@ const AdminScan = () => {
 
                   <div className="py-3 px-4 rounded-xl bg-background/40 border">
                     <p className="text-xs text-muted-foreground mb-1">Donor wallet</p>
-                    <p className="text-xs font-mono break-all text-foreground/80">{scannedData.userWalletAddress}</p>
+                    {isValidEthAddress(scannedData.userWalletAddress) ? (
+                      <p className="text-xs font-mono break-all text-foreground/80">{scannedData.userWalletAddress}</p>
+                    ) : (
+                      <div className="mt-1">
+                        <p className="text-xs text-warning mb-2">⚠️ Donor hasn't set a wallet. Enter manually:</p>
+                        <Input
+                          value={manualDonorWallet}
+                          onChange={(e) => setManualDonorWallet(e.target.value)}
+                          placeholder="0x..."
+                          className="font-mono text-xs h-9"
+                        />
+                        {manualDonorWallet && !isValidEthAddress(manualDonorWallet) && (
+                          <p className="text-xs text-destructive mt-1">Invalid Ethereum address</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 

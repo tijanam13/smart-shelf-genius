@@ -160,6 +160,25 @@ const DonationModal: React.FC<DonationModalProps> = ({
 
               {!isExpired && (
                 <>
+                  {/* Wallet warning + manual input */}
+                  {!hasValidWallet && (
+                    <div className="w-full mb-4 px-4 py-3 rounded-xl bg-warning/10 border border-warning/30">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertTriangle className="w-4 h-4 text-warning" />
+                        <p className="text-xs font-semibold text-warning">Wallet address required</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Add your MetaMask wallet address on the Profile page, or enter it below:
+                      </p>
+                      <Input
+                        value={localWallet}
+                        onChange={(e) => setLocalWallet(e.target.value)}
+                        placeholder="0x..."
+                        className="font-mono text-xs h-9"
+                      />
+                    </div>
+                  )}
+
                   {/* Instructions */}
                   <div className="w-full mb-4 px-4 py-3 rounded-xl bg-primary/5 border border-primary/20 text-center">
                     <QrCode className="w-5 h-5 text-primary mx-auto mb-1" />
@@ -171,7 +190,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                   </div>
 
                   {/* QR Code */}
-                  <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm">
+                  <div className={`bg-white rounded-2xl p-4 mb-4 shadow-sm ${!hasValidWallet ? 'opacity-40 pointer-events-none' : ''}`}>
                     <QRCodeSVG
                       value={qrData}
                       size={190}
