@@ -27,27 +27,13 @@ serve(async (req) => {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not configured");
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Check if customer already exists
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId: string;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-    } else {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: { supabase_user_id: user.id },
-      });
-      customerId = customer.id;
-    }
-
-    const { origin } = new URL(req.url);
     const { returnUrl } = await req.json().catch(() => ({ returnUrl: null }));
     const successUrl = returnUrl || req.headers.get("origin") || "https://smart-shelf-genius.lovable.app";
 
     const session = await stripe.checkout.sessions.create({
-      customer: customerId,
+      customer_email: user.email,
       line_items: [
         {
           price_data: {
@@ -56,7 +42,7 @@ serve(async (req) => {
               name: "EatSmart Premium",
               description: "Remove all ads and enjoy an ad-free experience",
             },
-            unit_amount: 499, // $4.99
+            unit_amount: 499,
           },
           quantity: 1,
         },
