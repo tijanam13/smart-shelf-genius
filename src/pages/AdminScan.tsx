@@ -19,7 +19,7 @@ import {
   recordDonationOnChain,
   isMetaMaskAvailable,
   isMobileDevice,
-  getMetaMaskLoginDeepLink,
+  getMetaMaskDeepLinkForCurrentPage,
   switchToSepolia,
   checkNetwork,
   isValidEthAddress,
