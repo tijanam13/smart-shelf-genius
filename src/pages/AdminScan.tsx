@@ -208,7 +208,7 @@ const AdminScan = () => {
     const { data: donorProfile } = await supabase
       .from("profiles")
       .select("user_id")
-      .eq("wallet_address" as any, scannedData.userWalletAddress)
+      .eq("wallet_address", scannedData.userWalletAddress)
       .maybeSingle();
 
     const donorUserId = donorProfile?.user_id;
