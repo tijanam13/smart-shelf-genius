@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, X, ChevronLeft } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import ExpiringSection from "@/components/ExpiringSection";
 import QuickActions from "@/components/QuickActions";
@@ -9,9 +8,6 @@ import AIInsightCard from "@/components/AIInsightCard";
 import RewardSection from "@/components/RewardSection";
 import BottomNav from "@/components/BottomNav";
 import AdBanner from "@/components/AdBanner";
-import { usePremium } from "@/contexts/PremiumContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 interface Recipe {
   title: string;
@@ -25,35 +21,6 @@ interface Recipe {
 
 const Index = () => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { refresh: refreshPremium } = usePremium();
-  const { toast } = useToast();
-
-  useEffect(() => {
-    if (searchParams.get('premium') === 'success') {
-      const verifyPremium = async (retries = 0): Promise<void> => {
-        try {
-          const { data, error } = await supabase.functions.invoke('verify-premium');
-          if (error) throw error;
-          if (data?.isPremium) {
-            await refreshPremium();
-            toast({ title: '🎉 Welcome to Premium!', description: 'Ads have been removed from your account.' });
-            setSearchParams({}, { replace: true });
-            return;
-          }
-          // Stripe may not have processed yet — retry up to 5 times with 2s delay
-          if (retries < 5) {
-            await new Promise(r => setTimeout(r, 2000));
-            return verifyPremium(retries + 1);
-          }
-        } catch (e) {
-          console.error('Failed to verify premium:', e);
-        }
-        setSearchParams({}, { replace: true });
-      };
-      verifyPremium();
-    }
-  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
