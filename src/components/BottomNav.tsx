@@ -2,7 +2,8 @@
  * src/components/BottomNav.tsx
  *
  * Bottom navigation bar.
- * Admin users see an extra "Admin" tab that leads to /admin-scan.
+ * Admin users see ONLY the Admin tab.
+ * Regular users see all standard tabs.
  */
 
 import { Home, Refrigerator, Camera, Users, User, Globe, ShoppingCart, ShieldCheck } from "lucide-react";
@@ -20,18 +21,20 @@ const regularTabs = [
   { icon: User, label: "Profile", path: "/profile" },
 ];
 
-const adminTab = {
-  icon: ShieldCheck,
-  label: "Admin",
-  path: "/admin-scan",
-};
+const adminTabs = [
+  {
+    icon: ShieldCheck,
+    label: "Admin",
+    path: "/admin-scan",
+  },
+];
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
 
-  const tabs = isAdmin ? [...regularTabs, adminTab] : regularTabs;
+  const tabs = isAdmin ? adminTabs : regularTabs;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50">
@@ -39,7 +42,6 @@ const BottomNav = () => {
         <div className="flex items-center justify-around py-2">
           {tabs.map((tab) => {
             const isActive = location.pathname === tab.path;
-            const isAdminTab = tab.path === "/admin-scan";
 
             return (
               <motion.button
@@ -47,19 +49,11 @@ const BottomNav = () => {
                 whileTap={{ scale: 0.9 }}
                 onClick={() => navigate(tab.path)}
                 className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${
-                  isActive
-                    ? isAdminTab
-                      ? "text-primary"
-                      : "text-primary"
-                    : isAdminTab
-                      ? "text-primary/60"
-                      : "text-muted-foreground"
+                  isActive ? "text-primary" : "text-muted-foreground"
                 }`}
               >
-                <tab.icon className={`w-5 h-5 ${isActive ? "text-primary" : isAdminTab ? "text-primary/60" : ""}`} />
-                <span className={`text-[9px] font-medium ${isAdminTab && !isActive ? "text-primary/60" : ""}`}>
-                  {tab.label}
-                </span>
+                <tab.icon className={`w-5 h-5 ${isActive ? "text-primary" : ""}`} />
+                <span className="text-[9px] font-medium">{tab.label}</span>
                 {isActive && <motion.div layoutId="nav-indicator" className="w-1 h-1 rounded-full bg-primary" />}
               </motion.button>
             );
