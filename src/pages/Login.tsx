@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Leaf, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { usePremium } from '@/contexts/PremiumContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -13,19 +14,38 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { refresh: refreshPremium } = usePremium();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
 
     if (error) {
+      setLoading(false);
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } else {
-      navigate('/');
+      return;
     }
+
+    // If coming from Stripe payment, verify and activate premium
+    if (searchParams.get('premium') === 'success') {
+      try {
+        const { data } = await supabase.functions.invoke('verify-premium');
+        if (data?.isPremium) {
+          await refreshPremium();
+          toast({ title: '🎉 Welcome to Premium!', description: 'Ads have been removed from your account.' });
+        }
+      } catch (e) {
+        console.error('Premium verification failed:', e);
+      }
+    } else {
+      await refreshPremium();
+    }
+
+    setLoading(false);
+    navigate('/');
   };
 
   return (
