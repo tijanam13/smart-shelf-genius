@@ -288,8 +288,11 @@ export const useNotifications = () => {
     saveNotifications(updated);
   }, [notifications, fridgeItems, saveNotifications, queryClient]);
 
-  // Get active notifications (not read, not deleted)
-  const activeNotifications = notifications.filter((n) => !n.readAt && !n.deletedAt);
+  // Get active notifications — only show if the fridge item still exists
+  const fridgeItemIds = new Set(fridgeItems.map((fi) => fi.id));
+  const activeNotifications = notifications.filter(
+    (n) => !n.readAt && !n.deletedAt && fridgeItemIds.has(n.itemId)
+  );
 
   return {
     notifications: activeNotifications,
