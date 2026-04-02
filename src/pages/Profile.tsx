@@ -115,14 +115,11 @@ const Profile = () => {
       }
     }
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        display_name: displayName.trim(),
-        phone: phone.trim() || null,
-        wallet_address: walletAddress.trim() || null,
-      } as any)
-      .eq("user_id", user.id);
+    const { error } = await supabase.rpc("update_own_profile", {
+      _display_name: displayName.trim(),
+      _phone: phone.trim() || null,
+      _wallet_address: walletAddress.trim() || null,
+    });
 
     setLoading(false);
 

@@ -23,7 +23,6 @@ interface Member {
   profile?: {
     display_name: string | null;
     email: string | null;
-    phone: string | null;
   };
 }
 
@@ -95,8 +94,8 @@ const Family = () => {
 
     const allUserIds = [...new Set([groupData.owner_id, ...memberRows.map(m => m.user_id)])];
     const { data: profiles } = await supabase
-      .from('profiles')
-      .select('user_id, display_name, email, phone')
+      .from('family_profiles')
+      .select('user_id, display_name, email')
       .in('user_id', allUserIds);
 
     const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
@@ -270,9 +269,6 @@ const Family = () => {
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">{member.profile?.email}</p>
-                        {member.profile?.phone && (
-                          <p className="text-xs text-muted-foreground">{member.profile.phone}</p>
-                        )}
                       </div>
                     </div>
                     {user?.id === group.owner_id && member.user_id !== group.owner_id && (
