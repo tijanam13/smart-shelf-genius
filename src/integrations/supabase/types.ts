@@ -276,11 +276,37 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      family_profiles: {
+        Row: {
+          display_name: string | null
+          email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          display_name?: string | null
+          email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          display_name?: string | null
+          email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_family_member_ids: { Args: { _user_id: string }; Returns: string[] }
       get_user_group_ids: { Args: { _user_id: string }; Returns: string[] }
+      update_own_profile: {
+        Args: {
+          _avatar_url?: string
+          _display_name?: string
+          _phone?: string
+          _wallet_address?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
