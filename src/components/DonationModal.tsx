@@ -35,9 +35,11 @@ const DonationModal: React.FC<DonationModalProps> = ({
   userWalletAddress,
 }) => {
   const [confirmed, setConfirmed] = useState(false);
+  const [localWallet, setLocalWallet] = useState(userWalletAddress || "");
   const isCritical = daysLeft <= 5 && daysLeft >= 0;
   const isExpired = daysLeft < 0;
   const bonusTokens = isCritical ? 5 : 3;
+  const hasValidWallet = /^0x[a-fA-F0-9]{40}$/.test(localWallet);
 
   // QR code payload — admin scans this to confirm the donation
   const qrData = JSON.stringify({
@@ -45,7 +47,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
     itemName,
     isCritical,
     bonusTokens,
-    userWalletAddress,
+    userWalletAddress: localWallet,
     action: "food_donation",
     network: "sepolia",
   });
