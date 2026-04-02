@@ -235,28 +235,11 @@ const AdminScan = () => {
 
       // 5. Award tokens to donor in Supabase (if we found their account)
       if (donorUserId) {
-        const { data: existing } = await supabase
-          .from("user_tokens")
-          .select("total_tokens, total_points")
-          .eq("user_id", donorUserId)
-          .maybeSingle();
-
-        if (existing) {
-          await supabase
-            .from("user_tokens")
-            .update({
-              total_tokens: (existing as any).total_tokens + tokens,
-              total_points: ((existing as any).total_points || 0) + tokens,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("user_id", donorUserId);
-        } else {
-          await supabase.from("user_tokens").insert({
-            user_id: donorUserId,
-            total_tokens: tokens,
-            total_points: tokens,
-          } as any);
-        }
+        await supabase.rpc('adjust_user_tokens', {
+          _user_id: donorUserId,
+          _token_delta: tokens,
+          _point_delta: tokens,
+        });
       }
     } catch (err: any) {
       // Blockchain confirmed — log DB error but don't block success screen
