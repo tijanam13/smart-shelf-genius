@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
-import { connectMetaMask, isMetaMaskInstalled } from "@/lib/blockchain";
+import { connectMetaMask, isMetaMaskAvailable } from "@/lib/blockchain";
 
 const Profile = () => {
   const { user, signOut } = useAuth();
@@ -58,7 +58,7 @@ const Profile = () => {
 
   // ─── CONNECT METAMASK ─────────────────────────────────────────────
   const handleConnectMetaMask = async () => {
-    if (!isMetaMaskInstalled()) {
+    if (!isMetaMaskAvailable()) {
       toast({
         title: "MetaMask Not Found",
         description: "Visit metamask.io to install the MetaMask extension.",
