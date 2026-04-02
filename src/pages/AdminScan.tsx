@@ -18,7 +18,8 @@ import { useNavigate } from "react-router-dom";
 import {
   connectMetaMask,
   recordDonationOnChain,
-  canUseMetaMaskDirectly,
+  isMetaMaskAvailable,
+  isMobileDevice,
   getMetaMaskDeepLink,
   switchToSepolia,
   checkNetwork,
@@ -38,12 +39,11 @@ interface QRDonationData {
 }
 
 type PageStep =
-  | "wallet" // Step 1: Connect MetaMask
-  | "scanner" // Step 2: Scan QR code
-  | "confirm" // Step 3: Review & confirm
-  | "processing" // Step 4: Waiting for blockchain
-  | "success" // Done
-  | "error"; // Something went wrong
+  | "scanner" // Kamera i skeniranje QR koda
+  | "confirm" // Pregled detalja donacije
+  | "processing" // Čekanje na blockchain potvrdu
+  | "success" // Uspešno
+  | "error"; // Greška
 
 const SCANNER_ID = "admin-qr-reader";
 
@@ -55,22 +55,21 @@ const AdminScan = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Wallet state
+  // Wallet
   const [adminWalletAddress, setAdminWalletAddress] = useState("");
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnectingWallet, setIsConnectingWallet] = useState(false);
   const [isOnSepolia, setIsOnSepolia] = useState(false);
 
-  // Page flow
-  const [step, setStep] = useState<PageStep>("wallet");
+  // Flow
+  const [step, setStep] = useState<PageStep>("scanner");
   const [scannedData, setScannedData] = useState<QRDonationData | null>(null);
   const [txResult, setTxResult] = useState<DonationResult | null>(null);
   const [scanning, setScanning] = useState(false);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
-  // ─── GUARDS ────────────────────────────────────────────────────────
+  // ─── GUARDS ─────────────────────────────────────────────────────────
 
-  // Redirect non-admins
   useEffect(() => {
     if (!adminLoading && !isAdmin) {
       toast({
@@ -82,92 +81,78 @@ const AdminScan = () => {
     }
   }, [isAdmin, adminLoading]);
 
-  // Clean up camera on unmount
+  // Cleanup kamera pri odlasku sa stranice
   useEffect(() => {
     return () => {
       stopScanner();
     };
   }, []);
 
-  // Listen for MetaMask network changes
+  // Prati promenu mreže u MetaMask-u
   useEffect(() => {
     const ethereum = (window as any).ethereum;
     if (!ethereum) return;
-
     const handleChainChange = async () => {
       const net = await checkNetwork();
       setIsOnSepolia(net.ok);
-      if (!net.ok) {
-        toast({
-          title: "Pogrešna mreža",
-          description: "MetaMask nije na Sepolia testnet-u.",
-          variant: "destructive",
-        });
-      }
     };
-
     ethereum.on("chainChanged", handleChainChange);
     return () => ethereum.removeListener("chainChanged", handleChainChange);
   }, []);
 
-  // ─── WALLET CONNECTION ──────────────────────────────────────────────
+  // ─── WALLET ──────────────────────────────────────────────────────────
 
-  const handleConnectMetaMask = async () => {
-    setIsConnecting(true);
+  const connectWallet = async () => {
+    setIsConnectingWallet(true);
     try {
       const address = await connectMetaMask();
       const net = await checkNetwork();
       setIsOnSepolia(net.ok);
       setAdminWalletAddress(address);
-      setStep("scanner");
       toast({
-        title: "Wallet povezan",
-        description: `Adresa: ${address.slice(0, 8)}...${address.slice(-6)}`,
+        title: "✅ Wallet povezan",
+        description: `${address.slice(0, 8)}...${address.slice(-6)}`,
       });
     } catch (err: any) {
       toast({ title: "Greška", description: err.message, variant: "destructive" });
     } finally {
-      setIsConnecting(false);
+      setIsConnectingWallet(false);
     }
   };
 
-  const handleSwitchToSepolia = async () => {
+  const switchNetwork = async () => {
     try {
       await switchToSepolia();
       const net = await checkNetwork();
       setIsOnSepolia(net.ok);
-      if (net.ok) toast({ title: "Sepolia Testnet aktivan" });
+      if (net.ok) toast({ title: "✅ Sepolia aktivan" });
     } catch (err: any) {
       toast({ title: "Greška", description: err.message, variant: "destructive" });
     }
   };
 
-  // ─── CAMERA / SCANNER ───────────────────────────────────────────────
+  // ─── KAMERA / SKENER ─────────────────────────────────────────────────
 
   const startScanner = async () => {
     try {
-      // Stop any running instance first
       if (scannerRef.current?.isScanning) {
         await scannerRef.current.stop();
       }
-
       const scanner = new Html5Qrcode(SCANNER_ID, { verbose: false });
       scannerRef.current = scanner;
 
       await scanner.start(
-        { facingMode: "environment" }, // Use rear camera
+        { facingMode: "environment" },
         { fps: 10, qrbox: { width: 260, height: 260 } },
         (decodedText) => {
-          // QR code successfully decoded
           scanner.stop().catch(() => {});
           setScanning(false);
           handleQRScanned(decodedText);
         },
-        undefined, // Ignore per-frame errors silently
+        undefined,
       );
-
       setScanning(true);
-    } catch (err: any) {
+    } catch {
       setScanning(false);
       toast({
         title: "Greška kamere",
@@ -187,8 +172,6 @@ const AdminScan = () => {
   const handleQRScanned = (rawText: string) => {
     try {
       const data: QRDonationData = JSON.parse(rawText);
-
-      // Validate that this is a valid EatSmart donation QR
       if (!data.itemName || !data.userWalletAddress || data.action !== "food_donation") {
         toast({
           title: "Nevažeći QR",
@@ -197,10 +180,9 @@ const AdminScan = () => {
         });
         return;
       }
-
       setScannedData(data);
       setStep("confirm");
-      toast({ title: "QR skeniran!", description: `Pronađeno: ${data.itemName}` });
+      toast({ title: "✅ QR skeniran!", description: `Pronađeno: ${data.itemName}` });
     } catch {
       toast({
         title: "Greška čitanja",
@@ -210,14 +192,37 @@ const AdminScan = () => {
     }
   };
 
-  // ─── BLOCKCHAIN TRANSACTION ─────────────────────────────────────────
+  // ─── BLOCKCHAIN ──────────────────────────────────────────────────────
 
   const handleConfirmOnChain = async () => {
     if (!scannedData || !user) return;
+
+    // Ako MetaMask nije dostupan (mobilni regularni browser),
+    // otvori MetaMask app putem deep linka — korisnik tamo potvrđuje
+    if (!isMetaMaskAvailable() && isMobileDevice()) {
+      const deepLink = getMetaMaskDeepLink();
+      window.location.href = deepLink;
+      return;
+    }
+
+    // Ako MetaMask nije uopšte dostupan (desktop bez ekstenzije)
+    if (!isMetaMaskAvailable()) {
+      toast({
+        title: "MetaMask nije instaliran",
+        description: "Instalirajte MetaMask ekstenziju na metamask.io",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Ako wallet nije još povezan, poveži ga prvo
+    if (!adminWalletAddress) {
+      await connectWallet();
+      return;
+    }
+
     setStep("processing");
 
-    // This will trigger MetaMask to open for transaction signing.
-    // On mobile (MetaMask in-app browser), MetaMask pops up automatically.
     const result = await recordDonationOnChain(
       scannedData.userWalletAddress,
       scannedData.itemName,
@@ -231,11 +236,10 @@ const AdminScan = () => {
       return;
     }
 
-    // ── Sync with Supabase database after blockchain confirmation ──
+    // Sinhronizacija sa Supabase bazom posle blockchain potvrde
     try {
       const tokens = scannedData.isCritical ? 5 : 3;
 
-      // Find the donor's user account by their wallet address
       const { data: donorProfile } = await supabase
         .from("profiles")
         .select("user_id")
@@ -244,7 +248,6 @@ const AdminScan = () => {
 
       const donorUserId = donorProfile?.user_id;
 
-      // Log the donation record
       await supabase.from("donations").insert({
         user_id: donorUserId || user.id,
         item_name: scannedData.itemName,
@@ -252,12 +255,10 @@ const AdminScan = () => {
         unit: "pcs",
       });
 
-      // Remove item from the donor's fridge
       if (scannedData.itemId) {
         await supabase.from("fridge_items").delete().eq("id", scannedData.itemId);
       }
 
-      // Award EatSmart tokens to the donor in Supabase
       if (donorUserId) {
         await supabase.rpc("adjust_user_tokens", {
           _user_id: donorUserId,
@@ -267,15 +268,13 @@ const AdminScan = () => {
       }
     } catch (err: any) {
       console.error("Database sync error:", err.message);
-      // Don't fail the whole flow — blockchain is the source of truth
     }
 
     setStep("success");
   };
 
-  // ─── RESET HELPERS ──────────────────────────────────────────────────
+  // ─── RESET ───────────────────────────────────────────────────────────
 
-  /** Go back to the scanner (keep wallet connected) */
   const handleScanAgain = () => {
     setStep("scanner");
     setScannedData(null);
@@ -283,18 +282,7 @@ const AdminScan = () => {
     setScanning(false);
   };
 
-  /** Full reset — back to wallet connection */
-  const handleFullReset = () => {
-    stopScanner();
-    setStep("wallet");
-    setAdminWalletAddress("");
-    setIsOnSepolia(false);
-    setScannedData(null);
-    setTxResult(null);
-    setScanning(false);
-  };
-
-  // ─── LOADING / GUARD RENDERS ────────────────────────────────────────
+  // ─── LOADING / GUARD ─────────────────────────────────────────────────
 
   if (adminLoading) {
     return (
@@ -306,7 +294,11 @@ const AdminScan = () => {
 
   if (!isAdmin) return null;
 
-  // ─── MAIN RENDER ────────────────────────────────────────────────────
+  // ─── RENDER ──────────────────────────────────────────────────────────
+
+  // Odredimo status MetaMask-a za prikaz UI-a
+  const metamaskAvailable = isMetaMaskAvailable();
+  const onMobile = isMobileDevice();
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
@@ -323,98 +315,70 @@ const AdminScan = () => {
             </div>
           </div>
 
-          {/* Connected wallet badge */}
-          {adminWalletAddress && step !== "wallet" && (
-            <div className="mt-3 px-3 py-2 rounded-xl bg-safe/10 border border-safe/30 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-3.5 h-3.5 text-safe" />
-                <span className="text-xs text-safe font-mono">
-                  {adminWalletAddress.slice(0, 10)}...{adminWalletAddress.slice(-6)}
-                </span>
-                {!isOnSepolia && (
-                  <button onClick={handleSwitchToSepolia} className="text-[10px] text-yellow-400 underline ml-1">
-                    Prebaci na Sepolia
-                  </button>
+          {/* Wallet status traka */}
+          <div
+            className="mt-3 px-3 py-2 rounded-xl border flex items-center justify-between
+            bg-background/40"
+          >
+            {adminWalletAddress ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-3.5 h-3.5 text-safe" />
+                  <span className="text-xs text-safe font-mono">
+                    {adminWalletAddress.slice(0, 10)}...{adminWalletAddress.slice(-6)}
+                  </span>
+                  {!isOnSepolia && (
+                    <button onClick={switchNetwork} className="text-[10px] text-yellow-400 underline ml-1">
+                      Prebaci na Sepolia
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    setAdminWalletAddress("");
+                    setIsOnSepolia(false);
+                  }}
+                  className="text-[10px] underline text-muted-foreground"
+                >
+                  Promeni
+                </button>
+              </>
+            ) : metamaskAvailable ? (
+              /* MetaMask dostupan ali nije povezan */
+              <button
+                onClick={connectWallet}
+                disabled={isConnectingWallet}
+                className="flex items-center gap-2 text-xs text-orange-400 hover:text-orange-300 transition-colors disabled:opacity-60"
+              >
+                {isConnectingWallet ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Wallet className="w-3.5 h-3.5" />
                 )}
-              </div>
-              <button onClick={handleFullReset} className="text-[10px] underline text-muted-foreground">
-                Promeni
+                {isConnectingWallet ? "Povezivanje..." : "Poveži MetaMask za potpisivanje"}
               </button>
-            </div>
-          )}
+            ) : onMobile ? (
+              /* Mobilni bez MetaMask browsera */
+              <a href={getMetaMaskDeepLink()} className="flex items-center gap-2 text-xs text-orange-400">
+                <ExternalLink className="w-3.5 h-3.5" />
+                Otvori u MetaMask za potpisivanje
+              </a>
+            ) : (
+              /* Desktop bez MetaMask ekstenzije */
+              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-yellow-500" />
+                MetaMask ekstenzija nije instalirana
+              </span>
+            )}
+          </div>
         </motion.div>
 
         {/* ── Step Content ── */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
           <AnimatePresence mode="wait">
-            {/* ══════════════════════════════════════════════════════════
-                STEP 1 — CONNECT WALLET
-            ══════════════════════════════════════════════════════════ */}
-            {step === "wallet" && (
-              <motion.div
-                key="wallet"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="glass-card rounded-2xl p-6 flex flex-col gap-5"
-              >
-                <div className="text-center">
-                  <Wallet className="w-12 h-12 text-primary mx-auto mb-3" />
-                  <h2 className="text-lg font-bold">Poveži Admin Wallet</h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    MetaMask mora biti povezan da bi admin mogao da potpiše blockchain transakciju
-                  </p>
-                </div>
-
-                {canUseMetaMaskDirectly() ? (
-                  /* ── MetaMask extension detected ── */
-                  <button
-                    onClick={handleConnectMetaMask}
-                    disabled={isConnecting}
-                    className="w-full flex items-center gap-4 px-5 py-4 rounded-xl bg-orange-500/10 border border-orange-500/40 hover:bg-orange-500/20 active:scale-95 transition-all text-left disabled:opacity-60"
-                  >
-                    <div className="w-11 h-11 rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0">
-                      {isConnecting ? (
-                        <Loader2 className="w-5 h-5 text-orange-400 animate-spin" />
-                      ) : (
-                        <Wallet className="w-5 h-5 text-orange-400" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold">{isConnecting ? "Povezivanje..." : "Poveži MetaMask"}</p>
-                      <p className="text-xs text-muted-foreground">Direktna konekcija • Preporučeno</p>
-                    </div>
-                    {!isConnecting && <CheckCircle className="w-5 h-5 text-safe shrink-0" />}
-                  </button>
-                ) : (
-                  /* ── No MetaMask — show mobile deep link ── */
-                  <div className="flex flex-col gap-3">
-                    <div className="px-4 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
-                      <p className="text-xs text-yellow-300 leading-relaxed">
-                        MetaMask ekstenzija nije pronađena. Da biste koristili MetaMask na mobilnom uređaju, otvorite
-                        ovu stranicu <strong>unutar MetaMask aplikacije</strong>.
-                      </p>
-                    </div>
-
-                    <a
-                      href={getMetaMaskDeepLink()}
-                      className="w-full py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-sm font-bold flex items-center justify-center gap-2 transition-all"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Otvori u MetaMask aplikaciji
-                    </a>
-
-                    <p className="text-[11px] text-center text-muted-foreground px-4">
-                      MetaMask će otvoriti ovu stranicu u svom pregledaču gde možete direktno potpisati transakcije.
-                    </p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {/* ══════════════════════════════════════════════════════════
-                STEP 2 — QR SCANNER
-            ══════════════════════════════════════════════════════════ */}
+            {/* ══════════════════════════════════════════════
+                STEP 1 — SKENER (uvek dostupan)
+            ══════════════════════════════════════════════ */}
             {step === "scanner" && (
               <motion.div
                 key="scanner"
@@ -429,7 +393,7 @@ const AdminScan = () => {
                   <p className="text-sm text-muted-foreground">Zamolite donatora da pokaže QR kod iz Fridge sekcije</p>
                 </div>
 
-                {/* Camera viewport */}
+                {/* Viewport kamere */}
                 <div className="w-full rounded-2xl overflow-hidden bg-black/30 min-h-[290px] relative border border-border/30">
                   <div id={SCANNER_ID} className="w-full" />
                   {!scanning && (
@@ -467,9 +431,9 @@ const AdminScan = () => {
               </motion.div>
             )}
 
-            {/* ══════════════════════════════════════════════════════════
-                STEP 3 — CONFIRM DONATION
-            ══════════════════════════════════════════════════════════ */}
+            {/* ══════════════════════════════════════════════
+                STEP 2 — POTVRDA DONACIJE
+            ══════════════════════════════════════════════ */}
             {step === "confirm" && scannedData && (
               <motion.div
                 key="confirm"
@@ -484,7 +448,6 @@ const AdminScan = () => {
                   <p className="text-sm text-muted-foreground">Pregledajte detalje pre slanja na blockchain</p>
                 </div>
 
-                {/* Donation details */}
                 <div className="space-y-2.5">
                   <div className="flex justify-between items-center py-3 px-4 rounded-xl bg-background/40 border">
                     <span className="text-sm text-muted-foreground">Namirnica</span>
@@ -513,17 +476,27 @@ const AdminScan = () => {
                   </div>
                 </div>
 
-                {/* MetaMask notice */}
+                {/* Poruka o MetaMask potpisivanju */}
                 <div className="px-3 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20">
-                  <p className="text-xs text-orange-300 leading-relaxed">
-                    <strong>MetaMask će se otvoriti</strong> za potpisivanje transakcije. Proverite detalje pre potvrde
-                    u MetaMask-u.
-                  </p>
+                  {metamaskAvailable ? (
+                    <p className="text-xs text-orange-300 leading-relaxed">
+                      <strong>MetaMask će se otvoriti</strong> za potpisivanje transakcije.
+                    </p>
+                  ) : onMobile ? (
+                    <p className="text-xs text-orange-300 leading-relaxed">
+                      Bićete preusmereni u <strong>MetaMask aplikaciju</strong> da potvrdite transakciju.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-yellow-300 leading-relaxed">
+                      <strong>MetaMask nije instaliran.</strong> Instalirajte ekstenziju na metamask.io da biste
+                      potpisali transakciju.
+                    </p>
+                  )}
                 </div>
 
                 <Button onClick={handleConfirmOnChain} className="w-full bg-primary" size="lg">
                   <Wallet className="w-4 h-4 mr-2" />
-                  Potvrdi na Blockchain-u
+                  {onMobile && !metamaskAvailable ? "Otvori MetaMask i potvrdi" : "Potvrdi na Blockchain-u"}
                 </Button>
 
                 <Button onClick={handleScanAgain} variant="outline" className="w-full">
@@ -532,9 +505,9 @@ const AdminScan = () => {
               </motion.div>
             )}
 
-            {/* ══════════════════════════════════════════════════════════
-                STEP 4 — PROCESSING
-            ══════════════════════════════════════════════════════════ */}
+            {/* ══════════════════════════════════════════════
+                STEP 3 — PROCESSING
+            ══════════════════════════════════════════════ */}
             {step === "processing" && (
               <motion.div
                 key="processing"
@@ -546,8 +519,7 @@ const AdminScan = () => {
                 <Loader2 className="w-14 h-14 text-primary animate-spin" />
                 <h2 className="text-lg font-bold text-center">Obrađivanje na Blockchain-u</h2>
                 <p className="text-sm text-muted-foreground text-center leading-relaxed">
-                  MetaMask obrađuje transakciju... Ovo može potrajati 15–30 sekundi dok se blok ne potvrdi na Sepolia
-                  testnet-u.
+                  Čekamo potvrdu transakcije na Sepolia mreži. Ovo može trajati 15–30 sekundi.
                 </p>
                 <div className="w-full py-3 px-4 rounded-xl bg-primary/10 border border-primary/20 text-center">
                   <p className="text-xs text-muted-foreground">Ne zatvarajte stranicu</p>
@@ -555,9 +527,9 @@ const AdminScan = () => {
               </motion.div>
             )}
 
-            {/* ══════════════════════════════════════════════════════════
-                STEP 5 — SUCCESS
-            ══════════════════════════════════════════════════════════ */}
+            {/* ══════════════════════════════════════════════
+                STEP 4 — USPEH
+            ══════════════════════════════════════════════ */}
             {step === "success" && txResult && (
               <motion.div
                 key="success"
@@ -603,9 +575,9 @@ const AdminScan = () => {
               </motion.div>
             )}
 
-            {/* ══════════════════════════════════════════════════════════
-                STEP 6 — ERROR
-            ══════════════════════════════════════════════════════════ */}
+            {/* ══════════════════════════════════════════════
+                STEP 5 — GREŠKA
+            ══════════════════════════════════════════════ */}
             {step === "error" && txResult && (
               <motion.div
                 key="error"
@@ -622,7 +594,7 @@ const AdminScan = () => {
                 </div>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  Proverite da li imate dovoljno Sepolia ETH za gas naknade, i da je MetaMask na Sepolia testnet-u.
+                  Proverite da li imate dovoljno Sepolia ETH za gas, i da je MetaMask na Sepolia testnet-u.
                 </p>
 
                 <Button onClick={handleScanAgain} className="w-full" variant="outline">
