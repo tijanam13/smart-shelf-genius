@@ -3,12 +3,14 @@
  *
  * Shown to the regular user (donor) when they click "Donate" on a fridge item.
  * Displays a QR code that the admin scans to confirm the donation.
+ * Auto-closes when the item is deleted from fridge (after admin blockchain confirmation).
  */
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, QrCode } from "lucide-react";
+import { X, QrCode, CheckCircle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DonationModalProps {
   isOpen: boolean;
@@ -31,6 +33,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
   unit = "pcs",
   userWalletAddress,
 }) => {
+  const [confirmed, setConfirmed] = useState(false);
   const isCritical = daysLeft <= 5 && daysLeft >= 0;
   const isExpired = daysLeft < 0;
   const bonusTokens = isCritical ? 5 : 3;
@@ -45,6 +48,37 @@ const DonationModal: React.FC<DonationModalProps> = ({
     action: "food_donation",
     network: "sepolia",
   });
+
+  // Listen for realtime DELETE on this fridge item — means admin confirmed donation
+  useEffect(() => {
+    if (!isOpen || !itemId) return;
+
+    const channel = supabase
+      .channel(`donation-watch-${itemId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "fridge_items",
+          filter: `id=eq.${itemId}`,
+        },
+        () => {
+          // Item was deleted by admin after blockchain confirmation
+          setConfirmed(true);
+          // Auto-close after showing success for 3 seconds
+          setTimeout(() => {
+            setConfirmed(false);
+            onClose();
+          }, 3500);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isOpen, itemId, onClose]);
 
   if (!isOpen) return null;
 
