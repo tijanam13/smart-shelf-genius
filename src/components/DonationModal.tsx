@@ -8,9 +8,10 @@
 
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, QrCode, CheckCircle } from "lucide-react";
+import { X, QrCode, CheckCircle, AlertTriangle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
 
 interface DonationModalProps {
   isOpen: boolean;
@@ -34,9 +35,11 @@ const DonationModal: React.FC<DonationModalProps> = ({
   userWalletAddress,
 }) => {
   const [confirmed, setConfirmed] = useState(false);
+  const [localWallet, setLocalWallet] = useState(userWalletAddress || "");
   const isCritical = daysLeft <= 5 && daysLeft >= 0;
   const isExpired = daysLeft < 0;
   const bonusTokens = isCritical ? 5 : 3;
+  const hasValidWallet = /^0x[a-fA-F0-9]{40}$/.test(localWallet);
 
   // QR code payload — admin scans this to confirm the donation
   const qrData = JSON.stringify({
@@ -44,7 +47,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
     itemName,
     isCritical,
     bonusTokens,
-    userWalletAddress,
+    userWalletAddress: localWallet,
     action: "food_donation",
     network: "sepolia",
   });
@@ -157,6 +160,25 @@ const DonationModal: React.FC<DonationModalProps> = ({
 
               {!isExpired && (
                 <>
+                  {/* Wallet warning + manual input */}
+                  {!hasValidWallet && (
+                    <div className="w-full mb-4 px-4 py-3 rounded-xl bg-warning/10 border border-warning/30">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertTriangle className="w-4 h-4 text-warning" />
+                        <p className="text-xs font-semibold text-warning">Wallet address required</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Add your MetaMask wallet address on the Profile page, or enter it below:
+                      </p>
+                      <Input
+                        value={localWallet}
+                        onChange={(e) => setLocalWallet(e.target.value)}
+                        placeholder="0x..."
+                        className="font-mono text-xs h-9"
+                      />
+                    </div>
+                  )}
+
                   {/* Instructions */}
                   <div className="w-full mb-4 px-4 py-3 rounded-xl bg-primary/5 border border-primary/20 text-center">
                     <QrCode className="w-5 h-5 text-primary mx-auto mb-1" />
@@ -168,7 +190,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                   </div>
 
                   {/* QR Code */}
-                  <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm">
+                  <div className={`bg-white rounded-2xl p-4 mb-4 shadow-sm ${!hasValidWallet ? 'opacity-40 pointer-events-none' : ''}`}>
                     <QRCodeSVG
                       value={qrData}
                       size={190}

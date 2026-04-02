@@ -22,8 +22,10 @@ import {
   getMetaMaskLoginDeepLink,
   switchToSepolia,
   checkNetwork,
+  isValidEthAddress,
   type DonationResult,
 } from "@/lib/blockchain";
+import { Input } from "@/components/ui/input";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -82,6 +84,7 @@ const AdminScan = () => {
   const [scannedData, setScannedData] = useState<QRDonationData | null>(null);
   const [txResult, setTxResult] = useState<DonationResult | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [manualDonorWallet, setManualDonorWallet] = useState("");
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
@@ -249,11 +252,22 @@ const AdminScan = () => {
       }
     }
 
-    // Step 2: Send blockchain transaction (MetaMask confirm popup appears automatically)
+    // Step 2: Resolve donor wallet address
+    const donorWallet = scannedData.userWalletAddress?.trim() || manualDonorWallet.trim();
+    if (!isValidEthAddress(donorWallet)) {
+      toast({
+        title: "Invalid Wallet Address",
+        description: "The donor wallet address is missing or invalid. Please enter it manually.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Step 3: Send blockchain transaction (MetaMask confirm popup appears automatically)
     setStep("processing");
 
     const result = await recordDonationOnChain(
-      scannedData.userWalletAddress,
+      donorWallet,
       scannedData.itemName,
       scannedData.isCritical,
     );
@@ -272,7 +286,7 @@ const AdminScan = () => {
       const { data: donorProfile } = await supabase
         .from("profiles")
         .select("user_id")
-        .eq("wallet_address", scannedData.userWalletAddress)
+        .eq("wallet_address", donorWallet)
         .maybeSingle();
 
       const donorUserId = donorProfile?.user_id;
@@ -501,7 +515,22 @@ const AdminScan = () => {
 
                   <div className="py-3 px-4 rounded-xl bg-background/40 border">
                     <p className="text-xs text-muted-foreground mb-1">Donor wallet</p>
-                    <p className="text-xs font-mono break-all text-foreground/80">{scannedData.userWalletAddress}</p>
+                    {isValidEthAddress(scannedData.userWalletAddress) ? (
+                      <p className="text-xs font-mono break-all text-foreground/80">{scannedData.userWalletAddress}</p>
+                    ) : (
+                      <div className="mt-1">
+                        <p className="text-xs text-warning mb-2">⚠️ Donor hasn't set a wallet. Enter manually:</p>
+                        <Input
+                          value={manualDonorWallet}
+                          onChange={(e) => setManualDonorWallet(e.target.value)}
+                          placeholder="0x..."
+                          className="font-mono text-xs h-9"
+                        />
+                        {manualDonorWallet && !isValidEthAddress(manualDonorWallet) && (
+                          <p className="text-xs text-destructive mt-1">Invalid Ethereum address</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
