@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Leaf, Mail, Lock, Eye, EyeOff } from "lucide-react";
@@ -18,6 +18,22 @@ const Login = () => {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { refresh: refreshPremium } = usePremium();
+
+  // Ako je admin već ulogovan (npr. otvorio /login unutar MetaMask browsera),
+  // odmah ga preusmeri na /admin-scan bez da mora ponovo da unosi lozinku
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase.from("profiles").select("is_admin").eq("user_id", user.id).maybeSingle();
+      if (profile?.is_admin === true) {
+        navigate("/admin-scan", { replace: true });
+      }
+    };
+    checkExistingSession();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
