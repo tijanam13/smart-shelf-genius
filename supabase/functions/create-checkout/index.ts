@@ -48,7 +48,7 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${successUrl}/?premium=success`,
+      success_url: `${successUrl}/login?premium=success`,
       cancel_url: `${successUrl}/profile`,
       metadata: { supabase_user_id: user.id },
     });
