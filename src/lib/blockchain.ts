@@ -1,10 +1,11 @@
 /*
  * src/lib/blockchain.ts
+ * FINALNA VERZIJA - Sadrži sve funkcije za novi DonationModal
  */
 
 import { BrowserProvider, Contract } from "ethers";
 
-// Adresa contracta
+// Adresa tvog contracta sa Sepolia mreže
 export const CONTRACT_ADDRESS = "0x9DfB77f3e7e845A39c18c40E15D0F02b42C1a7f5";
 
 // Sepolia Chain ID
@@ -150,10 +151,22 @@ export interface DonationResult {
   error?: string;
 }
 
+// 1. Provera instalacije
 export function isMetaMaskInstalled(): boolean {
   return typeof window !== "undefined" && Boolean((window as any).ethereum);
 }
 
+// Konekcija
+export async function connectMetaMask(): Promise<string | null> {
+  if (!isMetaMaskInstalled()) {
+    throw new Error("MetaMask nije instaliran.");
+  }
+  const provider = new BrowserProvider((window as any).ethereum);
+  const accounts = await provider.send("eth_requestAccounts", []);
+  return accounts[0] || null;
+}
+
+// Prebacivanje mreže
 export async function switchToSepolia(): Promise<void> {
   const ethereum = (window as any).ethereum;
   if (!ethereum) return;
@@ -180,6 +193,7 @@ export async function switchToSepolia(): Promise<void> {
   }
 }
 
+// Slanje donacije
 export async function recordDonationOnChain(itemName: string, isCritical: boolean): Promise<DonationResult> {
   try {
     if (!isMetaMaskInstalled()) return { success: false, error: "MetaMask nije instaliran." };
@@ -202,12 +216,13 @@ export async function recordDonationOnChain(itemName: string, isCritical: boolea
     };
   } catch (err: any) {
     if (err.code === 4001 || err.code === "ACTION_REJECTED") {
-      return { success: false, error: "Transakcija odbijena." };
+      return { success: false, error: "Transakcija odbijena u MetaMask-u." };
     }
     return { success: false, error: err.message || "Greška na blockchainu." };
   }
 }
 
+// Provera stanja
 export async function getBlockchainTokenBalance(address: string): Promise<number> {
   try {
     if (!isMetaMaskInstalled()) return 0;
