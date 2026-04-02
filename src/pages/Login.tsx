@@ -1,16 +1,17 @@
-import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Leaf, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { usePremium } from '@/contexts/PremiumContext';
+import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Leaf, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { usePremium } from "@/contexts/PremiumContext";
+import { useAdmin } from "@/contexts/AdminContext";
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -21,42 +22,53 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       setLoading(false);
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
 
+    // Proveri da li je korisnik admin
+    if (authData?.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("user_id", authData.user.id)
+        .maybeSingle();
+
+      if (profile?.is_admin === true) {
+        setLoading(false);
+        navigate("/admin-scan");
+        return;
+      }
+    }
+
     // If coming from Stripe payment, verify and activate premium
-    if (searchParams.get('premium') === 'success') {
+    if (searchParams.get("premium") === "success") {
       try {
-        const { data } = await supabase.functions.invoke('verify-premium');
+        const { data } = await supabase.functions.invoke("verify-premium");
         if (data?.isPremium) {
           await refreshPremium();
-          toast({ title: '🎉 Welcome to Premium!', description: 'Ads have been removed from your account.' });
+          toast({ title: "🎉 Welcome to Premium!", description: "Ads have been removed from your account." });
         }
       } catch (e) {
-        console.error('Premium verification failed:', e);
+        console.error("Premium verification failed:", e);
       }
     } else {
       await refreshPremium();
     }
 
     setLoading(false);
-    navigate('/');
+    navigate("/");
   };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-5">
       <div className="absolute top-0 left-1/3 w-[500px] h-[500px] rounded-full bg-mint/5 blur-[140px] pointer-events-none" />
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
         <div className="flex items-center justify-center gap-2.5 mb-8">
           <div className="w-11 h-11 rounded-xl bg-primary/20 flex items-center justify-center">
             <Leaf className="w-6 h-6 text-primary" />
@@ -83,7 +95,7 @@ const Login = () => {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -106,12 +118,12 @@ const Login = () => {
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Don't have an account?{' '}
+            Don't have an account?{" "}
             <Link to="/register" className="text-primary hover:underline font-medium">
               Sign Up
             </Link>
