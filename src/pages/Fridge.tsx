@@ -95,8 +95,6 @@ const urgencyBadge: Record<Urgency, string> = {
   urgent: "bg-urgent/15 text-urgent",
 };
 const urgencyGlow: Record<Urgency, string> = { safe: "", warning: "glow-warning", urgent: "glow-urgent" };
-const [userWalletAddress, setUserWalletAddress] = useState("");
-
 // Product images mapping - comprehensive food emoji map
 const productImages: Record<string, string> = {
   // Fruits
@@ -248,6 +246,7 @@ const getProductImage = (name: string): string => {
 };
 
 const FridgePage = () => {
+  const [userWalletAddress, setUserWalletAddress] = useState("");
   const [fridgeOpen, setFridgeOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [tooltip, setTooltip] = useState<{ name: string; detail: string } | null>(null);
@@ -1514,7 +1513,7 @@ const FridgePage = () => {
           daysLeft={(donationItem || selectedItem)?.days || 0}
           quantity={(donationItem || selectedItem)?.quantity || 1}
           unit={(donationItem || selectedItem)?.unit || "pcs"}
-          userWalletAddress={user?.id || "unknown"}
+          userWalletAddress={userWalletAddress || "unknown"}
         />
       )}
 
