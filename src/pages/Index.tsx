@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, X, ChevronLeft } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import ExpiringSection from "@/components/ExpiringSection";
 import QuickActions from "@/components/QuickActions";
@@ -8,6 +9,9 @@ import AIInsightCard from "@/components/AIInsightCard";
 import RewardSection from "@/components/RewardSection";
 import BottomNav from "@/components/BottomNav";
 import AdBanner from "@/components/AdBanner";
+import { usePremium } from "@/contexts/PremiumContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Recipe {
   title: string;
