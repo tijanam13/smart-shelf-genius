@@ -1,8 +1,8 @@
 /**
  * src/pages/AdminScan.tsx
  *
- * Admin-only page for scanning donor QR codes and confirming
- * food donations on the Sepolia blockchain.
+ * Admin-only QR scanner page.
+ * Admin scans the donor's QR code → confirms donation on Sepolia blockchain
  */
 
 import { useState, useEffect, useRef } from "react";
@@ -28,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { recordDonationOnChain, connectMetaMask, isMetaMaskInstalled, type DonationResult } from "@/lib/blockchain";
 
-// ─── TYPES ────────────────────────────────────────────────────────────────────
+// ─── TYPES ───────────────────────────────────────────────────────────────────
 interface QRDonationData {
   itemId: string;
   itemName: string;
@@ -41,7 +41,9 @@ interface QRDonationData {
 
 type PageStep = "scanner" | "confirm" | "processing" | "success" | "error";
 
-// ─── COMPONENT ────────────────────────────────────────────────────────────────
+const SCANNER_ID = "admin-qr-reader";
+
+// ─── COMPONENT ───────────────────────────────────────────────────────────────
 const AdminScan = () => {
   const { isAdmin, loading: adminLoading } = useAdmin();
   const { user } = useAuth();
@@ -53,94 +55,99 @@ const AdminScan = () => {
   const [txResult, setTxResult] = useState<DonationResult | null>(null);
   const [walletConnected, setWalletConnected] = useState(false);
   const [adminWalletAddress, setAdminWalletAddress] = useState("");
-  const [scannerActive, setScannerActive] = useState(false);
+  const [scanning, setScanning] = useState(false);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const scannerDivId = "admin-qr-scanner";
 
-  // ─── REDIRECT IF NOT ADMIN ──────────────────────────────────────────
+  // Redirect non-admins immediately
   useEffect(() => {
     if (!adminLoading && !isAdmin) {
-      toast({
-        title: "Access Denied",
-        description: "This page is only available to admins.",
-        variant: "destructive",
-      });
+      toast({ title: "Access Denied", description: "This page is only for admins.", variant: "destructive" });
       navigate("/");
     }
   }, [isAdmin, adminLoading]);
 
-  // ─── START QR SCANNER ───────────────────────────────────────────────
-  const startScanner = async () => {
-    try {
-      // Clean up any existing scanner instance
-      if (scannerRef.current) {
-        try {
-          await scannerRef.current.stop();
-        } catch (_) {}
-        scannerRef.current = null;
-      }
-
-      const scanner = new Html5Qrcode(scannerDivId);
-      scannerRef.current = scanner;
-      setScannerActive(true);
-
-      await scanner.start(
-        { facingMode: "environment" }, // Use back camera on phones
-        { fps: 10, qrbox: { width: 260, height: 260 } },
-        (decodedText) => {
-          // QR code successfully scanned
-          handleQRScanned(decodedText);
-        },
-        (_errorMessage) => {
-          // Scanning frame errors — ignore these, they happen constantly
-        },
-      );
-    } catch (err: any) {
-      setScannerActive(false);
-      toast({
-        title: "Camera Error",
-        description: err.message?.includes("permission")
-          ? "Camera permission denied. Please allow camera access in your browser."
-          : "Could not start camera: " + err.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  // ─── STOP QR SCANNER ────────────────────────────────────────────────
-  const stopScanner = async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop();
-      } catch (_) {}
-      scannerRef.current = null;
-    }
-    setScannerActive(false);
-  };
-
-  // ─── CLEANUP ON UNMOUNT ─────────────────────────────────────────────
+  // Cleanup scanner on unmount
   useEffect(() => {
     return () => {
       stopScanner();
     };
   }, []);
 
-  // ─── HANDLE SCANNED QR ──────────────────────────────────────────────
-  const handleQRScanned = async (rawText: string) => {
-    await stopScanner();
+  // ─── START SCANNER ────────────────────────────────────────────────
+  // Uses the exact same pattern as BarcodeScanner.tsx which already works
+  const startScanner = async () => {
+    try {
+      // If there's already an instance running, stop it first
+      if (scannerRef.current?.isScanning) {
+        await scannerRef.current.stop();
+        scannerRef.current = null;
+      }
 
+      // Create new instance — verbose: false suppresses console noise
+      const scanner = new Html5Qrcode(SCANNER_ID, { verbose: false });
+      scannerRef.current = scanner;
+
+      await scanner.start(
+        { facingMode: "environment" }, // back camera on phone
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          // QR code found — stop scanner and process
+          scanner.stop().catch(() => {});
+          setScanning(false);
+          handleQRScanned(decodedText);
+        },
+        undefined, // ignore per-frame errors
+      );
+
+      setScanning(true);
+    } catch (err: any) {
+      setScanning(false);
+
+      // Friendly error messages for common camera issues
+      if (err?.message?.toLowerCase().includes("permission") || err?.message?.toLowerCase().includes("notallowed")) {
+        toast({
+          title: "Camera Permission Denied",
+          description: "Please allow camera access in your browser settings and try again.",
+          variant: "destructive",
+        });
+      } else if (err?.message?.toLowerCase().includes("notfound")) {
+        toast({
+          title: "No Camera Found",
+          description: "This device does not have an accessible camera.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Camera Error",
+          description: err?.message || "Could not start the camera. Try reloading the page.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  // ─── STOP SCANNER ────────────────────────────────────────────────
+  const stopScanner = async () => {
+    if (scannerRef.current?.isScanning) {
+      await scannerRef.current.stop().catch(() => {});
+    }
+    scannerRef.current = null;
+    setScanning(false);
+  };
+
+  // ─── HANDLE QR DATA ───────────────────────────────────────────────
+  const handleQRScanned = (rawText: string) => {
     try {
       const data: QRDonationData = JSON.parse(rawText);
 
-      // Validate that this is an EatSmart donation QR
+      // Validate this is an EatSmart donation QR
       if (!data.itemName || !data.userWalletAddress || data.action !== "food_donation") {
         toast({
           title: "Invalid QR Code",
-          description: "This QR code is not a valid EatSmart donation code.",
+          description: "This is not a valid EatSmart donation QR code.",
           variant: "destructive",
         });
-        setScannerActive(false);
         return;
       }
 
@@ -149,19 +156,18 @@ const AdminScan = () => {
 
       toast({
         title: "✅ QR Code Scanned!",
-        description: `Donation: ${data.itemName} — ${data.isCritical ? "Priority (+5 tokens)" : "Standard (+3 tokens)"}`,
+        description: `${data.itemName} — ${data.isCritical ? "Priority (+5 tokens)" : "Standard (+3 tokens)"}`,
       });
     } catch {
       toast({
-        title: "QR Parse Error",
-        description: "Could not read QR code data. Please try again.",
+        title: "QR Read Error",
+        description: "Could not parse QR code. Please try scanning again.",
         variant: "destructive",
       });
-      setScannerActive(false);
     }
   };
 
-  // ─── CONNECT ADMIN METAMASK ─────────────────────────────────────────
+  // ─── CONNECT ADMIN METAMASK ───────────────────────────────────────
   const handleConnectWallet = async () => {
     try {
       const address = await connectMetaMask();
@@ -178,13 +184,13 @@ const AdminScan = () => {
     }
   };
 
-  // ─── CONFIRM DONATION ON BLOCKCHAIN ────────────────────────────────
+  // ─── CONFIRM ON BLOCKCHAIN + REMOVE FROM FRIDGE ───────────────────
   const handleConfirmOnChain = async () => {
     if (!scannedData || !user) return;
     setStep("processing");
 
     // 1. Send transaction to blockchain
-    //    Admin wallet pays gas, tokens go to DONOR's address
+    //    Admin pays gas, tokens go to the DONOR's wallet address
     const result = await recordDonationOnChain(
       scannedData.userWalletAddress,
       scannedData.itemName,
@@ -198,29 +204,37 @@ const AdminScan = () => {
       return;
     }
 
-    // 2. Record in Supabase — find donor by wallet address
+    // 2. Find donor by their wallet address in Supabase
+    const { data: donorProfile } = await supabase
+      .from("profiles")
+      .select("user_id")
+      .eq("wallet_address" as any, scannedData.userWalletAddress)
+      .maybeSingle();
+
+    const donorUserId = donorProfile?.user_id;
+    const tokens = scannedData.isCritical ? 5 : 3;
+
     try {
-      // Try to find the donor's user_id via wallet_address
-      const { data: donorProfile } = await supabase
-        .from("profiles")
-        .select("user_id")
-        .eq("wallet_address", scannedData.userWalletAddress)
-        .maybeSingle();
-
-      const donorUserId = donorProfile?.user_id;
-
-      // Record the donation
+      // 3. Record donation in donations table
       await supabase.from("donations").insert({
-        user_id: donorUserId || user.id, // fallback to admin if donor not found
+        user_id: donorUserId || user.id,
         item_name: scannedData.itemName,
         quantity: 1,
         unit: "pcs",
       });
 
-      // Update donor's token balance in Supabase (if donor found)
-      if (donorUserId) {
-        const tokens = scannedData.isCritical ? 5 : 3;
+      // 4. Remove item from fridge_items — this is the KEY fix
+      //    Delete by itemId regardless of who the donor is
+      if (scannedData.itemId) {
+        const { error: deleteError } = await supabase.from("fridge_items").delete().eq("id", scannedData.itemId);
 
+        if (deleteError) {
+          console.error("Failed to delete fridge item:", deleteError.message);
+        }
+      }
+
+      // 5. Award tokens to donor in Supabase (if we found their account)
+      if (donorUserId) {
         const { data: existing } = await supabase
           .from("user_tokens")
           .select("total_tokens, total_points")
@@ -243,29 +257,24 @@ const AdminScan = () => {
             total_points: tokens,
           } as any);
         }
-
-        // Remove item from donor's fridge
-        if (scannedData.itemId) {
-          await supabase.from("fridge_items").delete().eq("id", scannedData.itemId);
-        }
       }
     } catch (err: any) {
-      // Blockchain confirmed — Supabase sync error is non-critical
-      console.error("Supabase sync error:", err.message);
+      // Blockchain confirmed — log DB error but don't block success screen
+      console.error("Database sync error:", err.message);
     }
 
     setStep("success");
   };
 
-  // ─── RESET TO SCAN AGAIN ────────────────────────────────────────────
+  // ─── RESET ───────────────────────────────────────────────────────
   const handleReset = () => {
     setStep("scanner");
     setScannedData(null);
     setTxResult(null);
-    setScannerActive(false);
+    setScanning(false);
   };
 
-  // ─── LOADING / ACCESS CHECK ─────────────────────────────────────────
+  // ─── LOADING / ACCESS CHECK ───────────────────────────────────────
   if (adminLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -276,7 +285,7 @@ const AdminScan = () => {
 
   if (!isAdmin) return null;
 
-  // ─── RENDER ─────────────────────────────────────────────────────────
+  // ─── RENDER ───────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
       <div className="absolute top-0 left-1/3 w-[500px] h-[500px] rounded-full bg-mint/5 blur-[140px] pointer-events-none" />
@@ -286,7 +295,10 @@ const AdminScan = () => {
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md mb-6">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/")}
+              onClick={() => {
+                stopScanner();
+                navigate("/");
+              }}
               className="p-2 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
             >
               <ArrowLeft className="w-4 h-4 text-muted-foreground" />
@@ -303,10 +315,10 @@ const AdminScan = () => {
           </div>
         </motion.div>
 
-        {/* Main card */}
+        {/* Main content */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
           <AnimatePresence mode="wait">
-            {/* ── STEP: SCANNER ── */}
+            {/* ── SCANNER STEP ── */}
             {step === "scanner" && (
               <motion.div
                 key="scanner"
@@ -323,19 +335,21 @@ const AdminScan = () => {
                   </p>
                 </div>
 
-                {/* QR Scanner viewport */}
-                <div className="w-full rounded-2xl overflow-hidden bg-black/20 border border-border/30 min-h-[280px] flex items-center justify-center">
-                  {scannerActive ? (
-                    <div id={scannerDivId} className="w-full" />
-                  ) : (
-                    <div className="flex flex-col items-center gap-3 text-muted-foreground py-12">
+                {/* Scanner viewport — div must exist in DOM before Html5Qrcode starts */}
+                <div className="w-full rounded-2xl overflow-hidden bg-black/20 border border-border/30 min-h-[280px] relative">
+                  {/* This div is always rendered so Html5Qrcode can find it by ID */}
+                  <div id={SCANNER_ID} className="w-full" />
+
+                  {/* Overlay shown when camera is not active */}
+                  {!scanning && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground bg-background/40">
                       <QrCode className="w-12 h-12 opacity-30" />
-                      <p className="text-sm">Camera not active</p>
+                      <p className="text-sm">Tap "Start Camera" to begin</p>
                     </div>
                   )}
                 </div>
 
-                {!scannerActive ? (
+                {!scanning ? (
                   <Button onClick={startScanner} className="w-full">
                     <QrCode className="w-4 h-4 mr-2" />
                     Start Camera & Scan
@@ -347,12 +361,13 @@ const AdminScan = () => {
                 )}
 
                 <p className="text-[11px] text-muted-foreground text-center">
-                  Make sure to allow camera access when prompted by the browser. Use the back camera for best results.
+                  Allow camera access when your browser prompts you. Point at the QR code displayed on the donor's
+                  screen.
                 </p>
               </motion.div>
             )}
 
-            {/* ── STEP: CONFIRM ── */}
+            {/* ── CONFIRM STEP ── */}
             {step === "confirm" && scannedData && (
               <motion.div
                 key="confirm"
@@ -364,10 +379,10 @@ const AdminScan = () => {
                 <div className="text-center">
                   <CheckCircle className="w-10 h-10 text-safe mx-auto mb-2" />
                   <h2 className="font-display text-lg font-bold text-foreground">QR Code Scanned!</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Review the donation details below</p>
+                  <p className="text-sm text-muted-foreground mt-1">Review the donation details before confirming</p>
                 </div>
 
-                {/* Donation details */}
+                {/* Details */}
                 <div className="space-y-2.5">
                   <div className="flex justify-between py-3 px-4 rounded-xl bg-background/40 border border-border/30">
                     <span className="text-sm text-muted-foreground">Food Item</span>
@@ -384,12 +399,20 @@ const AdminScan = () => {
                     <span className="text-sm font-bold text-primary">+{scannedData.isCritical ? 5 : 3} 🪙</span>
                   </div>
                   <div className="py-3 px-4 rounded-xl bg-background/40 border border-border/30">
-                    <span className="text-sm text-muted-foreground block mb-1">Donor Wallet</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Donor Wallet</span>
                     <span className="text-xs font-mono text-foreground break-all">{scannedData.userWalletAddress}</span>
+                  </div>
+                  <div className="py-2 px-4 rounded-xl bg-primary/5 border border-primary/20">
+                    <p className="text-xs text-muted-foreground">
+                      ℹ️ After confirmation, this item will be{" "}
+                      <span className="font-semibold text-foreground">
+                        automatically removed from the donor's fridge.
+                      </span>
+                    </p>
                   </div>
                 </div>
 
-                {/* MetaMask connection */}
+                {/* MetaMask */}
                 {isMetaMaskInstalled() ? (
                   walletConnected ? (
                     <div className="px-4 py-3 rounded-xl bg-safe/10 border border-safe/30 flex items-center gap-2">
@@ -413,14 +436,13 @@ const AdminScan = () => {
                   )
                 ) : (
                   <div className="px-4 py-3 rounded-xl bg-urgent/10 border border-urgent/30 text-xs text-urgent text-center">
-                    MetaMask is not installed.{" "}
+                    MetaMask not installed.{" "}
                     <a href="https://metamask.io" target="_blank" rel="noreferrer" className="underline font-semibold">
                       Install here
                     </a>
                   </div>
                 )}
 
-                {/* Action buttons */}
                 <div className="flex gap-3">
                   <Button variant="outline" onClick={handleReset} className="flex-1">
                     <RefreshCw className="w-4 h-4 mr-2" />
@@ -437,7 +459,7 @@ const AdminScan = () => {
               </motion.div>
             )}
 
-            {/* ── STEP: PROCESSING ── */}
+            {/* ── PROCESSING STEP ── */}
             {step === "processing" && (
               <motion.div
                 key="processing"
@@ -459,12 +481,14 @@ const AdminScan = () => {
                   <p className="text-xs text-muted-foreground">
                     Item: <span className="font-semibold text-foreground">{scannedData?.itemName}</span>
                   </p>
-                  <p className="text-xs text-muted-foreground">Awarding tokens to donor's wallet</p>
+                  <p className="text-xs text-muted-foreground">
+                    Removing item from donor's fridge after confirmation...
+                  </p>
                 </div>
               </motion.div>
             )}
 
-            {/* ── STEP: SUCCESS ── */}
+            {/* ── SUCCESS STEP ── */}
             {step === "success" && txResult && (
               <motion.div
                 key="success"
@@ -480,35 +504,38 @@ const AdminScan = () => {
                 <div className="text-center">
                   <p className="text-xl font-bold text-foreground">Donation Confirmed! 🎉</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {scannedData?.itemName} has been recorded on the Sepolia blockchain
+                    {scannedData?.itemName} recorded on Sepolia blockchain
                   </p>
                 </div>
 
-                {/* Tokens */}
                 <div className="w-full py-4 rounded-xl bg-primary/10 border border-primary/20 text-center">
                   <p className="text-3xl font-bold text-primary">+{txResult.tokensAwarded} 🪙</p>
-                  <p className="text-xs text-muted-foreground mt-1">tokens awarded to donor's wallet</p>
+                  <p className="text-xs text-muted-foreground mt-1">awarded to donor's wallet</p>
                 </div>
 
-                {/* Donor address */}
+                <div className="w-full space-y-2">
+                  <div className="py-3 px-4 rounded-xl bg-safe/5 border border-safe/20 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-safe shrink-0" />
+                    <p className="text-xs text-safe font-medium">Item removed from donor's fridge ✓</p>
+                  </div>
+                </div>
+
                 <div className="w-full py-3 px-4 rounded-xl bg-muted/30 border border-border/30">
                   <p className="text-xs text-muted-foreground mb-1">Donor address:</p>
                   <p className="text-xs font-mono text-foreground break-all">{txResult.donorAddress}</p>
                 </div>
 
-                {/* TX Hash */}
                 {txResult.txHash && (
                   <div className="w-full space-y-1">
                     <p className="text-xs text-muted-foreground text-center">Transaction Hash:</p>
                     <div className="px-3 py-2 rounded-lg bg-muted/30 border border-border/30 text-center">
                       <p className="text-[10px] font-mono text-foreground break-all">
-                        {txResult.txHash.slice(0, 24)}...{txResult.txHash.slice(-10)}
+                        {txResult.txHash.slice(0, 26)}...{txResult.txHash.slice(-10)}
                       </p>
                     </div>
                   </div>
                 )}
 
-                {/* Etherscan link */}
                 {txResult.etherscanUrl && (
                   <a
                     href={txResult.etherscanUrl}
@@ -528,7 +555,7 @@ const AdminScan = () => {
               </motion.div>
             )}
 
-            {/* ── STEP: ERROR ── */}
+            {/* ── ERROR STEP ── */}
             {step === "error" && txResult && (
               <motion.div
                 key="error"
