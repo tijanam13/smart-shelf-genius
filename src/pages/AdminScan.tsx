@@ -22,8 +22,10 @@ import {
   getMetaMaskLoginDeepLink,
   switchToSepolia,
   checkNetwork,
+  isValidEthAddress,
   type DonationResult,
 } from "@/lib/blockchain";
+import { Input } from "@/components/ui/input";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
