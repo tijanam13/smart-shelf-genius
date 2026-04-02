@@ -3,6 +3,7 @@
  *
  * Admin-only QR scanner page.
  * Admin scans the donor's QR code → confirms donation on Sepolia blockchain
+ * → item is removed from the donor's fridge and database.
  */
 
 import { useState, useEffect, useRef } from "react";
