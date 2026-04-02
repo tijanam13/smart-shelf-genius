@@ -20,7 +20,7 @@ import {
   recordDonationOnChain,
   isMetaMaskAvailable,
   isMobileDevice,
-  getMetaMaskDeepLink,
+  getMetaMaskLoginDeepLink,
   switchToSepolia,
   checkNetwork,
   type DonationResult,
@@ -198,10 +198,10 @@ const AdminScan = () => {
     if (!scannedData || !user) return;
 
     // Ako MetaMask nije dostupan (mobilni regularni browser),
-    // otvori MetaMask app putem deep linka — korisnik tamo potvrđuje
+    // otvori MetaMask app na LOGIN stranicu — tamo se admin prijavljuje
+    // unutar MetaMask in-app browsera gde window.ethereum postoji
     if (!isMetaMaskAvailable() && isMobileDevice()) {
-      const deepLink = getMetaMaskDeepLink();
-      window.location.href = deepLink;
+      window.location.href = getMetaMaskLoginDeepLink();
       return;
     }
 
@@ -359,9 +359,9 @@ const AdminScan = () => {
               </button>
             ) : onMobile ? (
               /* Mobilni bez MetaMask browsera */
-              <a href={getMetaMaskDeepLink()} className="flex items-center gap-2 text-xs text-orange-400">
+              <a href={getMetaMaskLoginDeepLink()} className="flex items-center gap-2 text-xs text-orange-400">
                 <ExternalLink className="w-3.5 h-3.5" />
-                Otvori u MetaMask za potpisivanje
+                Prijavi se u MetaMask browseru
               </a>
             ) : (
               /* Desktop bez MetaMask ekstenzije */
@@ -480,23 +480,25 @@ const AdminScan = () => {
                 <div className="px-3 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20">
                   {metamaskAvailable ? (
                     <p className="text-xs text-orange-300 leading-relaxed">
-                      <strong>MetaMask će se otvoriti</strong> za potpisivanje transakcije.
+                      <strong>MetaMask će se otvoriti</strong> za potpisivanje transakcije. Proverite detalje pre
+                      potvrde.
                     </p>
                   ) : onMobile ? (
                     <p className="text-xs text-orange-300 leading-relaxed">
-                      Bićete preusmereni u <strong>MetaMask aplikaciju</strong> da potvrdite transakciju.
+                      Koristiš regularni browser. Da bi potpisao transakciju, moraš se{" "}
+                      <strong>prijaviti unutar MetaMask aplikacije</strong>. Pritisni dugme ispod — MetaMask će otvoriti
+                      login stranicu gde se prijaviš, a zatim automatski dobijaš transakciju na potpisivanje.
                     </p>
                   ) : (
                     <p className="text-xs text-yellow-300 leading-relaxed">
-                      <strong>MetaMask nije instaliran.</strong> Instalirajte ekstenziju na metamask.io da biste
-                      potpisali transakciju.
+                      <strong>MetaMask nije instaliran.</strong> Instalirajte MetaMask ekstenziju na metamask.io.
                     </p>
                   )}
                 </div>
 
                 <Button onClick={handleConfirmOnChain} className="w-full bg-primary" size="lg">
                   <Wallet className="w-4 h-4 mr-2" />
-                  {onMobile && !metamaskAvailable ? "Otvori MetaMask i potvrdi" : "Potvrdi na Blockchain-u"}
+                  {onMobile && !metamaskAvailable ? "Prijavi se u MetaMask i potpiši" : "Potvrdi na Blockchain-u"}
                 </Button>
 
                 <Button onClick={handleScanAgain} variant="outline" className="w-full">
