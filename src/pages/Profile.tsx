@@ -58,7 +58,7 @@ const Profile = () => {
 
   // ─── CONNECT METAMASK ─────────────────────────────────────────────
   const handleConnectMetaMask = async () => {
-    if (!isMetaMaskInstalled()) {
+    if (!isMetaMaskAvailable()) {
       toast({
         title: "MetaMask Not Found",
         description: "Visit metamask.io to install the MetaMask extension.",
