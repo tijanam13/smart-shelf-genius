@@ -1,181 +1,119 @@
-/*
+/**
  * src/lib/blockchain.ts
+ *
+ * Web3 utility functions for MetaMask connection and
+ * FoodDonation smart contract interaction on Sepolia testnet.
  */
 
 import { BrowserProvider, Contract } from "ethers";
 
-// Adresa tvog contracta sa Sepolia mreže
-export const CONTRACT_ADDRESS = "0x9DfB77f3e7e845A39c18c40E15D0F02b42C1a7f5";
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+export const CONTRACT_ADDRESS = "0xPASTE_YOUR_CONTRACT_ADDRESS_HERE";
 
 // Sepolia Chain ID
-const SEPOLIA_CHAIN_ID = "0xaa36a7";
+const SEPOLIA_CHAIN_ID = "0xaa36a7"; // = 11155111 decimal
 
 // ABI
 export const CONTRACT_ABI = [
   {
-    inputs: [
-      { internalType: "address", name: "recipient", type: "address" },
-      { internalType: "uint256", name: "amount", type: "uint256" },
-    ],
-    name: "awardBonusTokens",
-    outputs: [],
-    stateMutability: "nonpayable",
+    name: "recordDonation",
     type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "donor", type: "address" },
+      { name: "itemName", type: "string" },
+      { name: "isCritical", type: "bool" },
+    ],
+    outputs: [],
   },
   {
-    inputs: [
-      { internalType: "string", name: "itemName", type: "string" },
-      { internalType: "bool", name: "isCritical", type: "bool" },
-    ],
-    name: "donate",
-    outputs: [],
-    stateMutability: "nonpayable",
+    name: "getTokenBalance",
     type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "donor", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
   },
   {
+    name: "getDonationCount",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "donor", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "getTotalDonations",
+    type: "function",
+    stateMutability: "view",
     inputs: [],
-    stateMutability: "nonpayable",
-    type: "constructor",
+    outputs: [{ name: "", type: "uint256" }],
   },
   {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "address", name: "donor", type: "address" },
-      { indexed: false, internalType: "string", name: "itemName", type: "string" },
-      { indexed: false, internalType: "uint256", name: "tokensAwarded", type: "uint256" },
-      { indexed: false, internalType: "bool", name: "isCritical", type: "bool" },
-      { indexed: false, internalType: "uint256", name: "timestamp", type: "uint256" },
-    ],
     name: "DonationRecorded",
     type: "event",
-  },
-  {
-    anonymous: false,
     inputs: [
-      { indexed: true, internalType: "address", name: "donor", type: "address" },
-      { indexed: false, internalType: "uint256", name: "amount", type: "uint256" },
+      { name: "donor", type: "address", indexed: true },
+      { name: "itemName", type: "string", indexed: false },
+      { name: "tokensAwarded", type: "uint256", indexed: false },
+      { name: "isCritical", type: "bool", indexed: false },
+      { name: "timestamp", type: "uint256", indexed: false },
     ],
-    name: "TokensRedeemed",
-    type: "event",
   },
-  {
-    inputs: [{ internalType: "address", name: "", type: "address" }],
-    name: "donationCount",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    name: "donations",
-    outputs: [
-      { internalType: "address", name: "donor", type: "address" },
-      { internalType: "string", name: "itemName", type: "string" },
-      { internalType: "uint256", name: "tokensAwarded", type: "uint256" },
-      { internalType: "bool", name: "isCritical", type: "bool" },
-      { internalType: "uint256", name: "timestamp", type: "uint256" },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint256", name: "index", type: "uint256" }],
-    name: "getDonation",
-    outputs: [
-      { internalType: "address", name: "donor", type: "address" },
-      { internalType: "string", name: "itemName", type: "string" },
-      { internalType: "uint256", name: "tokensAwarded", type: "uint256" },
-      { internalType: "bool", name: "isCritical", type: "bool" },
-      { internalType: "uint256", name: "timestamp", type: "uint256" },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "donor", type: "address" }],
-    name: "getDonationCount",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "donor", type: "address" }],
-    name: "getTokenBalance",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "getTotalDonations",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "owner",
-    outputs: [{ internalType: "address", name: "", type: "address" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "", type: "address" }],
-    name: "tokenBalance",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "TOKENS_CRITICAL",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "TOKENS_NORMAL",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-];
+] as const;
 
+// ─── TYPES ────────────────────────────────────────────────────────────────────
 export interface DonationResult {
   success: boolean;
   txHash?: string;
   etherscanUrl?: string;
   tokensAwarded?: number;
+  donorAddress?: string;
   error?: string;
 }
 
-// 1. Provera instalacije
+// ─── METAMASK DETECTION ───────────────────────────────────────────────────────
 export function isMetaMaskInstalled(): boolean {
   return typeof window !== "undefined" && Boolean((window as any).ethereum);
 }
 
-// Konekcija
+// ─── CONNECT METAMASK ─────────────────────────────────────────────────────────
+/**
+ * Requests wallet connection from MetaMask.
+ * Returns the connected account address, or null if rejected.
+ */
 export async function connectMetaMask(): Promise<string | null> {
   if (!isMetaMaskInstalled()) {
-    throw new Error("MetaMask nije instaliran.");
+    throw new Error("MetaMask is not installed. Visit metamask.io to install it.");
   }
-  const provider = new BrowserProvider((window as any).ethereum);
-  const accounts = await provider.send("eth_requestAccounts", []);
-  return accounts[0] || null;
+
+  try {
+    const provider = new BrowserProvider((window as any).ethereum);
+    const accounts = await provider.send("eth_requestAccounts", []);
+    return accounts[0] || null;
+  } catch (err: any) {
+    if (err.code === 4001) {
+      throw new Error("MetaMask connection was rejected.");
+    }
+    throw err;
+  }
 }
 
-// Prebacivanje mreže
+// ─── SWITCH TO SEPOLIA ────────────────────────────────────────────────────────
+/**
+ * Prompts MetaMask to switch to Sepolia testnet.
+ * Adds the network automatically if it doesn't exist.
+ */
 export async function switchToSepolia(): Promise<void> {
   const ethereum = (window as any).ethereum;
-  if (!ethereum) return;
+  if (!ethereum) throw new Error("MetaMask not found.");
+
   try {
     await ethereum.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: SEPOLIA_CHAIN_ID }],
     });
-  } catch (err: any) {
-    if (err.code === 4902) {
+  } catch (switchError: any) {
+    // Network not in MetaMask — add it automatically
+    if (switchError.code === 4902) {
       await ethereum.request({
         method: "wallet_addEthereumChain",
         params: [
@@ -188,43 +126,83 @@ export async function switchToSepolia(): Promise<void> {
           },
         ],
       });
+    } else {
+      throw switchError;
     }
   }
 }
 
-// Slanje donacije
-export async function recordDonationOnChain(itemName: string, isCritical: boolean): Promise<DonationResult> {
+// ─── RECORD DONATION ON BLOCKCHAIN ───────────────────────────────────────────
+/**
+ * Called by the ADMIN after scanning the donor's QR code.
+ * The admin signs the transaction, but tokens are awarded
+ * to the DONOR's wallet address (passed from the QR code).
+ *
+ * @param donorAddress  Donor's MetaMask wallet address (from QR data)
+ * @param itemName      Food item name (e.g. "Milk")
+ * @param isCritical    True if expiring within 5 days
+ */
+export async function recordDonationOnChain(
+  donorAddress: string,
+  itemName: string,
+  isCritical: boolean,
+): Promise<DonationResult> {
   try {
-    if (!isMetaMaskInstalled()) return { success: false, error: "MetaMask nije instaliran." };
+    if (!isMetaMaskInstalled()) {
+      return {
+        success: false,
+        error: "MetaMask is not installed. Visit metamask.io.",
+      };
+    }
 
+    // Connect and switch to Sepolia
     const provider = new BrowserProvider((window as any).ethereum);
     await provider.send("eth_requestAccounts", []);
     await switchToSepolia();
 
+    // Get signer (admin's MetaMask account)
     const signer = await provider.getSigner();
+
+    // Instantiate the contract
     const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
-    const tx = await (contract as any).donate(itemName, isCritical);
+    // Call recordDonation(donorAddress, itemName, isCritical)
+    // This opens MetaMask popup for the admin to confirm
+    const tx = await (contract as any).recordDonation(donorAddress, itemName, isCritical);
+
+    // Wait for the transaction to be confirmed on-chain
     await tx.wait();
+
+    const tokensAwarded = isCritical ? 5 : 3;
 
     return {
       success: true,
       txHash: tx.hash,
       etherscanUrl: `https://sepolia.etherscan.io/tx/${tx.hash}`,
-      tokensAwarded: isCritical ? 5 : 3,
+      tokensAwarded,
+      donorAddress,
     };
   } catch (err: any) {
     if (err.code === 4001 || err.code === "ACTION_REJECTED") {
-      return { success: false, error: "Transakcija odbijena u MetaMask-u." };
+      return {
+        success: false,
+        error: "Transaction was rejected in MetaMask.",
+      };
     }
-    return { success: false, error: err.message || "Greška na blockchainu." };
+    return {
+      success: false,
+      error: err.message || "Transaction failed.",
+    };
   }
 }
 
-// Provera stanja
+// ─── READ TOKEN BALANCE ───────────────────────────────────────────────────────
+/**
+ * Read-only call — checks how many tokens an address has on the contract.
+ * Does not require a transaction or gas.
+ */
 export async function getBlockchainTokenBalance(address: string): Promise<number> {
   try {
-    if (!isMetaMaskInstalled()) return 0;
     const provider = new BrowserProvider((window as any).ethereum);
     const contract = new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
     const balance = await (contract as any).getTokenBalance(address);
