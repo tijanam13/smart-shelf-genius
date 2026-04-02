@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, X, ChevronLeft } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import ExpiringSection from "@/components/ExpiringSection";
 import QuickActions from "@/components/QuickActions";
@@ -8,6 +9,9 @@ import AIInsightCard from "@/components/AIInsightCard";
 import RewardSection from "@/components/RewardSection";
 import BottomNav from "@/components/BottomNav";
 import AdBanner from "@/components/AdBanner";
+import { usePremium } from "@/contexts/PremiumContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Recipe {
   title: string;
@@ -21,6 +25,30 @@ interface Recipe {
 
 const Index = () => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { refresh: refreshPremium } = usePremium();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (searchParams.get('premium') === 'success') {
+      // Verify payment with Stripe and update premium status
+      const verifyPremium = async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('verify-premium');
+          if (error) throw error;
+          if (data?.isPremium) {
+            await refreshPremium();
+            toast({ title: '🎉 Welcome to Premium!', description: 'Ads have been removed from your account.' });
+          }
+        } catch (e) {
+          console.error('Failed to verify premium:', e);
+        }
+        // Remove query param
+        setSearchParams({}, { replace: true });
+      };
+      verifyPremium();
+    }
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">

@@ -9,26 +9,19 @@ import { usePremium } from '@/contexts/PremiumContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import BottomNav from '@/components/BottomNav';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
   const { user, signOut } = useAuth();
-  const { isPremium, refresh: refreshPremium } = usePremium();
+  const { isPremium } = usePremium();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
-
-  useEffect(() => {
-    if (searchParams.get('premium') === 'success') {
-      refreshPremium();
-      toast({ title: '🎉 Welcome to Premium!', description: 'Ads have been removed from your account.' });
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     if (!user) {
