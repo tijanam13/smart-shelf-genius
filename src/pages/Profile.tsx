@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
   const { user, signOut } = useAuth();
-  const { isPremium, refresh: refreshPremium } = usePremium();
+  const { isPremium } = usePremium();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
