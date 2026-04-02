@@ -25,6 +25,30 @@ interface Recipe {
 
 const Index = () => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { refresh: refreshPremium } = usePremium();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (searchParams.get('premium') === 'success') {
+      // Verify payment with Stripe and update premium status
+      const verifyPremium = async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('verify-premium');
+          if (error) throw error;
+          if (data?.isPremium) {
+            await refreshPremium();
+            toast({ title: '🎉 Welcome to Premium!', description: 'Ads have been removed from your account.' });
+          }
+        } catch (e) {
+          console.error('Failed to verify premium:', e);
+        }
+        // Remove query param
+        setSearchParams({}, { replace: true });
+      };
+      verifyPremium();
+    }
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
