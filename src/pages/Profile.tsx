@@ -24,13 +24,6 @@ const Profile = () => {
   const [upgrading, setUpgrading] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get('premium') === 'success') {
-      refreshPremium();
-      toast({ title: '🎉 Welcome to Premium!', description: 'Ads have been removed from your account.' });
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
     if (!user) {
       navigate('/login');
       return;
