@@ -100,10 +100,16 @@ const Index = () => {
             >
               <div>
                 <ExpiringSection />
+                <div className="px-5 lg:px-0 mt-4">
+                  <AdBanner variant="inline" />
+                </div>
                 <AIInsightCard onRecipeClick={setSelectedRecipe} />
               </div>
               <div>
                 <QuickActions />
+                <div className="px-5 lg:px-0 mt-4">
+                  <AdBanner variant="inline" />
+                </div>
                 <RewardSection />
               </div>
             </motion.div>

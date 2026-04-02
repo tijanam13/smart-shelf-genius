@@ -152,6 +152,41 @@ const Profile = () => {
               </div>
             </div>
 
+            {/* Premium Section */}
+            <div className="pt-2 border-t border-border/50">
+              {isPremium ? (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30">
+                  <Crown className="w-5 h-5 text-amber-500" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Premium Member</p>
+                    <p className="text-xs text-muted-foreground">Enjoying ad-free experience</p>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  onClick={async () => {
+                    setUpgrading(true);
+                    try {
+                      const { data, error } = await supabase.functions.invoke('create-checkout', {
+                        body: { returnUrl: window.location.origin },
+                      });
+                      if (error) throw error;
+                      if (data?.url) window.location.href = data.url;
+                    } catch (e: any) {
+                      toast({ title: 'Error', description: e.message || 'Failed to start checkout', variant: 'destructive' });
+                    } finally {
+                      setUpgrading(false);
+                    }
+                  }}
+                  disabled={upgrading}
+                  className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white"
+                >
+                  {upgrading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Crown className="w-4 h-4 mr-2" />}
+                  {upgrading ? 'Redirecting...' : 'Upgrade to Premium — $4.99'}
+                </Button>
+              )}
+            </div>
+
             <div className="flex gap-3 pt-2">
               <Button onClick={handleSave} disabled={loading} className="flex-1">
                 <Save className="w-4 h-4 mr-2" />
