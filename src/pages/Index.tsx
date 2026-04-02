@@ -21,11 +21,6 @@ interface Recipe {
 
 const Index = () => {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { refresh: refreshPremium } = usePremium();
-  const { toast } = useToast();
-
-  // Premium verification removed — now handled via login page redirect
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
