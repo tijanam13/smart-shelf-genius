@@ -133,29 +133,26 @@ const Family = () => {
 
   const joinGroup = async () => {
     if (!user || !joinCode.trim()) return;
-    const { data: foundGroup } = await supabase
-      .from('family_groups')
-      .select('*')
-      .eq('invite_code', joinCode.trim().toLowerCase())
-      .maybeSingle();
 
-    if (!foundGroup) {
-      toast({ title: 'Error', description: 'Invalid invite code.', variant: 'destructive' });
+    const { data, error } = await supabase.rpc('join_family_by_code', {
+      _invite_code: joinCode.trim(),
+    });
+
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
       return;
     }
 
-    const { error } = await supabase
-      .from('family_members')
-      .insert({ group_id: foundGroup.id, user_id: user.id });
-
-    if (error) {
-      toast({ title: 'Error', description: error.message === 'duplicate key value violates unique constraint "family_members_group_id_user_id_key"' ? 'You are already a member of this group.' : error.message, variant: 'destructive' });
-    } else {
-      setGroup(foundGroup);
-      await loadMembers(foundGroup.id, user.id);
-      setJoinCode('');
-      toast({ title: 'Success!', description: `You joined "${foundGroup.name}".` });
+    const result = data as any;
+    if (result?.error) {
+      toast({ title: 'Error', description: result.error, variant: 'destructive' });
+      return;
     }
+
+    setGroup(result);
+    await loadMembers(result.id, user.id);
+    setJoinCode('');
+    toast({ title: 'Success!', description: `You joined "${result.name}".` });
   };
 
   const removeMember = async (memberId: string, memberUserId: string) => {
