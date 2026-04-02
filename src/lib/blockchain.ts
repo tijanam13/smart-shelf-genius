@@ -1,6 +1,5 @@
 /*
  * src/lib/blockchain.ts
- * FINALNA VERZIJA - Sadrži sve funkcije za novi DonationModal
  */
 
 import { BrowserProvider, Contract } from "ethers";
