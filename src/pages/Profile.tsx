@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Save, LogOut, Crown } from 'lucide-react';
+import { User, Mail, Save, LogOut, Crown, Loader2 } from 'lucide-react';
 import PhoneInput from '@/components/PhoneInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
