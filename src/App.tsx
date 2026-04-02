@@ -92,14 +92,7 @@ const App = () => (
                       </AdminGuard>
                     }
                   />
-                  <Route
-                    path="/profile"
-                    element={
-                      <AdminGuard>
-                        <Profile />
-                      </AdminGuard>
-                    }
-                  />
+                  <Route path="/profile" element={<Profile />} />
                   <Route
                     path="/family"
                     element={
