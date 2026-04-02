@@ -77,7 +77,7 @@ const macroEmoji: Record<string, string> = {
 const ShoppingList = () => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { notifications, markAsConsumed, markAsDiscarded } = useNotifications();
+  
   const [lists, setLists] = useState<ShoppingListData[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [showNewListForm, setShowNewListForm] = useState(false);
