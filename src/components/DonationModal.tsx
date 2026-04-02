@@ -8,9 +8,10 @@
 
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, QrCode, CheckCircle } from "lucide-react";
+import { X, QrCode, CheckCircle, AlertTriangle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
 
 interface DonationModalProps {
   isOpen: boolean;
