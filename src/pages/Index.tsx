@@ -7,6 +7,7 @@ import QuickActions from "@/components/QuickActions";
 import AIInsightCard from "@/components/AIInsightCard";
 import RewardSection from "@/components/RewardSection";
 import BottomNav from "@/components/BottomNav";
+import AdBanner from "@/components/AdBanner";
 
 interface Recipe {
   title: string;
@@ -99,10 +100,16 @@ const Index = () => {
             >
               <div>
                 <ExpiringSection />
+                <div className="px-5 lg:px-0 mt-4">
+                  <AdBanner variant="inline" />
+                </div>
                 <AIInsightCard onRecipeClick={setSelectedRecipe} />
               </div>
               <div>
                 <QuickActions />
+                <div className="px-5 lg:px-0 mt-4">
+                  <AdBanner variant="inline" />
+                </div>
                 <RewardSection />
               </div>
             </motion.div>

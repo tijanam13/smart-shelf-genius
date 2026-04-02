@@ -1,23 +1,34 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Save, LogOut } from 'lucide-react';
+import { User, Mail, Save, LogOut, Crown, Loader2 } from 'lucide-react';
 import PhoneInput from '@/components/PhoneInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePremium } from '@/contexts/PremiumContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import BottomNav from '@/components/BottomNav';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const Profile = () => {
   const { user, signOut } = useAuth();
+  const { isPremium, refresh: refreshPremium } = usePremium();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('premium') === 'success') {
+      refreshPremium();
+      toast({ title: '🎉 Welcome to Premium!', description: 'Ads have been removed from your account.' });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!user) {
@@ -139,6 +150,41 @@ const Profile = () => {
                 <label className="text-sm text-muted-foreground mb-1 block">Phone Number</label>
                 <PhoneInput value={phone} onChange={setPhone} />
               </div>
+            </div>
+
+            {/* Premium Section */}
+            <div className="pt-2 border-t border-border/50">
+              {isPremium ? (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30">
+                  <Crown className="w-5 h-5 text-amber-500" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Premium Member</p>
+                    <p className="text-xs text-muted-foreground">Enjoying ad-free experience</p>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  onClick={async () => {
+                    setUpgrading(true);
+                    try {
+                      const { data, error } = await supabase.functions.invoke('create-checkout', {
+                        body: { returnUrl: window.location.origin },
+                      });
+                      if (error) throw error;
+                      if (data?.url) window.location.href = data.url;
+                    } catch (e: any) {
+                      toast({ title: 'Error', description: e.message || 'Failed to start checkout', variant: 'destructive' });
+                    } finally {
+                      setUpgrading(false);
+                    }
+                  }}
+                  disabled={upgrading}
+                  className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white"
+                >
+                  {upgrading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Crown className="w-4 h-4 mr-2" />}
+                  {upgrading ? 'Redirecting...' : 'Upgrade to Premium — $4.99'}
+                </Button>
+              )}
             </div>
 
             <div className="flex gap-3 pt-2">
