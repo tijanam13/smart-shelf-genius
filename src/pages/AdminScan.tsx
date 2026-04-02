@@ -234,11 +234,20 @@ const AdminScan = () => {
       return;
     }
 
-    // Connect wallet first if not yet connected
+    // Auto-connect wallet if not yet connected, then proceed immediately
     if (!adminWalletAddress) {
-      await connectWallet();
-      // After connecting, let admin press Confirm again
-      return;
+      try {
+        setIsConnectingWallet(true);
+        const address = await connectMetaMask();
+        const net = await checkNetwork();
+        setIsOnSepolia(net.ok);
+        setAdminWalletAddress(address);
+        setIsConnectingWallet(false);
+      } catch (err: any) {
+        setIsConnectingWallet(false);
+        toast({ title: "Connection Error", description: err.message, variant: "destructive" });
+        return;
+      }
     }
 
     setStep("processing");

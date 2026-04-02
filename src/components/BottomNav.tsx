@@ -27,6 +27,11 @@ const adminTabs = [
     label: "Admin",
     path: "/admin-scan",
   },
+  {
+    icon: User,
+    label: "Profile",
+    path: "/profile",
+  },
 ];
 
 const BottomNav = () => {
