@@ -80,7 +80,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
     setStep("processing");
 
     // 1. Pošalji na blockchain
-    const result = await recordDonationOnChain(itemName, isCritical);
+    const result = await recordDonationOnChain(connectedAddress || '', itemName, isCritical);
     setTxResult(result);
 
     if (!result.success) {
