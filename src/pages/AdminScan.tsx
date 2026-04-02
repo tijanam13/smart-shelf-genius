@@ -223,7 +223,7 @@ const AdminScan = () => {
 
     // Mobile without MetaMask browser → open MetaMask app
     if (!isMetaMaskAvailable() && isMobileDevice()) {
-      window.location.href = getMetaMaskLoginDeepLink();
+      window.location.href = getMetaMaskDeepLinkForCurrentPage();
       return;
     }
 
