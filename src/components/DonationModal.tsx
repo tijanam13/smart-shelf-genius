@@ -118,6 +118,21 @@ const DonationModal: React.FC<DonationModalProps> = ({
           </div>
 
           <AnimatePresence mode="wait">
+            {confirmed ? (
+              <motion.div
+                key="confirmed"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="w-full flex flex-col items-center py-6"
+              >
+                <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
+                <h2 className="text-xl font-bold text-foreground">Donation Confirmed! 🎉</h2>
+                <p className="text-sm text-muted-foreground mt-2 text-center">
+                  The admin verified your donation on the blockchain. You earned <strong>+{bonusTokens} tokens</strong>!
+                </p>
+                <p className="text-xs text-muted-foreground mt-3">Closing automatically...</p>
+              </motion.div>
+            ) : (
             <motion.div
               key="info"
               initial={{ opacity: 0 }}
