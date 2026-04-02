@@ -1,8 +1,16 @@
-import { Home, Refrigerator, Camera, Users, User, Globe, ShoppingCart } from "lucide-react";
+/**
+ * src/components/BottomNav.tsx
+ *
+ * Bottom navigation bar.
+ * Admin users see an extra "Admin" tab that leads to /admin-scan.
+ */
+
+import { Home, Refrigerator, Camera, Users, User, Globe, ShoppingCart, ShieldCheck } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useAdmin } from "@/contexts/AdminContext";
 
-const tabs = [
+const regularTabs = [
   { icon: Home, label: "Home", path: "/" },
   { icon: Refrigerator, label: "Fridge", path: "/fridge" },
   { icon: ShoppingCart, label: "Shopping", path: "/shopping-list" },
@@ -12,9 +20,18 @@ const tabs = [
   { icon: User, label: "Profile", path: "/profile" },
 ];
 
+const adminTab = {
+  icon: ShieldCheck,
+  label: "Admin",
+  path: "/admin-scan",
+};
+
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAdmin } = useAdmin();
+
+  const tabs = isAdmin ? [...regularTabs, adminTab] : regularTabs;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50">
@@ -22,23 +39,28 @@ const BottomNav = () => {
         <div className="flex items-center justify-around py-2">
           {tabs.map((tab) => {
             const isActive = location.pathname === tab.path;
+            const isAdminTab = tab.path === "/admin-scan";
+
             return (
               <motion.button
                 key={tab.path}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => navigate(tab.path)}
                 className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  isActive
+                    ? isAdminTab
+                      ? "text-primary"
+                      : "text-primary"
+                    : isAdminTab
+                      ? "text-primary/60"
+                      : "text-muted-foreground"
                 }`}
               >
-                <tab.icon className={`w-5 h-5 ${isActive ? "text-primary" : ""}`} />
-                <span className="text-[9px] font-medium">{tab.label}</span>
-                {isActive && (
-                  <motion.div
-                    layoutId="nav-indicator"
-                    className="w-1 h-1 rounded-full bg-primary"
-                  />
-                )}
+                <tab.icon className={`w-5 h-5 ${isActive ? "text-primary" : isAdminTab ? "text-primary/60" : ""}`} />
+                <span className={`text-[9px] font-medium ${isAdminTab && !isActive ? "text-primary/60" : ""}`}>
+                  {tab.label}
+                </span>
+                {isActive && <motion.div layoutId="nav-indicator" className="w-1 h-1 rounded-full bg-primary" />}
               </motion.button>
             );
           })}
