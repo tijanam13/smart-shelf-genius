@@ -269,9 +269,6 @@ const Family = () => {
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">{member.profile?.email}</p>
-                        {member.profile?.phone && (
-                          <p className="text-xs text-muted-foreground">{member.profile.phone}</p>
-                        )}
                       </div>
                     </div>
                     {user?.id === group.owner_id && member.user_id !== group.owner_id && (
