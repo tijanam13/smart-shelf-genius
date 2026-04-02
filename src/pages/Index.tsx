@@ -7,6 +7,7 @@ import QuickActions from "@/components/QuickActions";
 import AIInsightCard from "@/components/AIInsightCard";
 import RewardSection from "@/components/RewardSection";
 import BottomNav from "@/components/BottomNav";
+import AdBanner from "@/components/AdBanner";
 
 interface Recipe {
   title: string;
