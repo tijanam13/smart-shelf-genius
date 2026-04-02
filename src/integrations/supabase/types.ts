@@ -296,6 +296,10 @@ export type Database = {
       }
     }
     Functions: {
+      adjust_user_tokens: {
+        Args: { _point_delta?: number; _token_delta?: number; _user_id: string }
+        Returns: undefined
+      }
       get_family_member_ids: { Args: { _user_id: string }; Returns: string[] }
       get_user_group_ids: { Args: { _user_id: string }; Returns: string[] }
       join_family_by_code: { Args: { _invite_code: string }; Returns: Json }
