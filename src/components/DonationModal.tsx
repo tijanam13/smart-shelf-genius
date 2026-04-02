@@ -210,6 +210,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                 </>
               )}
             </motion.div>
+            )}
           </AnimatePresence>
         </div>
       </motion.div>
