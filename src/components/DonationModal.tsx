@@ -1,6 +1,14 @@
+/**
+ * src/components/DonationModal.tsx
+ *
+ * Shown to the regular user (donor) when they click "Donate" on a fridge item.
+ * Displays a QR code that the admin scans to confirm the donation on the blockchain.
+ * The donor can also self-confirm if they have MetaMask connected.
+ */
+
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ExternalLink, Loader2, CheckCircle, AlertCircle, Wallet } from "lucide-react";
+import { X, ExternalLink, Loader2, CheckCircle, AlertCircle, Wallet, QrCode } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,9 +48,9 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const [step, setStep] = useState<Step>("info");
   const [txResult, setTxResult] = useState<DonationResult | null>(null);
   const [walletConnected, setWalletConnected] = useState(false);
-  const [connectedAddress, setConnectedAddress] = useState<string>("");
+  const [connectedAddress, setConnectedAddress] = useState("");
 
-  // QR kod koji sadrži sve podatke namirnice + wallet adresu
+  // QR code payload — admin scans this to confirm the donation
   const qrData = JSON.stringify({
     itemId,
     itemName,
@@ -53,7 +61,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
     network: "sepolia",
   });
 
-  // ─── POVEŽI METAMASK ────────────────────────────────────────────────
+  // ─── CONNECT METAMASK ────────────────────────────────────────────────
   const handleConnectWallet = async () => {
     try {
       const address = await connectMetaMask();
@@ -61,26 +69,21 @@ const DonationModal: React.FC<DonationModalProps> = ({
         setConnectedAddress(address);
         setWalletConnected(true);
         toast({
-          title: "✅ MetaMask povezan!",
-          description: `Adresa: ${address.slice(0, 6)}...${address.slice(-4)}`,
+          title: "✅ MetaMask Connected",
+          description: `Wallet: ${address.slice(0, 8)}...${address.slice(-6)}`,
         });
       }
     } catch (err: any) {
-      toast({
-        title: "Greška",
-        description: err.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     }
   };
 
-  // ─── BLOCKCHAIN DONACIJA ────────────────────────────────────────────
-  const handleBlockchainDonate = async () => {
-    if (!user) return;
+  // ─── SELF-CONFIRM ON BLOCKCHAIN (donor confirms themselves) ──────────
+  const handleSelfConfirm = async () => {
+    if (!user || !connectedAddress) return;
     setStep("processing");
 
-    // 1. Pošalji na blockchain
-    const result = await recordDonationOnChain(connectedAddress || '', itemName, isCritical);
+    const result = await recordDonationOnChain(connectedAddress, itemName, isCritical);
     setTxResult(result);
 
     if (!result.success) {
@@ -88,7 +91,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
       return;
     }
 
-    // 2. Zabelezi u Supabase
+    // Sync to Supabase
     try {
       await supabase.from("donations").insert({
         user_id: user.id,
@@ -122,7 +125,6 @@ const DonationModal: React.FC<DonationModalProps> = ({
 
       await supabase.from("fridge_items").delete().eq("id", itemId);
     } catch (err: any) {
-      // Blockchain transakcija uspela, ali Supabase greška — ne blokiraj
       console.error("Supabase sync error:", err.message);
     }
 
@@ -174,8 +176,8 @@ const DonationModal: React.FC<DonationModalProps> = ({
             </motion.button>
           </div>
 
-          {/* ── KORAK: INFO (početni ekran) ── */}
           <AnimatePresence mode="wait">
+            {/* ── INFO STEP ── */}
             {step === "info" && (
               <motion.div
                 key="info"
@@ -201,80 +203,78 @@ const DonationModal: React.FC<DonationModalProps> = ({
 
                 {!isExpired && (
                   <>
-                    {/* QR Kod */}
-                    <div className="mb-4 text-center">
-                      <p className="text-xs text-muted-foreground mb-3">
-                        QR kod sadrži sve podatke o donaciji i tvojoj blockchain adresi
+                    {/* Instructions */}
+                    <div className="w-full mb-4 px-4 py-3 rounded-xl bg-primary/5 border border-primary/20 text-center">
+                      <QrCode className="w-5 h-5 text-primary mx-auto mb-1" />
+                      <p className="text-xs text-muted-foreground">
+                        Show this QR code to the{" "}
+                        <span className="font-semibold text-foreground">donation center admin</span> — they will scan it
+                        and confirm your donation on the blockchain.
                       </p>
-                      <div className="bg-white rounded-2xl p-4 inline-block">
-                        <QRCodeSVG
-                          value={qrData}
-                          size={180}
-                          level="H"
-                          includeMargin={true}
-                          fgColor="#000000"
-                          bgColor="#ffffff"
-                        />
-                      </div>
                     </div>
 
-                    {/* MetaMask status */}
+                    {/* QR Code */}
+                    <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm">
+                      <QRCodeSVG
+                        value={qrData}
+                        size={190}
+                        level="H"
+                        includeMargin={true}
+                        fgColor="#000000"
+                        bgColor="#ffffff"
+                      />
+                    </div>
+
+                    {/* Token reward info */}
+                    <div className="w-full text-center mb-4 space-y-1 text-xs text-muted-foreground">
+                      <p>✅ You earn +{bonusTokens} tokens when confirmed</p>
+                      <p>🔗 Recorded permanently on Sepolia blockchain</p>
+                      <p>🌱 Helps reduce food waste</p>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="w-full flex items-center gap-3 mb-4">
+                      <div className="flex-1 h-px bg-border/50" />
+                      <span className="text-xs text-muted-foreground">or confirm yourself</span>
+                      <div className="flex-1 h-px bg-border/50" />
+                    </div>
+
+                    {/* Self-confirm with MetaMask */}
                     {isMetaMaskInstalled() ? (
                       walletConnected ? (
-                        <div className="w-full mb-4 px-3 py-2 rounded-xl bg-safe/10 border border-safe/30 flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-safe shrink-0" />
-                          <div className="text-xs text-safe">
-                            <span className="font-semibold">Wallet povezan</span>
-                            <br />
-                            <span className="font-mono">
-                              {connectedAddress.slice(0, 8)}...{connectedAddress.slice(-6)}
-                            </span>
+                        <>
+                          <div className="w-full mb-3 px-3 py-2 rounded-xl bg-safe/10 border border-safe/30 flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-safe shrink-0" />
+                            <p className="text-xs text-safe">
+                              <span className="font-semibold">MetaMask connected</span>
+                              <br />
+                              <span className="font-mono">
+                                {connectedAddress.slice(0, 8)}...{connectedAddress.slice(-6)}
+                              </span>
+                            </p>
                           </div>
-                        </div>
+                          <motion.button
+                            whileTap={{ scale: 0.95 }}
+                            onClick={handleSelfConfirm}
+                            className="w-full py-3 rounded-xl bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors flex items-center justify-center gap-2"
+                          >
+                            🎁 Confirm Myself on Blockchain
+                          </motion.button>
+                        </>
                       ) : (
                         <motion.button
                           whileTap={{ scale: 0.95 }}
                           onClick={handleConnectWallet}
-                          className="w-full mb-4 py-2.5 rounded-xl bg-orange-500/20 text-orange-400 text-sm font-bold hover:bg-orange-500/30 transition-colors flex items-center justify-center gap-2"
+                          className="w-full py-2.5 rounded-xl bg-orange-500/20 text-orange-400 text-sm font-bold hover:bg-orange-500/30 transition-colors flex items-center justify-center gap-2"
                         >
                           <Wallet className="w-4 h-4" />
-                          Connect MetaMask
+                          Connect MetaMask to Self-Confirm
                         </motion.button>
                       )
                     ) : (
-                      <div className="w-full mb-4 px-3 py-2 rounded-xl bg-urgent/10 border border-urgent/30 text-xs text-urgent text-center">
-                        MetaMask nije instaliran.{" "}
-                        <a
-                          href="https://metamask.io"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline font-semibold"
-                        >
-                          Instaliraj ovde
-                        </a>
-                      </div>
-                    )}
-
-                    {/* Info */}
-                    <div className="w-full text-center mb-5 space-y-1 text-xs text-muted-foreground">
-                      <p>✅ Earn +{bonusTokens} tokens for donating</p>
-                      <p>🔗 Transakcija se beleži na Sepolia blockchain</p>
-                      <p>🌱 Impact your planet growth</p>
-                    </div>
-
-                    {/* Dugme za potvrdu */}
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={handleBlockchainDonate}
-                      disabled={!walletConnected}
-                      className="w-full py-3 rounded-xl bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      🎁 Confirm Donation on Blockchain
-                    </motion.button>
-
-                    {!walletConnected && isMetaMaskInstalled() && (
-                      <p className="text-[11px] text-muted-foreground mt-2 text-center">Poveži MetaMask pre potvrde</p>
+                      <p className="text-[11px] text-muted-foreground text-center">
+                        MetaMask not installed — use the admin scanner to confirm.
+                      </p>
                     )}
                   </>
                 )}
@@ -298,7 +298,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
               </motion.div>
             )}
 
-            {/* ── KORAK: PROCESSING ── */}
+            {/* ── PROCESSING STEP ── */}
             {step === "processing" && (
               <motion.div
                 key="processing"
@@ -309,22 +309,14 @@ const DonationModal: React.FC<DonationModalProps> = ({
               >
                 <Loader2 className="w-14 h-14 text-primary animate-spin" />
                 <div className="text-center">
-                  <p className="text-lg font-bold text-foreground">Slanje na blockchain...</p>
-                  <p className="text-sm text-muted-foreground mt-2">Potvrdi transakciju u MetaMask prozoru</p>
-                  <p className="text-xs text-muted-foreground mt-1">Čekaj ~15 sekundi nakon potvrde</p>
-                </div>
-                <div className="w-full px-4 py-3 rounded-xl bg-muted/30 text-center">
-                  <p className="text-xs text-muted-foreground">
-                    Mreža: <span className="font-semibold text-foreground">Sepolia Testnet</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Namirnica: <span className="font-semibold text-foreground">{itemName}</span>
-                  </p>
+                  <p className="text-lg font-bold text-foreground">Sending to Blockchain...</p>
+                  <p className="text-sm text-muted-foreground mt-2">Confirm the transaction in MetaMask</p>
+                  <p className="text-xs text-muted-foreground mt-1">Wait ~15 seconds after confirming</p>
                 </div>
               </motion.div>
             )}
 
-            {/* ── KORAK: SUCCESS ── */}
+            {/* ── SUCCESS STEP ── */}
             {step === "success" && txResult && (
               <motion.div
                 key="success"
@@ -338,29 +330,28 @@ const DonationModal: React.FC<DonationModalProps> = ({
                 </motion.div>
 
                 <div className="text-center">
-                  <p className="text-xl font-bold text-foreground">Donacija potvrđena! 🎉</p>
-                  <p className="text-sm text-muted-foreground mt-1">{itemName} je zabeležen na Sepolia blockchain-u</p>
+                  <p className="text-xl font-bold text-foreground">Donation Confirmed! 🎉</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {itemName} has been recorded on Sepolia blockchain
+                  </p>
                 </div>
 
-                {/* Tokeni */}
                 <div className="w-full py-3 rounded-xl bg-primary/10 border border-primary/20 text-center">
                   <p className="text-2xl font-bold text-primary">+{txResult.tokensAwarded} 🪙</p>
-                  <p className="text-xs text-muted-foreground mt-1">tokena dodato na tvoj nalog</p>
+                  <p className="text-xs text-muted-foreground mt-1">tokens added to your account</p>
                 </div>
 
-                {/* TX Hash */}
                 {txResult.txHash && (
-                  <div className="w-full space-y-2">
+                  <div className="w-full space-y-1">
                     <p className="text-xs text-muted-foreground text-center">Transaction Hash:</p>
                     <div className="px-3 py-2 rounded-lg bg-muted/30 border border-border/30 text-center">
                       <p className="text-[10px] font-mono text-foreground break-all">
-                        {txResult.txHash.slice(0, 20)}...{txResult.txHash.slice(-10)}
+                        {txResult.txHash.slice(0, 22)}...{txResult.txHash.slice(-10)}
                       </p>
                     </div>
                   </div>
                 )}
 
-                {/* Etherscan link */}
                 {txResult.etherscanUrl && (
                   <a
                     href={txResult.etherscanUrl}
@@ -369,7 +360,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                     className="w-full py-3 rounded-xl bg-blue-500/15 text-blue-400 text-sm font-bold hover:bg-blue-500/25 transition-colors flex items-center justify-center gap-2"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    Pogledaj na Etherscan
+                    View on Etherscan
                   </a>
                 )}
 
@@ -378,12 +369,12 @@ const DonationModal: React.FC<DonationModalProps> = ({
                   onClick={handleClose}
                   className="w-full py-3 rounded-xl bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors"
                 >
-                  Zatvori
+                  Close
                 </motion.button>
               </motion.div>
             )}
 
-            {/* ── KORAK: ERROR ── */}
+            {/* ── ERROR STEP ── */}
             {step === "error" && txResult && (
               <motion.div
                 key="error"
@@ -394,7 +385,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
               >
                 <AlertCircle className="w-14 h-14 text-urgent" />
                 <div className="text-center">
-                  <p className="text-lg font-bold text-foreground">Transakcija nije uspela</p>
+                  <p className="text-lg font-bold text-foreground">Transaction Failed</p>
                   <p className="text-sm text-muted-foreground mt-2 px-2">{txResult.error}</p>
                 </div>
                 <div className="flex gap-3 w-full">
@@ -403,14 +394,14 @@ const DonationModal: React.FC<DonationModalProps> = ({
                     onClick={() => setStep("info")}
                     className="flex-1 py-3 rounded-xl bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors"
                   >
-                    Pokušaj ponovo
+                    Try Again
                   </motion.button>
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={handleClose}
                     className="flex-1 py-3 rounded-xl bg-muted/30 text-muted-foreground text-sm font-bold hover:bg-muted/50 transition-colors"
                   >
-                    Otkaži
+                    Cancel
                   </motion.button>
                 </div>
               </motion.div>
