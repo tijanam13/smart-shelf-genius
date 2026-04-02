@@ -218,7 +218,7 @@ const AdminScan = () => {
   const handleConfirmOnChain = async () => {
     if (!scannedData || !user) return;
 
-    // Mobile without MetaMask browser → open MetaMask app at login page
+    // Mobile without MetaMask browser → open MetaMask app
     if (!isMetaMaskAvailable() && isMobileDevice()) {
       window.location.href = getMetaMaskLoginDeepLink();
       return;
@@ -234,15 +234,14 @@ const AdminScan = () => {
       return;
     }
 
-    // Auto-connect wallet if not yet connected, then proceed immediately
+    // Step 1: Connect wallet if needed
     if (!adminWalletAddress) {
       try {
         setIsConnectingWallet(true);
-        const address = await connectMetaMask();
-        const net = await checkNetwork();
-        setIsOnSepolia(net.ok);
+        const address = await connectMetaMask(); // requests accounts + switches to Sepolia
         setAdminWalletAddress(address);
         setIsConnectingWallet(false);
+        toast({ title: "✅ Wallet Connected", description: `${address.slice(0, 8)}...${address.slice(-6)}` });
       } catch (err: any) {
         setIsConnectingWallet(false);
         toast({ title: "Connection Error", description: err.message, variant: "destructive" });
@@ -250,6 +249,7 @@ const AdminScan = () => {
       }
     }
 
+    // Step 2: Send blockchain transaction (MetaMask confirm popup appears automatically)
     setStep("processing");
 
     const result = await recordDonationOnChain(
