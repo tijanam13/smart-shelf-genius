@@ -9,7 +9,7 @@ import { usePremium } from '@/contexts/PremiumContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import BottomNav from '@/components/BottomNav';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
   const { user, signOut } = useAuth();
