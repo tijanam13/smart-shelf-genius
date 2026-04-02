@@ -2,12 +2,12 @@
  * src/pages/AdminScan.tsx
  *
  * Admin-only QR scanner page.
- * Admin scans the donor's QR code → confirms donation (Supabase only, no MetaMask needed)
+ * Admin scans the donor's QR code → confirms donation (Supabase only, no MetaMask needed).
  */
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, QrCode, CheckCircle, AlertCircle, Loader2, RefreshCw, ArrowLeft } from "lucide-react";
+import { ShieldCheck, QrCode, CheckCircle, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/BottomNav";
@@ -241,24 +241,13 @@ const AdminScan = () => {
       <div className="relative z-10 pb-28 px-5 pt-10 flex flex-col items-center">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md mb-6">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                stopScanner();
-                navigate("/");
-              }}
-              className="p-2 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4 text-muted-foreground" />
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h1 className="font-display text-xl font-bold text-foreground">Admin — QR Scanner</h1>
-                <p className="text-xs text-muted-foreground">Scan donor QR codes to confirm donations</p>
-              </div>
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="font-display text-xl font-bold text-foreground">Admin — QR Scanner</h1>
+              <p className="text-xs text-muted-foreground">Scan donor QR codes to confirm donations</p>
             </div>
           </div>
         </motion.div>
