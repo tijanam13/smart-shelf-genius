@@ -6,23 +6,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  ShieldCheck,
-  QrCode,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-  RefreshCw,
-  Wallet,
-  ExternalLink,
-  Smartphone,
-  PenLine,
-  Copy,
-  Check,
-} from "lucide-react";
+import { ShieldCheck, QrCode, CheckCircle, AlertCircle, Loader2, Wallet, ExternalLink, RefreshCw } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import BottomNav from "@/components/BottomNav";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,13 +19,13 @@ import {
   connectMetaMask,
   recordDonationOnChain,
   canUseMetaMaskDirectly,
-  isMobileDevice,
   getMetaMaskDeepLink,
-  isValidEthAddress,
   switchToSepolia,
   checkNetwork,
   type DonationResult,
 } from "@/lib/blockchain";
+
+// ─── TYPES ────────────────────────────────────────────────────────────────────
 
 interface QRDonationData {
   itemId: string;
@@ -51,10 +37,17 @@ interface QRDonationData {
   network: string;
 }
 
-type WalletStep = "choose" | "connecting" | "manual-input" | "connected";
-type PageStep = "wallet" | "scanner" | "confirm" | "processing" | "success" | "error";
+type PageStep =
+  | "wallet" // Step 1: Connect MetaMask
+  | "scanner" // Step 2: Scan QR code
+  | "confirm" // Step 3: Review & confirm
+  | "processing" // Step 4: Waiting for blockchain
+  | "success" // Done
+  | "error"; // Something went wrong
 
 const SCANNER_ID = "admin-qr-reader";
+
+// ─── COMPONENT ────────────────────────────────────────────────────────────────
 
 const AdminScan = () => {
   const { isAdmin, loading: adminLoading } = useAdmin();
@@ -62,14 +55,12 @@ const AdminScan = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // State Management
-  const [walletStep, setWalletStep] = useState<WalletStep>("choose");
+  // Wallet state
   const [adminWalletAddress, setAdminWalletAddress] = useState("");
-  const [manualAddressInput, setManualAddressInput] = useState("");
-  const [manualAddressError, setManualAddressError] = useState("");
+  const [isConnecting, setIsConnecting] = useState(false);
   const [isOnSepolia, setIsOnSepolia] = useState(false);
-  const [copied, setCopied] = useState(false);
 
+  // Page flow
   const [step, setStep] = useState<PageStep>("wallet");
   const [scannedData, setScannedData] = useState<QRDonationData | null>(null);
   const [txResult, setTxResult] = useState<DonationResult | null>(null);
@@ -77,15 +68,21 @@ const AdminScan = () => {
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
-  // Security: Redirect non-admins
+  // ─── GUARDS ────────────────────────────────────────────────────────
+
+  // Redirect non-admins
   useEffect(() => {
     if (!adminLoading && !isAdmin) {
-      toast({ title: "Access Denied", description: "This page is for administrators only.", variant: "destructive" });
+      toast({
+        title: "Pristup odbijen",
+        description: "Ova stranica je samo za administratore.",
+        variant: "destructive",
+      });
       navigate("/");
     }
   }, [isAdmin, adminLoading]);
 
-  // Clean up camera on exit
+  // Clean up camera on unmount
   useEffect(() => {
     return () => {
       stopScanner();
@@ -102,8 +99,8 @@ const AdminScan = () => {
       setIsOnSepolia(net.ok);
       if (!net.ok) {
         toast({
-          title: "Wrong Network",
-          description: "MetaMask is not on Sepolia. Switching...",
+          title: "Pogrešna mreža",
+          description: "MetaMask nije na Sepolia testnet-u.",
           variant: "destructive",
         });
       }
@@ -113,21 +110,24 @@ const AdminScan = () => {
     return () => ethereum.removeListener("chainChanged", handleChainChange);
   }, []);
 
-  // ─── WALLET ACTIONS ───────────────────────────────────────────────
+  // ─── WALLET CONNECTION ──────────────────────────────────────────────
 
   const handleConnectMetaMask = async () => {
-    setWalletStep("connecting");
+    setIsConnecting(true);
     try {
       const address = await connectMetaMask();
       const net = await checkNetwork();
       setIsOnSepolia(net.ok);
       setAdminWalletAddress(address);
-      setWalletStep("connected");
       setStep("scanner");
-      toast({ title: "✅ Wallet Connected", description: `Address: ${address.slice(0, 8)}...${address.slice(-6)}` });
+      toast({
+        title: "Wallet povezan",
+        description: `Adresa: ${address.slice(0, 8)}...${address.slice(-6)}`,
+      });
     } catch (err: any) {
-      setWalletStep("choose");
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: "Greška", description: err.message, variant: "destructive" });
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -136,89 +136,88 @@ const AdminScan = () => {
       await switchToSepolia();
       const net = await checkNetwork();
       setIsOnSepolia(net.ok);
-      if (net.ok) toast({ title: "✅ Sepolia Testnet Active" });
+      if (net.ok) toast({ title: "Sepolia Testnet aktivan" });
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: "Greška", description: err.message, variant: "destructive" });
     }
   };
 
-  const handleManualAddressSubmit = () => {
-    const addr = manualAddressInput.trim();
-    if (!isValidEthAddress(addr)) {
-      setManualAddressError("Please enter a valid Ethereum address (0x...)");
-      return;
-    }
-    setAdminWalletAddress(addr);
-    setWalletStep("connected");
-    setStep("scanner");
-    toast({ title: "✅ Address Confirmed", description: `${addr.slice(0, 8)}...` });
-  };
-
-  const handleCopyDeepLink = () => {
-    const link = getMetaMaskDeepLink();
-    navigator.clipboard.writeText(link).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
-  // ─── SCANNER ACTIONS ───────────────────────────────────────────────
+  // ─── CAMERA / SCANNER ───────────────────────────────────────────────
 
   const startScanner = async () => {
     try {
+      // Stop any running instance first
       if (scannerRef.current?.isScanning) {
         await scannerRef.current.stop();
       }
+
       const scanner = new Html5Qrcode(SCANNER_ID, { verbose: false });
       scannerRef.current = scanner;
 
       await scanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
+        { facingMode: "environment" }, // Use rear camera
+        { fps: 10, qrbox: { width: 260, height: 260 } },
         (decodedText) => {
+          // QR code successfully decoded
           scanner.stop().catch(() => {});
           setScanning(false);
           handleQRScanned(decodedText);
         },
-        undefined,
+        undefined, // Ignore per-frame errors silently
       );
+
       setScanning(true);
     } catch (err: any) {
       setScanning(false);
       toast({
-        title: "Camera Error",
-        description: "Could not start camera. Check permissions.",
+        title: "Greška kamere",
+        description: "Nije moguće pokrenuti kameru. Proverite dozvole u browseru.",
         variant: "destructive",
       });
     }
   };
 
   const stopScanner = async () => {
-    if (scannerRef.current?.isScanning) await scannerRef.current.stop().catch(() => {});
+    if (scannerRef.current?.isScanning) {
+      await scannerRef.current.stop().catch(() => {});
+    }
     setScanning(false);
   };
 
   const handleQRScanned = (rawText: string) => {
     try {
       const data: QRDonationData = JSON.parse(rawText);
+
+      // Validate that this is a valid EatSmart donation QR
       if (!data.itemName || !data.userWalletAddress || data.action !== "food_donation") {
-        toast({ title: "Invalid QR", description: "Not a valid EatSmart donation code.", variant: "destructive" });
+        toast({
+          title: "Nevažeći QR",
+          description: "Ovo nije validan EatSmart donacioni QR kod.",
+          variant: "destructive",
+        });
         return;
       }
+
       setScannedData(data);
       setStep("confirm");
-      toast({ title: "✅ QR Scanned!", description: `Found: ${data.itemName}` });
+      toast({ title: "QR skeniran!", description: `Pronađeno: ${data.itemName}` });
     } catch {
-      toast({ title: "Read Error", description: "Failed to parse QR code.", variant: "destructive" });
+      toast({
+        title: "Greška čitanja",
+        description: "Nije moguće pročitati QR kod. Pokušajte ponovo.",
+        variant: "destructive",
+      });
     }
   };
 
-  // ─── BLOCKCHAIN CONFIRMATION ─────────────────────────────────────
+  // ─── BLOCKCHAIN TRANSACTION ─────────────────────────────────────────
 
   const handleConfirmOnChain = async () => {
     if (!scannedData || !user) return;
     setStep("processing");
 
+    // This will trigger MetaMask to open for transaction signing.
+    // On mobile (MetaMask in-app browser), MetaMask pops up automatically.
     const result = await recordDonationOnChain(
       scannedData.userWalletAddress,
       scannedData.itemName,
@@ -226,14 +225,17 @@ const AdminScan = () => {
     );
 
     setTxResult(result);
+
     if (!result.success) {
       setStep("error");
       return;
     }
 
-    // Sync with Database after Blockchain confirmation
+    // ── Sync with Supabase database after blockchain confirmation ──
     try {
       const tokens = scannedData.isCritical ? 5 : 3;
+
+      // Find the donor's user account by their wallet address
       const { data: donorProfile } = await supabase
         .from("profiles")
         .select("user_id")
@@ -242,7 +244,7 @@ const AdminScan = () => {
 
       const donorUserId = donorProfile?.user_id;
 
-      // Log donation
+      // Log the donation record
       await supabase.from("donations").insert({
         user_id: donorUserId || user.id,
         item_name: scannedData.itemName,
@@ -250,12 +252,12 @@ const AdminScan = () => {
         unit: "pcs",
       });
 
-      // Remove from Fridge
+      // Remove item from the donor's fridge
       if (scannedData.itemId) {
         await supabase.from("fridge_items").delete().eq("id", scannedData.itemId);
       }
 
-      // Award Tokens in Supabase
+      // Award EatSmart tokens to the donor in Supabase
       if (donorUserId) {
         await supabase.rpc("adjust_user_tokens", {
           _user_id: donorUserId,
@@ -265,146 +267,181 @@ const AdminScan = () => {
       }
     } catch (err: any) {
       console.error("Database sync error:", err.message);
+      // Don't fail the whole flow — blockchain is the source of truth
     }
 
     setStep("success");
   };
 
-  const handleReset = () => {
+  // ─── RESET HELPERS ──────────────────────────────────────────────────
+
+  /** Go back to the scanner (keep wallet connected) */
+  const handleScanAgain = () => {
     setStep("scanner");
     setScannedData(null);
     setTxResult(null);
     setScanning(false);
   };
 
+  /** Full reset — back to wallet connection */
   const handleFullReset = () => {
+    stopScanner();
     setStep("wallet");
-    setWalletStep("choose");
     setAdminWalletAddress("");
+    setIsOnSepolia(false);
     setScannedData(null);
     setTxResult(null);
     setScanning(false);
   };
 
-  if (adminLoading)
+  // ─── LOADING / GUARD RENDERS ────────────────────────────────────────
+
+  if (adminLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="animate-spin" />
       </div>
     );
+  }
+
   if (!isAdmin) return null;
+
+  // ─── MAIN RENDER ────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
       <div className="relative z-10 pb-28 px-5 pt-10 flex flex-col items-center">
-        {/* Header */}
+        {/* ── Header ── */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md mb-6">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center">
               <ShieldCheck className="text-primary" />
             </div>
             <div>
-              <h1 className="font-display text-xl font-bold">Admin — QR Scanner</h1>
-              <p className="text-xs text-muted-foreground">Blockchain Donations • Sepolia Testnet</p>
+              <h1 className="font-display text-xl font-bold">Admin — QR Skener</h1>
+              <p className="text-xs text-muted-foreground">Blockchain donacije • Sepolia Testnet</p>
             </div>
           </div>
 
+          {/* Connected wallet badge */}
           {adminWalletAddress && step !== "wallet" && (
             <div className="mt-3 px-3 py-2 rounded-xl bg-safe/10 border border-safe/30 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-3.5 h-3.5 text-safe" />
-                <span className="text-xs text-safe font-mono">{adminWalletAddress.slice(0, 10)}...</span>
+                <span className="text-xs text-safe font-mono">
+                  {adminWalletAddress.slice(0, 10)}...{adminWalletAddress.slice(-6)}
+                </span>
+                {!isOnSepolia && (
+                  <button onClick={handleSwitchToSepolia} className="text-[10px] text-yellow-400 underline ml-1">
+                    Prebaci na Sepolia
+                  </button>
+                )}
               </div>
-              <button onClick={handleFullReset} className="text-[10px] underline">
-                Change
+              <button onClick={handleFullReset} className="text-[10px] underline text-muted-foreground">
+                Promeni
               </button>
             </div>
           )}
         </motion.div>
 
+        {/* ── Step Content ── */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
           <AnimatePresence mode="wait">
-            {/* STEP 1: WALLET SELECTION */}
+            {/* ══════════════════════════════════════════════════════════
+                STEP 1 — CONNECT WALLET
+            ══════════════════════════════════════════════════════════ */}
             {step === "wallet" && (
               <motion.div
                 key="wallet"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="glass-card rounded-2xl p-6 flex flex-col gap-4"
+                exit={{ opacity: 0 }}
+                className="glass-card rounded-2xl p-6 flex flex-col gap-5"
               >
-                <div className="text-center mb-2">
-                  <Wallet className="w-10 h-10 text-primary mx-auto mb-2" />
-                  <h2 className="text-lg font-bold">Connect Admin Wallet</h2>
-                  <p className="text-xs text-muted-foreground">Required to sign blockchain transactions</p>
+                <div className="text-center">
+                  <Wallet className="w-12 h-12 text-primary mx-auto mb-3" />
+                  <h2 className="text-lg font-bold">Poveži Admin Wallet</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    MetaMask mora biti povezan da bi admin mogao da potpiše blockchain transakciju
+                  </p>
                 </div>
 
                 {canUseMetaMaskDirectly() ? (
+                  /* ── MetaMask extension detected ── */
                   <button
                     onClick={handleConnectMetaMask}
-                    className="w-full flex items-center gap-4 px-4 py-4 rounded-xl bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 text-left"
+                    disabled={isConnecting}
+                    className="w-full flex items-center gap-4 px-5 py-4 rounded-xl bg-orange-500/10 border border-orange-500/40 hover:bg-orange-500/20 active:scale-95 transition-all text-left disabled:opacity-60"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
-                      <Wallet className="text-orange-400" />
+                    <div className="w-11 h-11 rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0">
+                      {isConnecting ? (
+                        <Loader2 className="w-5 h-5 text-orange-400 animate-spin" />
+                      ) : (
+                        <Wallet className="w-5 h-5 text-orange-400" />
+                      )}
                     </div>
-                    <div>
-                      <p className="text-sm font-bold">Connect MetaMask</p>
-                      <p className="text-xs text-muted-foreground">Direct connection • Recommended</p>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold">{isConnecting ? "Povezivanje..." : "Poveži MetaMask"}</p>
+                      <p className="text-xs text-muted-foreground">Direktna konekcija • Preporučeno</p>
                     </div>
-                    <CheckCircle className="text-safe ml-auto shrink-0" />
+                    {!isConnecting && <CheckCircle className="w-5 h-5 text-safe shrink-0" />}
                   </button>
                 ) : (
-                  <div className="w-full rounded-xl bg-orange-500/10 p-4 flex flex-col gap-3">
-                    <p className="text-xs text-muted-foreground">
-                      MetaMask works best inside its in-app browser on mobile:
-                    </p>
+                  /* ── No MetaMask — show mobile deep link ── */
+                  <div className="flex flex-col gap-3">
+                    <div className="px-4 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+                      <p className="text-xs text-yellow-300 leading-relaxed">
+                        MetaMask ekstenzija nije pronađena. Da biste koristili MetaMask na mobilnom uređaju, otvorite
+                        ovu stranicu <strong>unutar MetaMask aplikacije</strong>.
+                      </p>
+                    </div>
+
                     <a
                       href={getMetaMaskDeepLink()}
-                      className="w-full py-2.5 rounded-xl bg-orange-500 text-white text-sm font-bold flex items-center justify-center gap-2"
+                      className="w-full py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-sm font-bold flex items-center justify-center gap-2 transition-all"
                     >
-                      <ExternalLink className="w-4 h-4" /> Open in MetaMask App
+                      <ExternalLink className="w-4 h-4" />
+                      Otvori u MetaMask aplikaciji
                     </a>
+
+                    <p className="text-[11px] text-center text-muted-foreground px-4">
+                      MetaMask će otvoriti ovu stranicu u svom pregledaču gde možete direktno potpisati transakcije.
+                    </p>
                   </div>
                 )}
-
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px bg-border/50" /> <span className="text-xs">or</span>{" "}
-                  <div className="flex-1 h-px bg-border/50" />
-                </div>
-
-                <button
-                  onClick={() => setWalletStep("manual-input")}
-                  className="w-full flex items-center gap-4 px-4 py-4 rounded-xl bg-muted/20 border hover:bg-muted/40 text-left"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-muted/30 flex items-center justify-center">
-                    <PenLine className="text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold">Enter Address Manually</p>
-                  </div>
-                </button>
               </motion.div>
             )}
 
-            {/* STEP 2: SCANNER */}
+            {/* ══════════════════════════════════════════════════════════
+                STEP 2 — QR SCANNER
+            ══════════════════════════════════════════════════════════ */}
             {step === "scanner" && (
               <motion.div
                 key="scanner"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 className="glass-card rounded-2xl p-6 flex flex-col items-center gap-5"
               >
                 <div className="text-center">
                   <QrCode className="w-10 h-10 text-primary mx-auto mb-2" />
-                  <h2 className="text-lg font-bold">Scan Donor QR Code</h2>
-                  <p className="text-sm text-muted-foreground">Ask the donor to show their QR code from the Fridge</p>
+                  <h2 className="text-lg font-bold">Skeniraj QR Kod Donatora</h2>
+                  <p className="text-sm text-muted-foreground">Zamolite donatora da pokaže QR kod iz Fridge sekcije</p>
                 </div>
 
-                <div className="w-full rounded-2xl overflow-hidden bg-black/20 min-h-[280px] relative">
+                {/* Camera viewport */}
+                <div className="w-full rounded-2xl overflow-hidden bg-black/30 min-h-[290px] relative border border-border/30">
                   <div id={SCANNER_ID} className="w-full" />
                   {!scanning && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/40">
-                      <QrCode className="opacity-30" />
-                      <p className="text-sm mt-2">Tap "Start Camera"</p>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 gap-2">
+                      <QrCode className="w-14 h-14 opacity-25" />
+                      <p className="text-sm text-muted-foreground">Pritisnite dugme da pokrenete kameru</p>
+                    </div>
+                  )}
+                  {scanning && (
+                    <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-safe/80 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                      <span className="text-[10px] text-white font-bold">SKENIRANJE</span>
                     </div>
                   )}
                 </div>
@@ -413,63 +450,131 @@ const AdminScan = () => {
                   onClick={scanning ? stopScanner : startScanner}
                   className="w-full"
                   variant={scanning ? "outline" : "default"}
+                  size="lg"
                 >
-                  {scanning ? "Stop Camera" : "Start Camera & Scan"}
+                  {scanning ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Zaustavi kameru
+                    </>
+                  ) : (
+                    <>
+                      <QrCode className="w-4 h-4 mr-2" />
+                      Pokreni kameru i skeniraj
+                    </>
+                  )}
                 </Button>
               </motion.div>
             )}
 
-            {/* STEP 3: CONFIRMATION */}
+            {/* ══════════════════════════════════════════════════════════
+                STEP 3 — CONFIRM DONATION
+            ══════════════════════════════════════════════════════════ */}
             {step === "confirm" && scannedData && (
               <motion.div
                 key="confirm"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
                 className="glass-card rounded-2xl p-6 flex flex-col gap-5"
               >
                 <div className="text-center">
                   <CheckCircle className="w-10 h-10 text-safe mx-auto mb-2" />
-                  <h2 className="text-lg font-bold">QR Scanned!</h2>
-                  <p className="text-sm text-muted-foreground">Review donation details before sending to blockchain</p>
+                  <h2 className="text-lg font-bold">QR Skeniran!</h2>
+                  <p className="text-sm text-muted-foreground">Pregledajte detalje pre slanja na blockchain</p>
                 </div>
 
+                {/* Donation details */}
                 <div className="space-y-2.5">
-                  <div className="flex justify-between py-3 px-4 rounded-xl bg-background/40 border">
-                    <span className="text-sm text-muted-foreground">Item</span>
+                  <div className="flex justify-between items-center py-3 px-4 rounded-xl bg-background/40 border">
+                    <span className="text-sm text-muted-foreground">Namirnica</span>
                     <span className="text-sm font-bold">{scannedData.itemName}</span>
                   </div>
-                  <div className="flex justify-between py-3 px-4 rounded-xl bg-background/40 border">
-                    <span className="text-sm text-muted-foreground">Tokens</span>
+
+                  <div className="flex justify-between items-center py-3 px-4 rounded-xl bg-background/40 border">
+                    <span className="text-sm text-muted-foreground">Tip</span>
+                    <span
+                      className={`text-xs font-bold px-2 py-1 rounded-full ${
+                        scannedData.isCritical ? "bg-danger/20 text-danger" : "bg-safe/20 text-safe"
+                      }`}
+                    >
+                      {scannedData.isCritical ? "⚠️ Kritično" : "✅ Normalno"}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center py-3 px-4 rounded-xl bg-primary/10 border border-primary/20">
+                    <span className="text-sm text-muted-foreground">Tokeni za donatora</span>
                     <span className="text-sm font-bold text-primary">+{scannedData.isCritical ? 5 : 3} 🪙</span>
+                  </div>
+
+                  <div className="py-3 px-4 rounded-xl bg-background/40 border">
+                    <p className="text-xs text-muted-foreground mb-1">Wallet donatora</p>
+                    <p className="text-xs font-mono break-all text-foreground/80">{scannedData.userWalletAddress}</p>
                   </div>
                 </div>
 
-                <Button onClick={handleConfirmOnChain} className="w-full bg-primary">
-                  Confirm on Blockchain
+                {/* MetaMask notice */}
+                <div className="px-3 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                  <p className="text-xs text-orange-300 leading-relaxed">
+                    <strong>MetaMask će se otvoriti</strong> za potpisivanje transakcije. Proverite detalje pre potvrde
+                    u MetaMask-u.
+                  </p>
+                </div>
+
+                <Button onClick={handleConfirmOnChain} className="w-full bg-primary" size="lg">
+                  <Wallet className="w-4 h-4 mr-2" />
+                  Potvrdi na Blockchain-u
                 </Button>
-                <Button onClick={handleReset} variant="outline" className="w-full">
-                  Cancel / Scan Again
+
+                <Button onClick={handleScanAgain} variant="outline" className="w-full">
+                  Otkaži / Skeniraj ponovo
                 </Button>
               </motion.div>
             )}
 
-            {/* STEP 4: SUCCESS */}
+            {/* ══════════════════════════════════════════════════════════
+                STEP 4 — PROCESSING
+            ══════════════════════════════════════════════════════════ */}
+            {step === "processing" && (
+              <motion.div
+                key="processing"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="glass-card rounded-2xl p-8 flex flex-col items-center gap-5"
+              >
+                <Loader2 className="w-14 h-14 text-primary animate-spin" />
+                <h2 className="text-lg font-bold text-center">Obrađivanje na Blockchain-u</h2>
+                <p className="text-sm text-muted-foreground text-center leading-relaxed">
+                  MetaMask obrađuje transakciju... Ovo može potrajati 15–30 sekundi dok se blok ne potvrdi na Sepolia
+                  testnet-u.
+                </p>
+                <div className="w-full py-3 px-4 rounded-xl bg-primary/10 border border-primary/20 text-center">
+                  <p className="text-xs text-muted-foreground">Ne zatvarajte stranicu</p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════
+                STEP 5 — SUCCESS
+            ══════════════════════════════════════════════════════════ */}
             {step === "success" && txResult && (
               <motion.div
                 key="success"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
                 className="glass-card rounded-2xl p-7 flex flex-col items-center gap-5"
               >
                 <CheckCircle className="w-16 h-16 text-safe" />
-                <h2 className="text-xl font-bold">Donation Confirmed! 🎉</h2>
+                <h2 className="text-xl font-bold">Donacija Potvrđena! 🎉</h2>
                 <p className="text-sm text-center text-muted-foreground">
-                  Blockchain has permanently recorded this donation.
+                  Blockchain je trajno zabeležio ovu donaciju hrane.
                 </p>
 
-                <div className="w-full py-4 rounded-xl bg-primary/10 border border-primary/20 text-center">
+                <div className="w-full py-5 rounded-xl bg-primary/10 border border-primary/20 text-center">
                   <p className="text-3xl font-bold text-primary">+{txResult.tokensAwarded} 🪙</p>
-                  <p className="text-xs text-muted-foreground">Awarded to donor wallet</p>
+                  <p className="text-xs text-muted-foreground mt-1">Dodeljeno donor wallet-u</p>
                 </div>
 
                 {txResult.etherscanUrl && (
@@ -477,20 +582,59 @@ const AdminScan = () => {
                     href={txResult.etherscanUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full py-3 rounded-xl bg-blue-500/15 text-blue-400 text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-500/25 transition-colors"
+                    className="w-full py-3 rounded-xl bg-blue-500/15 text-blue-400 text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-500/25 transition-colors border border-blue-500/20"
                   >
-                    <ExternalLink className="w-4 h-4" /> View on Etherscan
+                    <ExternalLink className="w-4 h-4" />
+                    Pogledaj na Etherscan
                   </a>
                 )}
 
-                <Button onClick={handleReset} className="w-full">
-                  Scan Next Donation
+                {txResult.txHash && (
+                  <div className="w-full py-3 px-4 rounded-xl bg-background/40 border">
+                    <p className="text-xs text-muted-foreground mb-1">TX Hash</p>
+                    <p className="text-[11px] font-mono break-all text-foreground/70">{txResult.txHash}</p>
+                  </div>
+                )}
+
+                <Button onClick={handleScanAgain} className="w-full" size="lg">
+                  <QrCode className="w-4 h-4 mr-2" />
+                  Skeniraj sledeću donaciju
+                </Button>
+              </motion.div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════
+                STEP 6 — ERROR
+            ══════════════════════════════════════════════════════════ */}
+            {step === "error" && txResult && (
+              <motion.div
+                key="error"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="glass-card rounded-2xl p-7 flex flex-col items-center gap-5"
+              >
+                <AlertCircle className="w-14 h-14 text-danger" />
+                <h2 className="text-lg font-bold">Transakcija Neuspešna</h2>
+
+                <div className="w-full py-3 px-4 rounded-xl bg-danger/10 border border-danger/20">
+                  <p className="text-sm text-center text-danger/80">{txResult.error}</p>
+                </div>
+
+                <p className="text-xs text-center text-muted-foreground">
+                  Proverite da li imate dovoljno Sepolia ETH za gas naknade, i da je MetaMask na Sepolia testnet-u.
+                </p>
+
+                <Button onClick={handleScanAgain} className="w-full" variant="outline">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Pokušaj ponovo
                 </Button>
               </motion.div>
             )}
           </AnimatePresence>
         </motion.div>
       </div>
+
       <BottomNav />
     </div>
   );
