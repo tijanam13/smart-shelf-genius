@@ -1,11 +1,16 @@
+/**
+ * src/pages/Profile.tsx
+ */
+
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Mail, Save, LogOut, Crown, Loader2, Wallet, CheckCircle, Copy } from "lucide-react";
+import { User, Mail, Save, LogOut, Crown, Loader2, Wallet, CheckCircle, Copy, ShieldCheck } from "lucide-react";
 import PhoneInput from "@/components/PhoneInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePremium } from "@/contexts/PremiumContext";
+import { useAdmin } from "@/contexts/AdminContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import BottomNav from "@/components/BottomNav";
@@ -15,6 +20,7 @@ import { connectMetaMask, isMetaMaskInstalled } from "@/lib/blockchain";
 const Profile = () => {
   const { user, signOut } = useAuth();
   const { isPremium } = usePremium();
+  const { isAdmin } = useAdmin();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -36,6 +42,7 @@ const Profile = () => {
 
     const fetchProfile = async () => {
       const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
+
       if (data) {
         setDisplayName(data.display_name || user.user_metadata?.display_name || "");
         setEmail(data.email || user.email || "");
@@ -45,30 +52,33 @@ const Profile = () => {
         setPhone(user.user_metadata?.phone || "");
       }
     };
+
     fetchProfile();
   }, [user, navigate]);
 
+  // ─── CONNECT METAMASK ─────────────────────────────────────────────
   const handleConnectMetaMask = async () => {
     if (!isMetaMaskInstalled()) {
       toast({
-        title: "MetaMask nije instaliran",
-        description: "Idi na metamask.io i instaliraj ekstenziju.",
+        title: "MetaMask Not Found",
+        description: "Visit metamask.io to install the MetaMask extension.",
         variant: "destructive",
       });
       return;
     }
+
     setConnectingWallet(true);
     try {
       const address = await connectMetaMask();
       if (address) {
         setWalletAddress(address);
         toast({
-          title: "✅ MetaMask povezan!",
-          description: `Adresa: ${address.slice(0, 8)}...${address.slice(-6)}`,
+          title: "✅ MetaMask Connected!",
+          description: `Address: ${address.slice(0, 8)}...${address.slice(-6)}`,
         });
       }
     } catch (err: any) {
-      toast({ title: "Greška", description: err.message, variant: "destructive" });
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
       setConnectingWallet(false);
     }
@@ -77,10 +87,11 @@ const Profile = () => {
   const handleCopyAddress = () => {
     if (walletAddress) {
       navigator.clipboard.writeText(walletAddress);
-      toast({ title: "Kopirano!", description: "Wallet adresa kopirana u clipboard." });
+      toast({ title: "Copied!", description: "Wallet address copied to clipboard." });
     }
   };
 
+  // ─── SAVE PROFILE ─────────────────────────────────────────────────
   const handleSave = async () => {
     if (!user) return;
     setLoading(true);
@@ -144,18 +155,28 @@ const Profile = () => {
           className="mt-8 w-full max-w-lg"
         >
           <div className="glass-card rounded-2xl p-6 space-y-5">
+            {/* Avatar + Name */}
             <div className="flex items-center gap-4 mb-2">
               <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center">
                 <span className="font-display text-2xl font-bold text-primary">
                   {displayName ? displayName[0].toUpperCase() : "U"}
                 </span>
               </div>
-              <div>
-                <h2 className="font-display text-lg font-bold text-foreground">{displayName || "User"}</h2>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="font-display text-lg font-bold text-foreground">{displayName || "User"}</h2>
+                  {isAdmin && (
+                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-semibold">
+                      <ShieldCheck className="w-3 h-3" />
+                      Admin
+                    </span>
+                  )}
+                </div>
                 <p className="text-muted-foreground text-sm">{email}</p>
               </div>
             </div>
 
+            {/* Form Fields */}
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">Full Name</label>
@@ -189,7 +210,7 @@ const Profile = () => {
                   <Wallet className="w-3.5 h-3.5" />
                   MetaMask Wallet Address
                   <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full ml-1">
-                    za blockchain donacije
+                    for blockchain donations
                   </span>
                 </label>
 
@@ -206,7 +227,7 @@ const Profile = () => {
                     <button
                       onClick={handleCopyAddress}
                       className="p-2 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors"
-                      title="Kopiraj adresu"
+                      title="Copy address"
                     >
                       <Copy className="w-4 h-4 text-muted-foreground" />
                     </button>
@@ -214,7 +235,7 @@ const Profile = () => {
                       onClick={() => setWalletAddress("")}
                       className="text-[11px] text-muted-foreground hover:text-urgent px-2 transition-colors"
                     >
-                      Ukloni
+                      Remove
                     </button>
                   </div>
                 ) : (
@@ -230,17 +251,17 @@ const Profile = () => {
                       ) : (
                         <Wallet className="w-4 h-4 mr-2" />
                       )}
-                      {connectingWallet ? "Povezivanje..." : "Poveži MetaMask"}
+                      {connectingWallet ? "Connecting..." : "Connect MetaMask"}
                     </Button>
                     <p className="text-[11px] text-muted-foreground text-center">
-                      Potrebno za potvrdu donacija na blockchain-u (Sepolia testnet)
+                      Required so donation tokens can be sent to your wallet (Sepolia testnet)
                     </p>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Premium sekcija */}
+            {/* Premium Section */}
             <div className="pt-2 border-t border-border/50">
               {isPremium ? (
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30">
@@ -279,6 +300,7 @@ const Profile = () => {
               )}
             </div>
 
+            {/* Save / Sign Out */}
             <div className="flex gap-3 pt-2">
               <Button onClick={handleSave} disabled={loading} className="flex-1">
                 <Save className="w-4 h-4 mr-2" />
