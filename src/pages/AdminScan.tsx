@@ -252,11 +252,22 @@ const AdminScan = () => {
       }
     }
 
-    // Step 2: Send blockchain transaction (MetaMask confirm popup appears automatically)
+    // Step 2: Resolve donor wallet address
+    const donorWallet = scannedData.userWalletAddress?.trim() || manualDonorWallet.trim();
+    if (!isValidEthAddress(donorWallet)) {
+      toast({
+        title: "Invalid Wallet Address",
+        description: "The donor wallet address is missing or invalid. Please enter it manually.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Step 3: Send blockchain transaction (MetaMask confirm popup appears automatically)
     setStep("processing");
 
     const result = await recordDonationOnChain(
-      scannedData.userWalletAddress,
+      donorWallet,
       scannedData.itemName,
       scannedData.isCritical,
     );
