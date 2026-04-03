@@ -121,17 +121,37 @@ const ShoppingList = () => {
     }
   };
 
+  // Per-suggestion expanded state for store/qty picker
+  const [expandedSuggestion, setExpandedSuggestion] = useState<string | null>(null);
+  const [suggestionStore, setSuggestionStore] = useState("🛒 Maxi");
+  const [suggestionQty, setSuggestionQty] = useState("1");
+  const [suggestionUnit, setSuggestionUnit] = useState("pcs");
+  const [suggestionCustomStore, setSuggestionCustomStore] = useState("");
+  const [suggestionShowCustomStore, setSuggestionShowCustomStore] = useState(false);
+
+  const openSuggestionPicker = (name: string) => {
+    setExpandedSuggestion(name);
+    setSuggestionStore("🛒 Maxi");
+    setSuggestionQty("1");
+    setSuggestionUnit("pcs");
+    setSuggestionCustomStore("");
+    setSuggestionShowCustomStore(false);
+  };
+
   const addSuggestionToList = (suggestion: Suggestion) => {
     if (!currentList) {
       toast({ title: "Error", description: "Select a list first", variant: "destructive" });
       return;
     }
+    const store = suggestionShowCustomStore && suggestionCustomStore.trim()
+      ? suggestionCustomStore.trim()
+      : suggestionStore;
     const newItem: ShoppingItem = {
       id: Date.now().toString(),
       name: suggestion.name,
-      quantity: 1,
-      unit: "pcs",
-      store: "",
+      quantity: parseFloat(suggestionQty) || 1,
+      unit: suggestionUnit,
+      store: store,
       checked: false,
     };
     const updatedLists = lists.map((list) =>
@@ -139,7 +159,8 @@ const ShoppingList = () => {
     );
     setLists(updatedLists);
     setSuggestions(prev => prev.filter(s => s.name !== suggestion.name));
-    toast({ title: "Added!", description: `"${suggestion.name}" added to list` });
+    setExpandedSuggestion(null);
+    toast({ title: "Added!", description: `"${suggestion.name}" added to ${store}` });
   };
 
   // Load from LocalStorage
@@ -257,7 +278,7 @@ const ShoppingList = () => {
   const groupedByStore = currentList
     ? currentList.items.reduce(
         (acc, item) => {
-          const store = item.store || "📋 Bez radnje";
+          const store = item.store || "📋 No Store";
           if (!acc[store]) acc[store] = [];
           acc[store].push(item);
           return acc;
@@ -585,7 +606,7 @@ const ShoppingList = () => {
                             {currentList && (
                               <motion.button
                                 whileTap={{ scale: 0.9 }}
-                                onClick={() => addSuggestionToList(s)}
+                                onClick={() => openSuggestionPicker(s.name)}
                                 className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors flex-shrink-0"
                                 title="Add to list"
                               >
@@ -593,6 +614,101 @@ const ShoppingList = () => {
                               </motion.button>
                             )}
                           </motion.div>
+
+                          {/* Expanded store/qty picker for this suggestion */}
+                          <AnimatePresence>
+                            {expandedSuggestion === s.name && (
+                              <motion.div
+                                key="picker"
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="mt-2 mx-1 p-3 rounded-xl bg-background/40 border border-primary/20 space-y-3">
+                                  {/* Quantity + Unit */}
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Quantity</label>
+                                      <input
+                                        type="number"
+                                        value={suggestionQty}
+                                        onChange={(e) => setSuggestionQty(e.target.value)}
+                                        min="0.1"
+                                        step="0.1"
+                                        className="w-full glass-card rounded-lg px-2 py-1.5 text-sm border border-primary/20 focus:border-primary/60 outline-none transition-colors text-foreground"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Unit</label>
+                                      <select
+                                        value={suggestionUnit}
+                                        onChange={(e) => setSuggestionUnit(e.target.value)}
+                                        className="w-full glass-card rounded-lg px-2 py-1.5 text-sm border border-primary/20 focus:border-primary/60 outline-none transition-colors text-foreground"
+                                      >
+                                        {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                                      </select>
+                                    </div>
+                                  </div>
+
+                                  {/* Store picker */}
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Store</label>
+                                    {!suggestionShowCustomStore ? (
+                                      <div className="space-y-1.5">
+                                        <select
+                                          value={suggestionStore}
+                                          onChange={(e) => setSuggestionStore(e.target.value)}
+                                          className="w-full glass-card rounded-lg px-2 py-1.5 text-sm border border-primary/20 focus:border-primary/60 outline-none transition-colors text-foreground"
+                                        >
+                                          {STORES.map((store) => <option key={store} value={store}>{store}</option>)}
+                                        </select>
+                                        <button
+                                          onClick={() => setSuggestionShowCustomStore(true)}
+                                          className="w-full text-[10px] text-primary hover:text-primary/80 transition-colors font-medium py-0.5"
+                                        >
+                                          + Custom Store
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-1.5">
+                                        <input
+                                          type="text"
+                                          value={suggestionCustomStore}
+                                          onChange={(e) => setSuggestionCustomStore(e.target.value)}
+                                          placeholder="Store name..."
+                                          className="w-full glass-card rounded-lg px-2 py-1.5 text-sm border border-primary/20 focus:border-primary/60 outline-none transition-colors text-foreground placeholder:text-muted-foreground"
+                                          autoFocus
+                                        />
+                                        <button
+                                          onClick={() => { setSuggestionShowCustomStore(false); setSuggestionCustomStore(""); }}
+                                          className="w-full text-[10px] text-muted-foreground hover:text-foreground transition-colors font-medium py-0.5"
+                                        >
+                                          Use Store List
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Confirm / Cancel */}
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => addSuggestionToList(s)}
+                                      className="flex-1 bg-primary text-primary-foreground rounded-lg py-2 text-xs font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-1"
+                                    >
+                                      <Plus className="w-3 h-3" /> Add to List
+                                    </button>
+                                    <button
+                                      onClick={() => setExpandedSuggestion(null)}
+                                      className="flex-1 glass-card rounded-lg py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         ))}
                       </div>
                     ) : (
