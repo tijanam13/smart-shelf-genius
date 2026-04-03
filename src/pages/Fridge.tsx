@@ -402,9 +402,11 @@ const FridgePage = () => {
     if (!selectedItem) return;
 
     const prevStatus = selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status;
+    const locationChanged = prevStatus !== editLocation;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // --- Compute expiry and remaining days for the destination location ---
     let newExpiryDate = editExpiryDate ? format(editExpiryDate, "yyyy-MM-dd") : null;
     let newRemainingFridgeDays: number | null = selectedItem.remaining_fridge_days ?? null;
 
@@ -430,22 +432,66 @@ const FridgePage = () => {
       newRemainingFridgeDays = null;
     }
 
-    const { error } = await supabase
-      .from("fridge_items")
-      .update({
+    const isPartial = locationChanged && editQuantity < selectedItem.quantity;
+
+    if (isPartial) {
+      // --- PARTIAL TRANSFER ---
+      // 1. Reduce original item quantity, keep its location and expiry unchanged
+      const remainingQty = +(selectedItem.quantity - editQuantity).toFixed(1);
+      const { error: reduceError } = await supabase
+        .from("fridge_items")
+        .update({ quantity: remainingQty })
+        .eq("id", selectedItem.id);
+
+      if (reduceError) {
+        toast({ title: "Error", description: reduceError.message, variant: "destructive" });
+        return;
+      }
+
+      // 2. Insert new item in destination location with transferred quantity
+      const { error: insertError } = await supabase.from("fridge_items").insert({
+        user_id: selectedItem.user_id,
+        name: selectedItem.name,
+        category: selectedItem.category,
+        unit: selectedItem.unit,
+        gtin_code: selectedItem.gtin_code,
+        quantity: editQuantity,
         status: editLocation,
         expiry_date: newExpiryDate,
-        quantity: editQuantity,
         remaining_fridge_days: newRemainingFridgeDays,
-      })
-      .eq("id", selectedItem.id);
+      });
 
-    if (!error) {
-      queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
-      toast({ title: "Updated!", description: "Item updated successfully" });
-      setEditingItem(null);
-      setSelectedItem(null);
+      if (insertError) {
+        toast({ title: "Error", description: insertError.message, variant: "destructive" });
+        return;
+      }
+    } else {
+      // --- FULL UPDATE (same location or full quantity transfer) ---
+      const { error } = await supabase
+        .from("fridge_items")
+        .update({
+          status: editLocation,
+          expiry_date: newExpiryDate,
+          quantity: editQuantity,
+          remaining_fridge_days: newRemainingFridgeDays,
+        })
+        .eq("id", selectedItem.id);
+
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
     }
+
+    queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
+    toast({
+      title: "Updated!",
+      description: isPartial
+        ? `${editQuantity} ${selectedItem.unit} moved to ${editLocation === "freezer" ? "freezer" : "fridge"}. Remaining stays in place.`
+        : "Item updated successfully.",
+    });
+    setEditingItem(null);
+    setSelectedItem(null);
   };
 
   const handleUseRecipe = async (recipe: Recipe) => {
@@ -978,16 +1024,17 @@ const FridgePage = () => {
                               {(selectedItem.status === "fridge" || selectedItem.status === "in_fridge") &&
                                 editLocation === "freezer" && (
                                   <p className="text-[11px] text-blue-400/80 bg-blue-500/8 px-2.5 py-1.5 rounded-lg">
-                                    ❄️ Rok u zamrzivaču će biti automatski postavljen. Preostali frižider rok se pamti.
+                                    ❄️ Expiry date will be set automatically based on freezer shelf life. Remaining
+                                    fridge days are saved.
                                   </p>
                                 )}
                               {selectedItem.status === "freezer" && editLocation === "fridge" && (
                                 <p className="text-[11px] text-mint/80 bg-mint/8 px-2.5 py-1.5 rounded-lg">
-                                  🧊 Rok će biti vraćen na preostalih{" "}
+                                  🧊 Expiry will be restored to{" "}
                                   <span className="font-semibold">
-                                    {selectedItem.remaining_fridge_days ?? 1} dan(a)
+                                    {selectedItem.remaining_fridge_days ?? 1} day(s)
                                   </span>{" "}
-                                  od danas.
+                                  from today.
                                 </p>
                               )}
                             </div>
@@ -1005,33 +1052,62 @@ const FridgePage = () => {
                                 <input
                                   type="number"
                                   min={1}
+                                  max={selectedItem.quantity}
                                   value={editQuantity}
                                   onChange={(e) => {
                                     const v = parseInt(e.target.value);
-                                    setEditQuantity(isNaN(v) || v < 1 ? 1 : v);
+                                    setEditQuantity(isNaN(v) || v < 1 ? 1 : Math.min(v, selectedItem.quantity));
                                   }}
                                   className="w-20 text-center text-lg font-bold text-foreground bg-background/50 border border-border/50 rounded-lg h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                                 <span className="text-sm text-muted-foreground">{selectedItem.unit}</span>
                                 <motion.button
                                   whileTap={{ scale: 0.9 }}
-                                  onClick={() => setEditQuantity((q) => q + 1)}
+                                  onClick={() => setEditQuantity((q) => Math.min(q + 1, selectedItem.quantity))}
                                   className="w-10 h-10 rounded-lg bg-muted/40 hover:bg-muted/60 flex items-center justify-center transition-colors"
                                 >
                                   <Plus className="w-4 h-4 text-foreground" />
                                 </motion.button>
                               </div>
+                              {/* Partial transfer hint */}
+                              {editLocation !==
+                                (selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status) &&
+                                editQuantity < selectedItem.quantity && (
+                                  <p className="text-[11px] text-warning/80 bg-warning/8 px-2.5 py-1.5 rounded-lg">
+                                    ⚠️ Only {editQuantity} {selectedItem.unit} will be moved. The remaining{" "}
+                                    {+(selectedItem.quantity - editQuantity).toFixed(1)} {selectedItem.unit} will stay
+                                    in the {selectedItem.status === "freezer" ? "freezer" : "fridge"}.
+                                  </p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
-                              <label className="text-sm text-muted-foreground font-semibold">📅 Expiry Date</label>
+                              <label
+                                className={`text-sm font-semibold ${
+                                  editLocation !==
+                                  (selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status)
+                                    ? "text-muted-foreground/40"
+                                    : "text-muted-foreground"
+                                }`}
+                              >
+                                📅 Expiry Date
+                                {editLocation !==
+                                  (selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status) && " (auto)"}
+                              </label>
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <Button
                                     variant="outline"
+                                    disabled={
+                                      editLocation !==
+                                      (selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status)
+                                    }
                                     className={cn(
                                       "w-full justify-start text-left text-sm font-normal bg-background/50 border-border/50 rounded-lg h-10 px-3",
                                       !editExpiryDate && "text-muted-foreground",
+                                      editLocation !==
+                                        (selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status) &&
+                                        "opacity-40 cursor-not-allowed",
                                     )}
                                   >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
