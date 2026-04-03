@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   connectMetaMask,
   isMetaMaskAvailable,
@@ -43,6 +44,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
   userWalletAddress,
 }) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [confirmed, setConfirmed] = useState(false);
   const [tokensEarned, setTokensEarned] = useState(0);
   const [localWallet, setLocalWallet] = useState(userWalletAddress || "");
@@ -93,6 +95,8 @@ const DonationModal: React.FC<DonationModalProps> = ({
       if (alreadyConfirmed) return;
       alreadyConfirmed = true;
       if (pollInterval) clearInterval(pollInterval);
+      // Immediately refresh fridge list so item disappears/updates
+      queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
       setScannedByAdmin(true);
       setTokensEarned(bonusTokens);
       setConfirmed(true);
