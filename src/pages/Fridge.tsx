@@ -332,16 +332,19 @@ const FridgePage = () => {
     moveToExpired();
   }, [dbItems, user]);
 
-  useEffect(() => {
+  // Fetch wallet address on mount and when modal closes (in case it was updated)
+  const fetchWallet = async () => {
     if (!user) return;
-    supabase
+    const { data } = await supabase
       .from("profiles")
       .select("wallet_address")
       .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        setUserWalletAddress((data as any)?.wallet_address || "");
-      });
+      .maybeSingle();
+    setUserWalletAddress((data as any)?.wallet_address || "");
+  };
+
+  useEffect(() => {
+    fetchWallet();
   }, [user]);
 
   const showTooltip = (item: (typeof enrichedItems)[0]) => {
@@ -1507,6 +1510,7 @@ const FridgePage = () => {
             setShowDonationModal(false);
             setDonationItem(null);
             queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
+            fetchWallet();
           }}
           itemId={(donationItem || selectedItem)?.id || ""}
           itemName={(donationItem || selectedItem)?.name || ""}

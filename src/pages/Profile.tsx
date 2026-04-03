@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Mail, Save, LogOut, Crown, Loader2, Wallet, CheckCircle, Copy, ShieldCheck } from "lucide-react";
+import { User, Mail, Save, LogOut, Crown, Loader2, Wallet, CheckCircle, Copy, ShieldCheck, Unlink } from "lucide-react";
 import PhoneInput from "@/components/PhoneInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
-import { connectMetaMask, isMetaMaskAvailable } from "@/lib/blockchain";
+import { connectMetaMask, isMetaMaskAvailable, isMobileDevice, getMetaMaskDeepLinkForCurrentPage } from "@/lib/blockchain";
 
 const Profile = () => {
   const { user, signOut } = useAuth();
@@ -58,6 +58,12 @@ const Profile = () => {
 
   // ─── CONNECT METAMASK ─────────────────────────────────────────────
   const handleConnectMetaMask = async () => {
+    // Mobile without MetaMask browser → open MetaMask app
+    if (!isMetaMaskAvailable() && isMobileDevice()) {
+      window.location.href = getMetaMaskDeepLinkForCurrentPage();
+      return;
+    }
+
     if (!isMetaMaskAvailable()) {
       toast({
         title: "MetaMask Not Found",
@@ -72,6 +78,8 @@ const Profile = () => {
       const address = await connectMetaMask();
       if (address) {
         setWalletAddress(address);
+        // Save immediately to DB
+        await supabase.rpc("update_own_profile", { _wallet_address: address });
         toast({
           title: "✅ MetaMask Connected!",
           description: `Address: ${address.slice(0, 8)}...${address.slice(-6)}`,
@@ -82,6 +90,13 @@ const Profile = () => {
     } finally {
       setConnectingWallet(false);
     }
+  };
+
+  // ─── DISCONNECT WALLET ────────────────────────────────────────────
+  const handleDisconnectWallet = async () => {
+    setWalletAddress("");
+    await supabase.rpc("update_own_profile", { _wallet_address: "" });
+    toast({ title: "Wallet Disconnected", description: "You can reconnect anytime." });
   };
 
   const handleCopyAddress = () => {
@@ -212,27 +227,30 @@ const Profile = () => {
                 </label>
 
                 {walletAddress ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 relative">
-                      <CheckCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-safe" />
-                      <Input
-                        value={`${walletAddress.slice(0, 10)}...${walletAddress.slice(-8)}`}
-                        disabled
-                        className="pl-10 bg-safe/5 border-safe/30 text-safe font-mono text-sm"
-                      />
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 relative">
+                        <CheckCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-safe" />
+                        <Input
+                          value={`${walletAddress.slice(0, 10)}...${walletAddress.slice(-8)}`}
+                          disabled
+                          className="pl-10 bg-safe/5 border-safe/30 text-safe font-mono text-sm"
+                        />
+                      </div>
+                      <button
+                        onClick={handleCopyAddress}
+                        className="p-2 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors"
+                        title="Copy address"
+                      >
+                        <Copy className="w-4 h-4 text-muted-foreground" />
+                      </button>
                     </div>
                     <button
-                      onClick={handleCopyAddress}
-                      className="p-2 rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors"
-                      title="Copy address"
+                      onClick={handleDisconnectWallet}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
                     >
-                      <Copy className="w-4 h-4 text-muted-foreground" />
-                    </button>
-                    <button
-                      onClick={() => setWalletAddress("")}
-                      className="text-[11px] text-muted-foreground hover:text-urgent px-2 transition-colors"
-                    >
-                      Remove
+                      <Unlink className="w-3.5 h-3.5" />
+                      Disconnect Wallet
                     </button>
                   </div>
                 ) : (
