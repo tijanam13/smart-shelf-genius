@@ -90,12 +90,14 @@ const DonationModal: React.FC<DonationModalProps> = ({
 
     let pollInterval: ReturnType<typeof setInterval> | null = null;
     let alreadyConfirmed = false;
+    // Pamtimo originalnu količinu kada se modal otvori
+    let originalQuantity: number | null = null;
 
     const triggerConfirmed = () => {
       if (alreadyConfirmed) return;
       alreadyConfirmed = true;
       if (pollInterval) clearInterval(pollInterval);
-      // Immediately refresh fridge list so item disappears/updates
+      // Odmah osveži fridge listu
       queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
       setScannedByAdmin(true);
       setTokensEarned(bonusTokens);
@@ -107,11 +109,10 @@ const DonationModal: React.FC<DonationModalProps> = ({
       }, 4500);
     };
 
-    // Realtime listener — bez row-level filtera jer DELETE filter nije pouzdan
+    // Realtime listener
     const channel = supabase
       .channel(`donation-watch-${itemId}-${Date.now()}`)
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "fridge_items" }, (payload: any) => {
-        // Provjeri da li je obrisan baš naš item
         const deletedId = payload.old?.id;
         if (deletedId === itemId) triggerConfirmed();
       })
@@ -123,20 +124,30 @@ const DonationModal: React.FC<DonationModalProps> = ({
       })
       .subscribe();
 
-    // Polling fallback — svake 3s provjeri da li item još postoji
+    // Polling fallback — svake 2.5s provjeri da li item još postoji ili mu se smanjila količina
     pollInterval = setInterval(async () => {
       if (alreadyConfirmed) return;
       const { data, error } = await supabase.from("fridge_items").select("id, quantity").eq("id", itemId).maybeSingle();
 
       if (error) return;
 
-      // Item obrisan (puna donacija) ili količina smanjena (parcijalna donacija)
       if (!data) {
+        // Item obrisan — puna donacija
         triggerConfirmed();
-      } else if (data.quantity < maxQty) {
+        return;
+      }
+
+      // Zapamti originalnu količinu pri prvom pollu
+      if (originalQuantity === null) {
+        originalQuantity = data.quantity;
+        return; // Čekaj sledeći poll da vidiš promenu
+      }
+
+      // Ako se količina smanjila u odnosu na originalnu — parcijalna donacija
+      if (data.quantity < originalQuantity) {
         triggerConfirmed();
       }
-    }, 3000);
+    }, 2500);
 
     return () => {
       supabase.removeChannel(channel);
