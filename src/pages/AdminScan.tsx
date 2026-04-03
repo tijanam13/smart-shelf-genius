@@ -81,16 +81,20 @@ const AdminScan = () => {
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
-  // ── Security: Redirect non-admins (only after loading completes and user is confirmed NOT admin) ──
+  // ── Security: Redirect non-admins ──
+  const redirectHandled = useRef(false);
   useEffect(() => {
-    if (adminLoading) return; // Wait until admin check is done
+    // Wait until both auth and admin checks are fully complete
+    if (adminLoading) return;
+    if (redirectHandled.current) return;
+    redirectHandled.current = true;
+
     if (!isAdmin) {
-      // Only show toast + redirect for non-admin users (not for admins landing here)
       toast({ title: "Access Denied", description: "This page is for administrators only.", variant: "destructive" });
       navigate("/");
     }
-    // If isAdmin === true, do nothing — user is on the right page
-  }, [adminLoading]); // Only run when loading changes to false (not on every isAdmin change)
+    // isAdmin === true → korisnik je admin, ostaje na stranici
+  }, [isAdmin, adminLoading]);
 
   // ── Camera cleanup on unmount ──
   useEffect(() => {
@@ -248,46 +252,24 @@ const AdminScan = () => {
       return;
     }
 
-    // Sync with Supabase after blockchain confirmation
+    // Sync with Supabase after blockchain confirmation.
+    // Uses SECURITY DEFINER RPC so admin can modify any user's fridge items (bypasses RLS).
     try {
-      const tokens = scannedData.isCritical ? 5 : 3;
+      const donated = scannedData.donationQuantity ?? scannedData.totalQuantity ?? 1;
+      const total = scannedData.totalQuantity ?? donated;
 
-      const { data: donorProfile } = await supabase
-        .from("profiles")
-        .select("user_id")
-        .eq("wallet_address", donorWallet)
-        .maybeSingle();
-
-      const donorUserId = donorProfile?.user_id;
-
-      // Log donation
-      await supabase.from("donations").insert({
-        user_id: donorUserId || user.id,
-        item_name: scannedData.itemName,
-        quantity: scannedData.donationQuantity ?? 1,
-        unit: scannedData.unit ?? "pcs",
+      const { error: rpcError } = await supabase.rpc("admin_confirm_donation", {
+        _item_id: scannedData.itemId || null,
+        _item_name: scannedData.itemName,
+        _donor_wallet: donorWallet,
+        _donated_qty: donated,
+        _total_qty: total,
+        _unit: scannedData.unit ?? "pcs",
+        _is_critical: scannedData.isCritical,
       });
 
-      // Partial or full donation — update fridge accordingly
-      if (scannedData.itemId) {
-        const donated = scannedData.donationQuantity ?? scannedData.totalQuantity ?? null;
-        const total = scannedData.totalQuantity ?? null;
-
-        if (donated !== null && total !== null && donated < total) {
-          const remaining = Math.max(0, parseFloat((total - donated).toFixed(2)));
-          await supabase.from("fridge_items").update({ quantity: remaining }).eq("id", scannedData.itemId);
-        } else {
-          await supabase.from("fridge_items").delete().eq("id", scannedData.itemId);
-        }
-      }
-
-      // Award tokens to donor
-      if (donorUserId) {
-        await supabase.rpc("adjust_user_tokens", {
-          _user_id: donorUserId,
-          _token_delta: tokens,
-          _point_delta: tokens,
-        });
+      if (rpcError) {
+        console.error("admin_confirm_donation RPC error:", rpcError.message);
       }
     } catch (err: any) {
       console.error("Database sync error:", err.message);
