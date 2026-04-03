@@ -19,10 +19,39 @@ const Login = () => {
   const { toast } = useToast();
   const { refresh: refreshPremium } = usePremium();
 
-  // Ako je admin već ulogovan (npr. otvorio /login unutar MetaMask browsera),
-  // odmah ga preusmeri na /admin-scan bez da mora ponovo da unosi lozinku
+  useEffect(() => {
+    const handlePremiumReturn = async () => {
+      if (searchParams.get("premium") !== "success") return;
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return; // nije ulogovan, čekamo da se uloguje ručno
+
+      // Korisnik je već ulogovan — odmah aktiviraj premium
+      try {
+        const { data } = await supabase.functions.invoke("verify-premium");
+        if (data?.isPremium) {
+          await refreshPremium();
+          toast({
+            title: "🎉 Welcome to Premium!",
+            description: "Ads have been removed from your account.",
+          });
+        }
+      } catch (e) {
+        console.error("Premium verification failed:", e);
+      }
+
+      navigate("/profile", { replace: true });
+    };
+
+    handlePremiumReturn();
+  }, []);
+
+  // Ako je admin već ulogovan, odmah ga preusmeri
   useEffect(() => {
     const checkExistingSession = async () => {
+      if (searchParams.get("premium") === "success") return; // već obrađeno gore
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -61,7 +90,8 @@ const Login = () => {
       }
     }
 
-    // If coming from Stripe payment, verify and activate premium
+    // ✅ ISPRAVKA: Korisnik se tek ulogovao, a dolazi sa Stripe-a —
+    // aktiviraj premium i preusmeri na /profile (ne na /)
     if (searchParams.get("premium") === "success") {
       try {
         const { data } = await supabase.functions.invoke("verify-premium");
@@ -72,10 +102,12 @@ const Login = () => {
       } catch (e) {
         console.error("Premium verification failed:", e);
       }
-    } else {
-      await refreshPremium();
+      setLoading(false);
+      navigate("/profile");
+      return;
     }
 
+    await refreshPremium();
     setLoading(false);
     navigate("/");
   };
