@@ -285,3 +285,13 @@ export async function getBlockchainTokenBalance(address: string): Promise<number
     return 0;
   }
 }
+
+// ─── BACKWARDS COMPATIBILITY ─────────────────────────────────────────────────
+
+/**
+ * Alias for getMetaMaskDeepLink — kept for backwards compatibility
+ * with components that import this name.
+ */
+export function getMetaMaskDeepLinkForCurrentPage(): string {
+  return getMetaMaskDeepLink();
+}
