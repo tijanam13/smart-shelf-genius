@@ -46,10 +46,6 @@ type PageStep = "scanner" | "confirm" | "processing" | "success" | "error";
 
 const SCANNER_ID = "admin-qr-reader";
 
-// Keys for persisting state across MetaMask redirect
-const SS_SCANNED_DATA = "adminScan_scannedData";
-const SS_STEP = "adminScan_step";
-
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 
 const AdminScan = () => {
@@ -87,18 +83,8 @@ const AdminScan = () => {
   const [isOnSepolia, setIsOnSepolia] = useState(false);
 
   // ── Page flow ──
-  const [step, setStep] = useState<PageStep>(() => {
-    const saved = sessionStorage.getItem(SS_STEP);
-    return (saved as PageStep) || "scanner";
-  });
-  const [scannedData, setScannedData] = useState<QRDonationData | null>(() => {
-    try {
-      const saved = sessionStorage.getItem(SS_SCANNED_DATA);
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [step, setStep] = useState<PageStep>("scanner");
+  const [scannedData, setScannedData] = useState<QRDonationData | null>(null);
   const [txResult, setTxResult] = useState<DonationResult | null>(null);
   const [scanning, setScanning] = useState(false);
   const [manualDonorWallet, setManualDonorWallet] = useState("");
@@ -154,19 +140,6 @@ const AdminScan = () => {
       toast({ title: "Network Error", description: err.message, variant: "destructive" });
     }
   };
-
-  // ── Auto-connect wallet when returning from MetaMask redirect ──
-  useEffect(() => {
-    const restoredStep = sessionStorage.getItem(SS_STEP);
-    if (restoredStep === "confirm" && isMetaMaskAvailable() && !adminWalletAddress) {
-      connectMetaMask()
-        .then((address) => {
-          setAdminWalletAddress(address);
-          checkNetwork().then((net) => setIsOnSepolia(net.ok));
-        })
-        .catch(() => {});
-    }
-  }, []);
 
   // ─── SCANNER ─────────────────────────────────────────────────────────
 
@@ -234,8 +207,6 @@ const AdminScan = () => {
         });
         return;
       }
-      sessionStorage.setItem(SS_SCANNED_DATA, JSON.stringify(data));
-      sessionStorage.setItem(SS_STEP, "confirm");
       setScannedData(data);
       setStep("confirm");
       toast({ title: "✅ QR Scanned!", description: `Found: ${data.itemName}` });
@@ -253,14 +224,13 @@ const AdminScan = () => {
   const handleConfirmOnChain = async () => {
     if (!scannedData || !user) return;
 
-    // Mobile without MetaMask browser → open MetaMask app
+    // Mobile without MetaMask in-app browser
     if (!isMetaMaskAvailable() && isMobileDevice()) {
-      // Persist state so it survives the redirect back from MetaMask
-      if (scannedData) {
-        sessionStorage.setItem(SS_SCANNED_DATA, JSON.stringify(scannedData));
-        sessionStorage.setItem(SS_STEP, "confirm");
-      }
-      window.location.href = getMetaMaskDeepLinkForCurrentPage();
+      toast({
+        title: "Open in MetaMask Browser",
+        description: "Copy this page URL and open it inside the MetaMask app browser to sign transactions.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -354,6 +324,7 @@ const AdminScan = () => {
       }
     } catch (err: any) {
       console.error("Database sync error:", err.message);
+      // Don't fail — blockchain is source of truth
     }
 
     setStep("success");
@@ -361,10 +332,9 @@ const AdminScan = () => {
 
   // ─── RESET ───────────────────────────────────────────────────────────
 
+  // Scan again: keep wallet connected, go back to scanner
   const handleScanAgain = async () => {
     await destroyScanner(); // clean up before re-rendering scanner DOM element
-    sessionStorage.removeItem(SS_SCANNED_DATA);
-    sessionStorage.removeItem(SS_STEP);
     setStep("scanner");
     setScannedData(null);
     setTxResult(null);
@@ -442,10 +412,10 @@ const AdminScan = () => {
                 {isConnectingWallet ? "Connecting..." : "Connect MetaMask to sign transactions"}
               </button>
             ) : onMobile ? (
-              <a href={getMetaMaskDeepLinkForCurrentPage()} className="flex items-center gap-2 text-xs text-orange-400">
-                <ExternalLink className="w-3.5 h-3.5" />
-                Sign in via MetaMask browser
-              </a>
+              <span className="text-xs text-orange-400 flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5" />
+                Open this page inside MetaMask app browser
+              </span>
             ) : (
               <span className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <AlertCircle className="w-3.5 h-3.5 text-yellow-500" />
@@ -596,11 +566,32 @@ const AdminScan = () => {
                       <strong>MetaMask will open</strong> to sign the transaction. Review the details before confirming.
                     </p>
                   ) : onMobile ? (
-                    <p className="text-xs text-orange-300 leading-relaxed">
-                      You are using a regular browser. To sign the transaction you need to
-                      <strong> sign in inside the MetaMask app browser</strong>. Tap the button below — MetaMask will
-                      open the login page, and after signing in you can confirm the transaction there.
-                    </p>
+                    <div className="space-y-2">
+                      <p className="text-xs text-orange-300 leading-relaxed font-semibold">
+                        ⚠️ MetaMask browser required
+                      </p>
+                      <p className="text-xs text-orange-200 leading-relaxed">
+                        You must open this admin page <strong>inside the MetaMask app browser</strong>:
+                      </p>
+                      <ol className="text-[11px] text-orange-200 space-y-1 list-decimal list-inside">
+                        <li>Open MetaMask app on your phone</li>
+                        <li>Tap the browser icon (🌐) at the bottom</li>
+                        <li>Paste or type this page's URL</li>
+                        <li>Log in and scan the QR code again</li>
+                      </ol>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard
+                            ?.writeText(window.location.href)
+                            .then(() =>
+                              toast({ title: "✅ URL Copied!", description: "Paste it in the MetaMask browser." }),
+                            );
+                        }}
+                        className="w-full mt-1 py-1.5 rounded-lg bg-orange-500/20 text-orange-300 text-xs font-bold hover:bg-orange-500/30 transition-colors"
+                      >
+                        📋 Copy Page URL
+                      </button>
+                    </div>
                   ) : (
                     <p className="text-xs text-yellow-300 leading-relaxed">
                       <strong>MetaMask is not installed.</strong> Please install the MetaMask extension at metamask.io.
@@ -610,11 +601,7 @@ const AdminScan = () => {
 
                 <Button onClick={handleConfirmOnChain} className="w-full bg-primary" size="lg">
                   <Wallet className="w-4 h-4 mr-2" />
-                  {onMobile && !metamaskAvailable
-                    ? "Open MetaMask & Sign"
-                    : adminWalletAddress
-                      ? "Confirm on Blockchain"
-                      : "Connect Wallet & Confirm"}
+                  {adminWalletAddress ? "Confirm on Blockchain" : "Connect Wallet & Confirm"}
                 </Button>
 
                 <Button onClick={handleScanAgain} variant="outline" className="w-full">
