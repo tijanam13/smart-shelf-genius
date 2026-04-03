@@ -6,12 +6,14 @@ interface PremiumContextType {
   isPremium: boolean;
   loading: boolean;
   refresh: () => Promise<void>;
+  setPremium: (value: boolean) => void;
 }
 
 const PremiumContext = createContext<PremiumContextType>({
   isPremium: false,
   loading: true,
   refresh: async () => {},
+  setPremium: () => {},
 });
 
 export const usePremium = () => useContext(PremiumContext);
@@ -19,11 +21,9 @@ export const usePremium = () => useContext(PremiumContext);
 export const PremiumProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
   const [isPremium, setIsPremium] = useState(false);
-  // Počinjemo sa loading=true i ne menjamo dok auth ne završi
   const [loading, setLoading] = useState(true);
 
   const fetchPremium = async () => {
-    // Ako auth još učitava, ne radimo ništa — čekamo
     if (authLoading) return;
 
     if (!user) {
@@ -39,8 +39,6 @@ export const PremiumProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    // Resetuj loading na true svaki put kad se auth menja
-    // da bismo izbegli trenutak kada isPremium=false ali auth još nije gotov
     if (authLoading) {
       setLoading(true);
       return;
@@ -49,6 +47,8 @@ export const PremiumProvider = ({ children }: { children: ReactNode }) => {
   }, [user, authLoading]);
 
   return (
-    <PremiumContext.Provider value={{ isPremium, loading, refresh: fetchPremium }}>{children}</PremiumContext.Provider>
+    <PremiumContext.Provider value={{ isPremium, loading, refresh: fetchPremium, setPremium: setIsPremium }}>
+      {children}
+    </PremiumContext.Provider>
   );
 };
