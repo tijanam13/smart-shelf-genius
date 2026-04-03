@@ -448,7 +448,9 @@ const FridgePage = () => {
         return;
       }
 
-      // 2. Insert new item in destination location with transferred quantity
+      // 2. Insert new item in destination location with transferred quantity.
+      // Uses selectedItem.user_id so the item stays attributed to the original owner.
+      // RLS allows this via the family members insert policy.
       const { error: insertError } = await supabase.from("fridge_items").insert({
         user_id: selectedItem.user_id,
         name: selectedItem.name,
