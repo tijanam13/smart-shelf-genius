@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePremium } from "@/contexts/PremiumContext";
-import { useAdmin } from "@/contexts/AdminContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -17,36 +16,9 @@ const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { refresh: refreshPremium, setPremium } = usePremium();
+  const { refresh: refreshPremium } = usePremium();
 
-  useEffect(() => {
-    const handlePremiumReturn = async () => {
-      if (searchParams.get("premium") !== "success") return;
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      try {
-        const { data } = await supabase.functions.invoke("verify-premium");
-        if (data?.isPremium) {
-          setPremium(true);
-          toast({
-            title: "🎉 Welcome to Premium!",
-            description: "Ads have been removed from your account.",
-          });
-        }
-      } catch (e) {
-        console.error("Premium verification failed:", e);
-      }
-
-      navigate("/profile", { replace: true });
-    };
-
-    handlePremiumReturn();
-  }, []);
-
+  // Ako je admin već ulogovan, odmah ga preusmeri
   useEffect(() => {
     const checkExistingSession = async () => {
       if (searchParams.get("premium") === "success") return;
@@ -60,6 +32,28 @@ const Login = () => {
       }
     };
     checkExistingSession();
+  }, []);
+
+  // Ako korisnik dolazi sa Stripe-a i već je ulogovan, aktiviraj premium odmah
+  useEffect(() => {
+    const handlePremiumReturn = async () => {
+      if (searchParams.get("premium") !== "success") return;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      try {
+        await supabase.functions.invoke("verify-premium");
+        await new Promise((r) => setTimeout(r, 1000)); // čekaj da DB upiše
+        await refreshPremium();
+        toast({ title: "🎉 Welcome to Premium!", description: "Ads have been removed from your account." });
+      } catch (e) {
+        console.error("Premium verification failed:", e);
+      }
+      navigate("/profile", { replace: true });
+    };
+    handlePremiumReturn();
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -89,11 +83,10 @@ const Login = () => {
 
     if (searchParams.get("premium") === "success") {
       try {
-        const { data } = await supabase.functions.invoke("verify-premium");
-        if (data?.isPremium) {
-          setPremium(true);
-          toast({ title: "🎉 Welcome to Premium!", description: "Ads have been removed from your account." });
-        }
+        await supabase.functions.invoke("verify-premium");
+        await new Promise((r) => setTimeout(r, 1000)); // čekaj da DB upiše
+        await refreshPremium();
+        toast({ title: "🎉 Welcome to Premium!", description: "Ads have been removed from your account." });
       } catch (e) {
         console.error("Premium verification failed:", e);
       }
