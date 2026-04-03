@@ -3,7 +3,6 @@
  *
  * Shown to the regular user (donor) when they click "Donate" on a fridge item.
  * Displays a QR code that the admin scans to confirm the donation.
- * Auto-closes when the item is deleted from fridge (after admin blockchain confirmation).
  */
 
 import React, { useEffect, useState } from "react";
@@ -14,7 +13,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { connectMetaMask, isMetaMaskAvailable, isMobileDevice, getMetaMaskDeepLinkForCurrentPage } from "@/lib/blockchain";
+import {
+  connectMetaMask,
+  isMetaMaskAvailable,
+  isMobileDevice,
+  getMetaMaskDeepLinkForCurrentPage,
+} from "@/lib/blockchain";
 
 interface DonationModalProps {
   isOpen: boolean;
@@ -44,10 +48,19 @@ const DonationModal: React.FC<DonationModalProps> = ({
   const [connectingWallet, setConnectingWallet] = useState(false);
   const [scannedByAdmin, setScannedByAdmin] = useState(false);
 
+  const [donationQty, setDonationQty] = useState(quantity ?? 1);
+
+  // Clamp donationQty when quantity prop changes
+  useEffect(() => {
+    setDonationQty(Math.min(donationQty, quantity ?? 1));
+  }, [quantity]);
+
   const isCritical = daysLeft <= 5 && daysLeft >= 0;
   const isExpired = daysLeft < 0;
   const bonusTokens = isCritical ? 5 : 3;
   const hasValidWallet = /^0x[a-fA-F0-9]{40}$/.test(localWallet);
+  const maxQty = quantity ?? 1;
+  const isDonatingAll = donationQty >= maxQty;
 
   // Sync wallet from prop
   useEffect(() => {
@@ -60,6 +73,9 @@ const DonationModal: React.FC<DonationModalProps> = ({
     itemName,
     isCritical,
     bonusTokens,
+    donationQuantity: donationQty,
+    totalQuantity: maxQty,
+    unit: unit ?? "pcs",
     userWalletAddress: localWallet,
     action: "food_donation",
     network: "sepolia",
@@ -80,16 +96,40 @@ const DonationModal: React.FC<DonationModalProps> = ({
           filter: `id=eq.${itemId}`,
         },
         () => {
-          // Item was deleted by admin after blockchain confirmation
+          // Full donation confirmed — item deleted
           setScannedByAdmin(true);
           setTokensEarned(bonusTokens);
           setConfirmed(true);
-          // Auto-close after showing success
           setTimeout(() => {
             setConfirmed(false);
             setScannedByAdmin(false);
             onClose();
-          }, 4000);
+          }, 4500);
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "fridge_items",
+          filter: `id=eq.${itemId}`,
+        },
+        (payload: any) => {
+          // Partial donation confirmed — quantity was reduced
+          const newQty = payload.new?.quantity;
+          const oldQty = payload.old?.quantity ?? maxQty;
+          const donated = Math.max(0, oldQty - (newQty ?? 0));
+          if (donated > 0) {
+            setScannedByAdmin(true);
+            setTokensEarned(bonusTokens);
+            setConfirmed(true);
+            setTimeout(() => {
+              setConfirmed(false);
+              setScannedByAdmin(false);
+              onClose();
+            }, 4500);
+          }
         },
       )
       .subscribe();
@@ -112,11 +152,9 @@ const DonationModal: React.FC<DonationModalProps> = ({
       const address = await connectMetaMask();
       if (address) {
         setLocalWallet(address);
-        // Save to profile
         await supabase.rpc("update_own_profile", { _wallet_address: address });
       }
     } catch {
-      // ignore
     } finally {
       setConnectingWallet(false);
     }
@@ -178,12 +216,16 @@ const DonationModal: React.FC<DonationModalProps> = ({
                 <p className="text-sm text-muted-foreground mt-2 text-center">
                   The admin verified your donation on the blockchain.
                 </p>
-                <div className="mt-3 px-4 py-2 rounded-xl bg-primary/10 border border-primary/20">
-                  <p className="text-lg font-bold text-primary">+{tokensEarned} Tokens Earned!</p>
-                  <p className="text-xs text-muted-foreground text-center">+{tokensEarned} Points added</p>
+                <div className="mt-3 px-4 py-2 rounded-xl bg-primary/10 border border-primary/20 text-center">
+                  <p className="text-lg font-bold text-primary">+{tokensEarned} 🪙 Tokens Earned!</p>
+                  <p className="text-xs text-muted-foreground">+{tokensEarned} Points added to your profile</p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-3">
-                  {itemName} has been removed from your fridge.
+                <p className="text-xs text-muted-foreground mt-3 text-center">
+                  Your donation of{" "}
+                  <strong>
+                    {donationQty} {unit ?? "pcs"}
+                  </strong>{" "}
+                  of {itemName} has been recorded on the blockchain.
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-2">Closing automatically...</p>
               </motion.div>
@@ -265,9 +307,7 @@ const DonationModal: React.FC<DonationModalProps> = ({
                             </a>
                           ) : null}
 
-                          <p className="text-[10px] text-muted-foreground">
-                            Or enter your wallet address manually:
-                          </p>
+                          <p className="text-[10px] text-muted-foreground">Or enter your wallet address manually:</p>
                           <Input
                             value={localWallet}
                             onChange={(e) => setLocalWallet(e.target.value)}
@@ -278,7 +318,53 @@ const DonationModal: React.FC<DonationModalProps> = ({
                       )}
                     </div>
 
+                    {/* Donation Quantity Selector */}
+                    <div className="w-full mb-4 px-4 py-3 rounded-xl border border-border/30 bg-background/30">
+                      <p className="text-xs font-semibold text-foreground mb-3">📦 How much do you want to donate?</p>
+                      <div className="flex items-center justify-between gap-3">
+                        <button
+                          onClick={() =>
+                            setDonationQty((q) =>
+                              Math.max(1, parseFloat((q - (unit === "kg" || unit === "l" ? 0.1 : 1)).toFixed(1))),
+                            )
+                          }
+                          disabled={donationQty <= 1}
+                          className="w-9 h-9 rounded-lg bg-muted/50 hover:bg-muted/70 flex items-center justify-center transition-colors disabled:opacity-30 text-foreground font-bold text-lg"
+                        >
+                          −
+                        </button>
+                        <div className="flex-1 text-center">
+                          <span className="text-xl font-bold text-foreground">{donationQty}</span>
+                          <span className="text-sm text-muted-foreground ml-1">{unit ?? "pcs"}</span>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            of {maxQty} {unit ?? "pcs"} total
+                          </p>
+                        </div>
+                        <button
+                          onClick={() =>
+                            setDonationQty((q) =>
+                              Math.min(maxQty, parseFloat((q + (unit === "kg" || unit === "l" ? 0.1 : 1)).toFixed(1))),
+                            )
+                          }
+                          disabled={donationQty >= maxQty}
+                          className="w-9 h-9 rounded-lg bg-muted/50 hover:bg-muted/70 flex items-center justify-center transition-colors disabled:opacity-30 text-foreground font-bold text-lg"
+                        >
+                          +
+                        </button>
+                      </div>
+                      {isDonatingAll ? (
+                        <p className="text-[10px] text-warning text-center mt-2">
+                          ⚠️ Donating all — item will be removed from fridge
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-safe text-center mt-2">
+                          ✅ Remaining {(maxQty - donationQty).toFixed(1)} {unit ?? "pcs"} will stay in fridge
+                        </p>
+                      )}
+                    </div>
+
                     {/* Instructions */}
+
                     <div className="w-full mb-4 px-4 py-3 rounded-xl bg-primary/5 border border-primary/20 text-center">
                       <QrCode className="w-5 h-5 text-primary mx-auto mb-1" />
                       <p className="text-xs text-muted-foreground">
@@ -289,7 +375,9 @@ const DonationModal: React.FC<DonationModalProps> = ({
                     </div>
 
                     {/* QR Code */}
-                    <div className={`bg-white rounded-2xl p-4 mb-4 shadow-sm ${!hasValidWallet ? "opacity-40 pointer-events-none" : ""}`}>
+                    <div
+                      className={`bg-white rounded-2xl p-4 mb-4 shadow-sm ${!hasValidWallet ? "opacity-40 pointer-events-none" : ""}`}
+                    >
                       <QRCodeSVG
                         value={qrData}
                         size={190}
@@ -327,7 +415,9 @@ const DonationModal: React.FC<DonationModalProps> = ({
                 {isExpired && (
                   <>
                     <div className="mb-6 text-center px-4 py-3 rounded-lg bg-urgent/10 border border-urgent/20">
-                      <p className="text-sm text-urgent">This item has expired and should be removed from your fridge.</p>
+                      <p className="text-sm text-urgent">
+                        This item has expired and should be removed from your fridge.
+                      </p>
                     </div>
                     <motion.button
                       whileTap={{ scale: 0.95 }}
