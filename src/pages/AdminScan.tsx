@@ -81,13 +81,16 @@ const AdminScan = () => {
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
-  // ── Security: Redirect non-admins ──
+  // ── Security: Redirect non-admins (only after loading completes and user is confirmed NOT admin) ──
   useEffect(() => {
-    if (!adminLoading && !isAdmin) {
+    if (adminLoading) return; // Wait until admin check is done
+    if (!isAdmin) {
+      // Only show toast + redirect for non-admin users (not for admins landing here)
       toast({ title: "Access Denied", description: "This page is for administrators only.", variant: "destructive" });
       navigate("/");
     }
-  }, [isAdmin, adminLoading]);
+    // If isAdmin === true, do nothing — user is on the right page
+  }, [adminLoading]); // Only run when loading changes to false (not on every isAdmin change)
 
   // ── Camera cleanup on unmount ──
   useEffect(() => {
