@@ -70,7 +70,11 @@ const ReceiptScanner = () => {
         setItems(normalized);
         toast({ title: "Receipt scanned!", description: `${normalized.length} food items detected.` });
       } else {
-        toast({ title: "No food items found", description: "Try a clearer photo of the receipt.", variant: "destructive" });
+        toast({
+          title: "No food items found",
+          description: "Try a clearer photo of the receipt.",
+          variant: "destructive",
+        });
       }
     } catch (err: any) {
       console.error("Scan error:", err);
@@ -101,7 +105,7 @@ const ReceiptScanner = () => {
         const step = item.unit === "g" || item.unit === "ml" ? 100 : item.unit === "kg" || item.unit === "l" ? 0.1 : 1;
         const newQty = Math.max(step, +(item.quantity + delta * step).toFixed(1));
         return { ...item, quantity: newQty };
-      })
+      }),
     );
   };
 
@@ -110,20 +114,50 @@ const ReceiptScanner = () => {
     setSaving(true);
 
     try {
-      const rows = items.map((item) => ({
-        user_id: user.id,
-        name: item.name,
-        category: item.category,
-        expiry_date: item.expiry_date,
-        quantity: item.quantity,
-        unit: item.unit,
-        status: "in_fridge",
-      }));
+      let merged = 0;
+      let added = 0;
 
-      const { error } = await supabase.from("fridge_items").insert(rows);
-      if (error) throw error;
+      for (const item of items) {
+        // Check if an identical item already exists (same name, location, expiry)
+        const { data: existing } = await supabase
+          .from("fridge_items")
+          .select("id, quantity")
+          .eq("user_id", user.id)
+          .eq("name", item.name)
+          .eq("status", "in_fridge")
+          .eq("expiry_date", item.expiry_date)
+          .maybeSingle();
 
-      toast({ title: "Added to fridge!", description: `${items.length} items saved successfully.` });
+        if (existing) {
+          // Merge: add scanned quantity to the existing row
+          const newQty = +(existing.quantity + item.quantity).toFixed(1);
+          const { error } = await supabase.from("fridge_items").update({ quantity: newQty }).eq("id", existing.id);
+          if (error) throw error;
+          merged++;
+        } else {
+          // No match — insert as new row
+          const { error } = await supabase.from("fridge_items").insert({
+            user_id: user.id,
+            name: item.name,
+            category: item.category,
+            expiry_date: item.expiry_date,
+            quantity: item.quantity,
+            unit: item.unit,
+            status: "in_fridge",
+          });
+          if (error) throw error;
+          added++;
+        }
+      }
+
+      const desc = [
+        added > 0 && `${added} new item${added > 1 ? "s" : ""} added`,
+        merged > 0 && `${merged} existing item${merged > 1 ? "s" : ""} updated`,
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      toast({ title: "Added to fridge!", description: desc + "." });
       setItems([]);
       setPreviewUrl(null);
       navigate("/fridge");
@@ -142,11 +176,16 @@ const ReceiptScanner = () => {
       <div className="relative z-10 pb-28 pt-10 px-4 lg:px-8 xl:px-16">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <button onClick={() => navigate("/")} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3">
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3"
+          >
             <ArrowLeft className="w-4 h-4" /> Back to Home
           </button>
           <h1 className="font-display text-2xl font-bold text-foreground text-center">Receipt Scanner</h1>
-          <p className="text-xs text-muted-foreground mt-0.5 text-center">Scan your grocery receipt to auto-add items</p>
+          <p className="text-xs text-muted-foreground mt-0.5 text-center">
+            Scan your grocery receipt to auto-add items
+          </p>
         </motion.div>
 
         <div className="max-w-lg mx-auto">
@@ -154,7 +193,14 @@ const ReceiptScanner = () => {
           {items.length === 0 && !processing && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 mb-6">
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleFileChange}
+              />
 
               <motion.button
                 whileHover={{ scale: 1.02 }}
@@ -186,9 +232,17 @@ const ReceiptScanner = () => {
 
           {/* Processing spinner */}
           {processing && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card rounded-2xl p-8 text-center mb-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="glass-card rounded-2xl p-8 text-center mb-6"
+            >
               {previewUrl && (
-                <img src={previewUrl} alt="Receipt" className="w-32 h-40 object-cover rounded-xl mx-auto mb-4 opacity-60" />
+                <img
+                  src={previewUrl}
+                  alt="Receipt"
+                  className="w-32 h-40 object-cover rounded-xl mx-auto mb-4 opacity-60"
+                />
               )}
               <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-3" />
               <p className="text-sm font-medium text-foreground">Analyzing receipt with AI...</p>
@@ -204,7 +258,10 @@ const ReceiptScanner = () => {
                   {items.length} Items Detected
                 </p>
                 <button
-                  onClick={() => { setItems([]); setPreviewUrl(null); }}
+                  onClick={() => {
+                    setItems([]);
+                    setPreviewUrl(null);
+                  }}
                   className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Scan another
@@ -237,7 +294,9 @@ const ReceiptScanner = () => {
                               className="flex-1 h-8 rounded-md border border-input bg-muted/50 px-2 text-sm text-foreground"
                             >
                               {categories.map((c) => (
-                                <option key={c} value={c}>{c}</option>
+                                <option key={c} value={c}>
+                                  {c}
+                                </option>
                               ))}
                             </select>
                             <Input
@@ -247,7 +306,12 @@ const ReceiptScanner = () => {
                               className="flex-1 h-8 text-sm bg-muted/50"
                             />
                           </div>
-                          <Button size="sm" variant="ghost" className="h-7 text-xs text-primary" onClick={() => setEditingIdx(null)}>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs text-primary"
+                            onClick={() => setEditingIdx(null)}
+                          >
                             Done
                           </Button>
                         </div>
@@ -256,9 +320,13 @@ const ReceiptScanner = () => {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground">{item.name}</p>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">{item.category}</span>
+                              <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+                                {item.category}
+                              </span>
                               <span className="text-[10px] text-muted-foreground">Expires: {item.expiry_date}</span>
-                              <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">{item.unit}</span>
+                              <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+                                {item.unit}
+                              </span>
                             </div>
                           </div>
                           {/* Quantity controls */}
@@ -269,7 +337,9 @@ const ReceiptScanner = () => {
                             >
                               <Minus className="w-3 h-3" />
                             </button>
-                            <span className="text-xs font-medium text-foreground w-12 text-center">{Number.isInteger(item.quantity) ? item.quantity : item.quantity.toFixed(1)} {item.unit}</span>
+                            <span className="text-xs font-medium text-foreground w-12 text-center">
+                              {Number.isInteger(item.quantity) ? item.quantity : item.quantity.toFixed(1)} {item.unit}
+                            </span>
                             <button
                               onClick={() => adjustQuantity(idx, 1)}
                               className="w-6 h-6 rounded-md bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
@@ -277,10 +347,16 @@ const ReceiptScanner = () => {
                               <Plus className="w-3 h-3" />
                             </button>
                           </div>
-                          <button onClick={() => setEditingIdx(idx)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                          <button
+                            onClick={() => setEditingIdx(idx)}
+                            className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                          >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={() => deleteItem(idx)} className="p-1.5 text-muted-foreground hover:text-urgent transition-colors">
+                          <button
+                            onClick={() => deleteItem(idx)}
+                            className="p-1.5 text-muted-foreground hover:text-urgent transition-colors"
+                          >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -299,9 +375,13 @@ const ReceiptScanner = () => {
                 className="w-full bg-primary text-primary-foreground rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {saving ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                  </>
                 ) : (
-                  <><Check className="w-4 h-4" /> Confirm & Add to Fridge ({items.length})</>
+                  <>
+                    <Check className="w-4 h-4" /> Confirm & Add to Fridge ({items.length})
+                  </>
                 )}
               </motion.button>
             </motion.div>
