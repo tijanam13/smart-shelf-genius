@@ -413,8 +413,10 @@ const FridgePage = () => {
     // Fridge → Freezer: save remaining fridge days, set new expiry based on freezer shelf life
     if (prevStatus === "fridge" && editLocation === "freezer") {
       if (editExpiryDate) {
-        const msLeft = editExpiryDate.getTime() - today.getTime();
-        newRemainingFridgeDays = Math.max(1, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+        // Compare dates as local date strings to avoid timezone offset issues
+        const expiryDateOnly = new Date(format(editExpiryDate, "yyyy-MM-dd") + "T00:00:00");
+        const msLeft = expiryDateOnly.getTime() - today.getTime();
+        newRemainingFridgeDays = Math.max(1, Math.round(msLeft / (1000 * 60 * 60 * 24)));
       } else {
         newRemainingFridgeDays = 1;
       }
