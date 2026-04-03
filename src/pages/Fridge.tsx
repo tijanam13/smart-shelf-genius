@@ -269,6 +269,7 @@ const FridgePage = () => {
   const [fridgeExpanded, setFridgeExpanded] = useState(false);
   const [freezerExpanded, setFreezerExpanded] = useState(false);
   const [selectedExpiredItem, setSelectedExpiredItem] = useState<any | null>(null);
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -310,9 +311,9 @@ const FridgePage = () => {
   });
 
   // Expired items = expiry_date is yesterday or earlier (days < 0)
-  const expiredItems = allEnrichedItems.filter((i) => i.expiry_date && i.days < 0);
+  const expiredItems = allEnrichedItems.filter((i) => i.expiry_date && i.days < 0 && !deletedIds.has(i.id));
   // Active items = not expired
-  const enrichedItems = allEnrichedItems.filter((i) => !i.expiry_date || i.days >= 0);
+  const enrichedItems = allEnrichedItems.filter((i) => (!i.expiry_date || i.days >= 0) && !deletedIds.has(i.id));
 
   const urgentItems = enrichedItems.filter((i) => i.urgency === "urgent");
   const warnItems = enrichedItems.filter((i) => i.urgency === "warning");
@@ -348,12 +349,21 @@ const FridgePage = () => {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("fridge_items").delete().eq("id", id).eq("user_id", user!.id);
+    // Optimistic: immediately hide the item from UI
+    setDeletedIds((prev) => new Set(prev).add(id));
+    const { error } = await supabase.from("fridge_items").delete().eq("id", id);
     if (error) {
+      console.error("Delete error:", error);
+      // Rollback optimistic update
+      setDeletedIds((prev) => {
+        const s = new Set(prev);
+        s.delete(id);
+        return s;
+      });
       toast({ title: "Error", description: "Could not delete item: " + error.message, variant: "destructive" });
       return;
     }
-    queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
+    await queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
     toast({ title: "Item removed" });
   };
 
@@ -783,13 +793,20 @@ const FridgePage = () => {
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={async () => {
+                          const count = expiredItems.length;
                           const ids = expiredItems.map((item) => item.id);
-                          const { error } = await supabase
-                            .from("fridge_items")
-                            .delete()
-                            .in("id", ids)
-                            .eq("user_id", user!.id);
+                          // Optimistic: immediately hide all expired items
+                          setDeletedIds((prev) => new Set([...prev, ...ids]));
+                          setSelectedExpiredItem(null);
+                          const { error } = await supabase.from("fridge_items").delete().in("id", ids);
                           if (error) {
+                            console.error("Empty trash error:", error);
+                            // Rollback
+                            setDeletedIds((prev) => {
+                              const s = new Set(prev);
+                              ids.forEach((id) => s.delete(id));
+                              return s;
+                            });
                             toast({
                               title: "Error",
                               description: "Could not empty trash: " + error.message,
@@ -797,11 +814,10 @@ const FridgePage = () => {
                             });
                             return;
                           }
-                          setSelectedExpiredItem(null);
-                          queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
+                          await queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
                           toast({
                             title: "Trash emptied",
-                            description: `${expiredItems.length} expired items removed.`,
+                            description: `${count} expired items removed.`,
                           });
                         }}
                         className="w-full py-2 rounded-lg bg-urgent/15 text-urgent text-[11px] font-semibold hover:bg-urgent/25 transition-colors flex items-center justify-center gap-1.5"
@@ -1587,22 +1603,9 @@ const FridgePage = () => {
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={async () => {
-                      const { error } = await supabase
-                        .from("fridge_items")
-                        .delete()
-                        .eq("id", selectedExpiredItem.id)
-                        .eq("user_id", user!.id);
-                      if (error) {
-                        toast({
-                          title: "Error",
-                          description: "Could not delete: " + error.message,
-                          variant: "destructive",
-                        });
-                        return;
-                      }
+                      const itemId = selectedExpiredItem.id;
                       setSelectedExpiredItem(null);
-                      queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
-                      toast({ title: "Deleted", description: `${selectedExpiredItem.name} removed.` });
+                      await handleDelete(itemId);
                     }}
                     className="flex-1 py-3 rounded-lg bg-urgent/20 text-urgent text-sm font-bold hover:bg-urgent/30 transition-colors flex items-center justify-center gap-2"
                   >
