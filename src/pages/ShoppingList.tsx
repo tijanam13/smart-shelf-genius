@@ -257,8 +257,9 @@ const ShoppingList = () => {
   const groupedByStore = currentList
     ? currentList.items.reduce(
         (acc, item) => {
-          if (!acc[item.store]) acc[item.store] = [];
-          acc[item.store].push(item);
+          const store = item.store || "📋 Bez radnje";
+          if (!acc[store]) acc[store] = [];
+          acc[store].push(item);
           return acc;
         },
         {} as Record<string, ShoppingItem[]>
