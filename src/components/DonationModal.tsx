@@ -3,6 +3,7 @@
  *
  * Shown to the regular user (donor) when they click "Donate" on a fridge item.
  * Displays a QR code that the admin scans to confirm the donation.
+ * Auto-closes when the item is deleted from fridge (after admin blockchain confirmation).
  */
 
 import React, { useEffect, useState } from "react";
@@ -81,63 +82,63 @@ const DonationModal: React.FC<DonationModalProps> = ({
     network: "sepolia",
   });
 
-  // Listen for realtime DELETE on this fridge item — means admin confirmed donation
+  // Prati donaciju: realtime + polling fallback
   useEffect(() => {
     if (!isOpen || !itemId) return;
 
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+    let alreadyConfirmed = false;
+
+    const triggerConfirmed = () => {
+      if (alreadyConfirmed) return;
+      alreadyConfirmed = true;
+      if (pollInterval) clearInterval(pollInterval);
+      setScannedByAdmin(true);
+      setTokensEarned(bonusTokens);
+      setConfirmed(true);
+      setTimeout(() => {
+        setConfirmed(false);
+        setScannedByAdmin(false);
+        onClose();
+      }, 4500);
+    };
+
+    // Realtime listener — bez row-level filtera jer DELETE filter nije pouzdan
     const channel = supabase
-      .channel(`donation-watch-${itemId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "fridge_items",
-          filter: `id=eq.${itemId}`,
-        },
-        () => {
-          // Full donation confirmed — item deleted
-          setScannedByAdmin(true);
-          setTokensEarned(bonusTokens);
-          setConfirmed(true);
-          setTimeout(() => {
-            setConfirmed(false);
-            setScannedByAdmin(false);
-            onClose();
-          }, 4500);
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "fridge_items",
-          filter: `id=eq.${itemId}`,
-        },
-        (payload: any) => {
-          // Partial donation confirmed — quantity was reduced
-          const newQty = payload.new?.quantity;
-          const oldQty = payload.old?.quantity ?? maxQty;
-          const donated = Math.max(0, oldQty - (newQty ?? 0));
-          if (donated > 0) {
-            setScannedByAdmin(true);
-            setTokensEarned(bonusTokens);
-            setConfirmed(true);
-            setTimeout(() => {
-              setConfirmed(false);
-              setScannedByAdmin(false);
-              onClose();
-            }, 4500);
-          }
-        },
-      )
+      .channel(`donation-watch-${itemId}-${Date.now()}`)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "fridge_items" }, (payload: any) => {
+        // Provjeri da li je obrisan baš naš item
+        const deletedId = payload.old?.id;
+        if (deletedId === itemId) triggerConfirmed();
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "fridge_items" }, (payload: any) => {
+        if (payload.new?.id !== itemId) return;
+        const newQty = payload.new?.quantity ?? 0;
+        const oldQty = payload.old?.quantity ?? maxQty;
+        if (newQty < oldQty) triggerConfirmed();
+      })
       .subscribe();
+
+    // Polling fallback — svake 3s provjeri da li item još postoji
+    pollInterval = setInterval(async () => {
+      if (alreadyConfirmed) return;
+      const { data, error } = await supabase.from("fridge_items").select("id, quantity").eq("id", itemId).maybeSingle();
+
+      if (error) return;
+
+      // Item obrisan (puna donacija) ili količina smanjena (parcijalna donacija)
+      if (!data) {
+        triggerConfirmed();
+      } else if (data.quantity < maxQty) {
+        triggerConfirmed();
+      }
+    }, 3000);
 
     return () => {
       supabase.removeChannel(channel);
+      if (pollInterval) clearInterval(pollInterval);
     };
-  }, [isOpen, itemId, onClose, bonusTokens]);
+  }, [isOpen, itemId, bonusTokens, maxQty]);
 
   // Connect MetaMask from within the modal
   const handleConnectWallet = async () => {
@@ -152,9 +153,11 @@ const DonationModal: React.FC<DonationModalProps> = ({
       const address = await connectMetaMask();
       if (address) {
         setLocalWallet(address);
+        // Save to profile
         await supabase.rpc("update_own_profile", { _wallet_address: address });
       }
     } catch {
+      // ignore
     } finally {
       setConnectingWallet(false);
     }
