@@ -17,7 +17,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { refresh: refreshPremium } = usePremium();
+  const { refresh: refreshPremium, setPremium } = usePremium();
 
   useEffect(() => {
     const handlePremiumReturn = async () => {
@@ -31,7 +31,7 @@ const Login = () => {
       try {
         const { data } = await supabase.functions.invoke("verify-premium");
         if (data?.isPremium) {
-          await refreshPremium();
+          setPremium(true);
           toast({
             title: "🎉 Welcome to Premium!",
             description: "Ads have been removed from your account.",
@@ -49,7 +49,7 @@ const Login = () => {
 
   useEffect(() => {
     const checkExistingSession = async () => {
-      if (searchParams.get("premium") === "success") return; // već obrađeno gore
+      if (searchParams.get("premium") === "success") return;
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -91,7 +91,7 @@ const Login = () => {
       try {
         const { data } = await supabase.functions.invoke("verify-premium");
         if (data?.isPremium) {
-          await refreshPremium();
+          setPremium(true);
           toast({ title: "🎉 Welcome to Premium!", description: "Ads have been removed from your account." });
         }
       } catch (e) {
