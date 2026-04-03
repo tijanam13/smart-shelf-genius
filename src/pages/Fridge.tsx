@@ -1706,6 +1706,7 @@ const FridgePage = () => {
           onClose={() => {
             setShowDonationModal(false);
             setDonationItem(null);
+            setSelectedItem(null);
             queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
             fetchWallet();
           }}
