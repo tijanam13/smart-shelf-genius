@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Camera, QrCode, Plus, ShoppingCart } from "lucide-react";
+import { Camera, Plus, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const actions = [

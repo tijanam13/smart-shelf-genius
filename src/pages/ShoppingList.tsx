@@ -131,7 +131,7 @@ const ShoppingList = () => {
       name: suggestion.name,
       quantity: 1,
       unit: "pcs",
-      store: selectedStore,
+      store: "",
       checked: false,
     };
     const updatedLists = lists.map((list) =>
