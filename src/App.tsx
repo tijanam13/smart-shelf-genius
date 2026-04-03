@@ -21,7 +21,7 @@ import ForgotPassword from "./pages/ForgotPassword.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import Profile from "./pages/Profile.tsx";
 import Family from "./pages/Family.tsx";
-import BarcodeScanner from "./pages/BarcodeScanner.tsx";
+
 import ReceiptScanner from "./pages/ReceiptScanner.tsx";
 import ManualEntry from "./pages/ManualEntry.tsx";
 import Planet from "./pages/Planet.tsx";
@@ -98,14 +98,6 @@ const App = () => (
                     element={
                       <AdminGuard>
                         <Family />
-                      </AdminGuard>
-                    }
-                  />
-                  <Route
-                    path="/barcode-scanner"
-                    element={
-                      <AdminGuard>
-                        <BarcodeScanner />
                       </AdminGuard>
                     }
                   />
