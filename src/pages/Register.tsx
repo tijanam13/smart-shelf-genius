@@ -27,7 +27,7 @@ const Register = () => {
       password,
       options: {
         data: { display_name: displayName, phone },
-        emailRedirectTo: "https://smart-eat-smart-fridge.lovable.app",
+        emailRedirectTo: "https://smart-eat-smart-fridge.lovable.app/login",
       },
     });
     setLoading(false);
