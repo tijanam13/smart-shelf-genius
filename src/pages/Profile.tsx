@@ -15,11 +15,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import BottomNav from "@/components/BottomNav";
 import { useNavigate } from "react-router-dom";
-import { connectMetaMask, isMetaMaskAvailable, isMobileDevice, getMetaMaskDeepLinkForCurrentPage } from "@/lib/blockchain";
+import {
+  connectMetaMask,
+  isMetaMaskAvailable,
+  isMobileDevice,
+  getMetaMaskDeepLinkForCurrentPage,
+} from "@/lib/blockchain";
 
 const Profile = () => {
   const { user, signOut } = useAuth();
-  const { isPremium } = usePremium();
+  const { isPremium, loading: premiumLoading } = usePremium();
   const { isAdmin } = useAdmin();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -278,7 +283,9 @@ const Profile = () => {
 
             {/* Premium Section */}
             <div className="pt-2 border-t border-border/50">
-              {isPremium ? (
+              {premiumLoading ? (
+                <div className="h-12 rounded-xl bg-muted/40 animate-pulse" />
+              ) : isPremium ? (
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30">
                   <Crown className="w-5 h-5 text-amber-500" />
                   <div>
