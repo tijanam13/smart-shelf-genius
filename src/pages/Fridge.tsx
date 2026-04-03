@@ -310,25 +310,7 @@ const FridgePage = () => {
     return { ...item, days, urgency, emoji, freshness, daysLabel };
   });
 
-  // Merge items with the same name + status + expiry_date into a single display item.
-  // All matching row ids are collected so delete/edit actions affect every duplicate row.
-  const mergeDisplayItems = (items: typeof allEnrichedItems) => {
-    const map = new Map<string, (typeof allEnrichedItems)[0] & { mergedIds: string[] }>();
-    for (const item of items) {
-      const key = `${item.name.toLowerCase()}__${item.status}__${item.expiry_date ?? ""}`;
-      if (map.has(key)) {
-        const existing = map.get(key)!;
-        map.set(key, {
-          ...existing,
-          quantity: +(existing.quantity + item.quantity).toFixed(1),
-          mergedIds: [...existing.mergedIds, item.id],
-        });
-      } else {
-        map.set(key, { ...item, mergedIds: [item.id] });
-      }
-    }
-    return Array.from(map.values());
-  };
+  // No merging needed — DB is deduplicated; each unique (name, status, expiry_date) has one row.
 
   // Expired items = expiry_date is yesterday or earlier (days < 0)
   const expiredItems = allEnrichedItems.filter((i) => i.expiry_date && i.days < 0 && !deletedIds.has(i.id));
@@ -463,39 +445,20 @@ const FridgePage = () => {
 
     if (isPartial) {
       // --- PARTIAL TRANSFER ---
-      // selectedItem may be a merged display item (quantity = sum of multiple DB rows).
-      // To correctly reduce the source, delete all merged rows and re-insert one row
-      // with the remaining quantity so we don't accidentally increase any single row.
+      // Reduce source quantity in place (DB is deduplicated — one row per item).
       const remainingQty = +(selectedItem.quantity - editQuantity).toFixed(1);
-      const mergedIds: string[] = (selectedItem as any).mergedIds ?? [selectedItem.id];
+      const { error: reduceError } = await supabase
+        .from("fridge_items")
+        .update({ quantity: remainingQty })
+        .eq("id", selectedItem.id);
 
-      const { error: deleteSourceError } = await supabase.from("fridge_items").delete().in("id", mergedIds);
-
-      if (deleteSourceError) {
-        toast({ title: "Error", description: deleteSourceError.message, variant: "destructive" });
+      if (reduceError) {
+        toast({ title: "Error", description: reduceError.message, variant: "destructive" });
         return;
       }
 
-      const { error: reinsertError } = await supabase.from("fridge_items").insert({
-        user_id: selectedItem.user_id,
-        name: selectedItem.name,
-        category: selectedItem.category,
-        unit: selectedItem.unit,
-        gtin_code: selectedItem.gtin_code,
-        quantity: remainingQty,
-        status: selectedItem.status,
-        expiry_date: selectedItem.expiry_date,
-        remaining_fridge_days: selectedItem.remaining_fridge_days,
-      });
-
-      if (reinsertError) {
-        toast({ title: "Error", description: reinsertError.message, variant: "destructive" });
-        return;
-      }
-
-      // 2. Check if an identical item (same name, same location, same expiry) already exists
-      // in the destination — if so, merge by adding quantity instead of inserting a new row.
-      const { data: existing } = await supabase
+      // Check if destination already has this item; merge if so, otherwise insert.
+      const { data: destRow } = await supabase
         .from("fridge_items")
         .select("id, quantity")
         .eq("user_id", selectedItem.user_id)
@@ -504,22 +467,17 @@ const FridgePage = () => {
         .eq("expiry_date", newExpiryDate ?? "")
         .maybeSingle();
 
-      if (existing) {
-        // Merge: add transferred quantity to the existing item
-        const mergedQty = +(existing.quantity + editQuantity).toFixed(1);
+      if (destRow) {
+        const mergedQty = +(destRow.quantity + editQuantity).toFixed(1);
         const { error: mergeError } = await supabase
           .from("fridge_items")
           .update({ quantity: mergedQty })
-          .eq("id", existing.id);
-
+          .eq("id", destRow.id);
         if (mergeError) {
           toast({ title: "Error", description: mergeError.message, variant: "destructive" });
           return;
         }
       } else {
-        // No matching item found — insert as a new row in the destination location.
-        // Uses selectedItem.user_id so the item stays attributed to the original owner.
-        // RLS allows this via the family members insert policy.
         const { error: insertError } = await supabase.from("fridge_items").insert({
           user_id: selectedItem.user_id,
           name: selectedItem.name,
@@ -531,7 +489,6 @@ const FridgePage = () => {
           expiry_date: newExpiryDate,
           remaining_fridge_days: newRemainingFridgeDays,
         });
-
         if (insertError) {
           toast({ title: "Error", description: insertError.message, variant: "destructive" });
           return;
@@ -539,42 +496,58 @@ const FridgePage = () => {
       }
     } else {
       // --- FULL UPDATE (same location or full quantity transfer) ---
-      // If the display item was merged from multiple DB rows, delete all and re-insert one
-      // to avoid leaving stale duplicate rows behind.
-      const mergedIds: string[] = (selectedItem as any).mergedIds ?? [selectedItem.id];
+      if (locationChanged) {
+        // Moving full quantity: check destination for existing row to avoid new duplicates.
+        const { data: destRow } = await supabase
+          .from("fridge_items")
+          .select("id, quantity")
+          .eq("user_id", selectedItem.user_id)
+          .eq("name", selectedItem.name)
+          .eq("status", editLocation)
+          .eq("expiry_date", newExpiryDate ?? "")
+          .maybeSingle();
 
-      if (mergedIds.length > 1) {
-        const { error: delError } = await supabase.from("fridge_items").delete().in("id", mergedIds);
-        if (delError) {
-          toast({ title: "Error", description: delError.message, variant: "destructive" });
-          return;
-        }
-        const { error: insError } = await supabase.from("fridge_items").insert({
-          user_id: selectedItem.user_id,
-          name: selectedItem.name,
-          category: selectedItem.category,
-          unit: selectedItem.unit,
-          gtin_code: selectedItem.gtin_code,
-          quantity: editQuantity,
-          status: editLocation,
-          expiry_date: newExpiryDate,
-          remaining_fridge_days: newRemainingFridgeDays,
-        });
-        if (insError) {
-          toast({ title: "Error", description: insError.message, variant: "destructive" });
-          return;
+        if (destRow) {
+          // Merge into existing destination row, then delete the source row.
+          const mergedQty = +(destRow.quantity + editQuantity).toFixed(1);
+          const { error: mergeError } = await supabase
+            .from("fridge_items")
+            .update({ quantity: mergedQty })
+            .eq("id", destRow.id);
+          if (mergeError) {
+            toast({ title: "Error", description: mergeError.message, variant: "destructive" });
+            return;
+          }
+          const { error: delError } = await supabase.from("fridge_items").delete().eq("id", selectedItem.id);
+          if (delError) {
+            toast({ title: "Error", description: delError.message, variant: "destructive" });
+            return;
+          }
+        } else {
+          // No duplicate at destination — just update in place.
+          const { error } = await supabase
+            .from("fridge_items")
+            .update({
+              status: editLocation,
+              expiry_date: newExpiryDate,
+              quantity: editQuantity,
+              remaining_fridge_days: newRemainingFridgeDays,
+            })
+            .eq("id", selectedItem.id);
+          if (error) {
+            toast({ title: "Error", description: error.message, variant: "destructive" });
+            return;
+          }
         }
       } else {
+        // Same location — simple update.
         const { error } = await supabase
           .from("fridge_items")
           .update({
-            status: editLocation,
             expiry_date: newExpiryDate,
             quantity: editQuantity,
-            remaining_fridge_days: newRemainingFridgeDays,
           })
           .eq("id", selectedItem.id);
-
         if (error) {
           toast({ title: "Error", description: error.message, variant: "destructive" });
           return;
@@ -735,10 +708,8 @@ const FridgePage = () => {
     setChatInput("");
   }, [selectedRecipe?.title]);
 
-  const fridgeDisplayItems = mergeDisplayItems(
-    enrichedItems.filter((i) => i.status === "fridge" || i.status === "in_fridge"),
-  );
-  const freezerDisplayItems = mergeDisplayItems(enrichedItems.filter((i) => i.status === "freezer"));
+  const fridgeDisplayItems = enrichedItems.filter((i) => i.status === "fridge" || i.status === "in_fridge");
+  const freezerDisplayItems = enrichedItems.filter((i) => i.status === "freezer");
   const maxFridgeVisible = 9;
   const maxFreezerVisible = 5;
   const visibleFridgeItems = fridgeExpanded ? fridgeDisplayItems : fridgeDisplayItems.slice(0, maxFridgeVisible);
@@ -1147,6 +1118,9 @@ const FridgePage = () => {
                                   whileTap={{ scale: 0.9 }}
                                   onClick={() => {
                                     const step = getConsumeStep(selectedItem.unit);
+                                    const isTransfer =
+                                      editLocation !==
+                                      (selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status);
                                     setEditQuantity((q) => +Math.max(q - step, step).toFixed(1));
                                   }}
                                   className="w-10 h-10 rounded-lg bg-muted/40 hover:bg-muted/60 flex items-center justify-center transition-colors"
@@ -1156,15 +1130,22 @@ const FridgePage = () => {
                                 <input
                                   type="number"
                                   min={getConsumeStep(selectedItem.unit)}
-                                  max={selectedItem.quantity}
+                                  max={
+                                    editLocation !==
+                                    (selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status)
+                                      ? selectedItem.quantity
+                                      : 99999
+                                  }
                                   step={getConsumeStep(selectedItem.unit)}
                                   value={editQuantity}
                                   onChange={(e) => {
                                     const step = getConsumeStep(selectedItem.unit);
+                                    const isTransfer =
+                                      editLocation !==
+                                      (selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status);
+                                    const maxQty = isTransfer ? selectedItem.quantity : 99999;
                                     const v = parseFloat(e.target.value);
-                                    setEditQuantity(
-                                      isNaN(v) || v < step ? step : +Math.min(v, selectedItem.quantity).toFixed(1),
-                                    );
+                                    setEditQuantity(isNaN(v) || v < step ? step : +Math.min(v, maxQty).toFixed(1));
                                   }}
                                   className="w-20 text-center text-lg font-bold text-foreground bg-background/50 border border-border/50 rounded-lg h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
@@ -1173,7 +1154,11 @@ const FridgePage = () => {
                                   whileTap={{ scale: 0.9 }}
                                   onClick={() => {
                                     const step = getConsumeStep(selectedItem.unit);
-                                    setEditQuantity((q) => +Math.min(q + step, selectedItem.quantity).toFixed(1));
+                                    const isTransfer =
+                                      editLocation !==
+                                      (selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status);
+                                    const maxQty = isTransfer ? selectedItem.quantity : 99999;
+                                    setEditQuantity((q) => +Math.min(q + step, maxQty).toFixed(1));
                                   }}
                                   className="w-10 h-10 rounded-lg bg-muted/40 hover:bg-muted/60 flex items-center justify-center transition-colors"
                                 >
@@ -1294,7 +1279,7 @@ const FridgePage = () => {
                               <motion.button
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => {
-                                  handleDelete(selectedItem.id, (selectedItem as any).mergedIds);
+                                  handleDelete(selectedItem.id);
                                   setSelectedItem(null);
                                 }}
                                 className="flex-1 min-w-[100px] py-3 rounded-lg bg-muted/30 text-muted-foreground text-sm font-bold hover:bg-muted/50 transition-colors flex items-center justify-center gap-2"
@@ -1305,7 +1290,7 @@ const FridgePage = () => {
                             <motion.button
                               whileTap={{ scale: 0.95 }}
                               onClick={() => {
-                                handleDelete(selectedItem.id, (selectedItem as any).mergedIds);
+                                handleDelete(selectedItem.id);
                                 setSelectedItem(null);
                               }}
                               className="flex-1 min-w-[100px] py-3 rounded-lg bg-urgent/20 text-urgent text-sm font-bold hover:bg-urgent/30 transition-colors flex items-center justify-center gap-2"
