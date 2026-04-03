@@ -30,7 +30,7 @@ export const PremiumProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const { data, error } = await supabase.rpc("get_my_premium");
+    const { data, error } = await (supabase.rpc as any)("get_my_premium");
 
     if (error) {
       console.error("get_my_premium error:", error);
