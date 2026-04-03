@@ -448,24 +448,49 @@ const FridgePage = () => {
         return;
       }
 
-      // 2. Insert new item in destination location with transferred quantity.
-      // Uses selectedItem.user_id so the item stays attributed to the original owner.
-      // RLS allows this via the family members insert policy.
-      const { error: insertError } = await supabase.from("fridge_items").insert({
-        user_id: selectedItem.user_id,
-        name: selectedItem.name,
-        category: selectedItem.category,
-        unit: selectedItem.unit,
-        gtin_code: selectedItem.gtin_code,
-        quantity: editQuantity,
-        status: editLocation,
-        expiry_date: newExpiryDate,
-        remaining_fridge_days: newRemainingFridgeDays,
-      });
+      // 2. Check if an identical item (same name, same location, same expiry) already exists
+      // in the destination — if so, merge by adding quantity instead of inserting a new row.
+      const { data: existing } = await supabase
+        .from("fridge_items")
+        .select("id, quantity")
+        .eq("user_id", selectedItem.user_id)
+        .eq("name", selectedItem.name)
+        .eq("status", editLocation)
+        .eq("expiry_date", newExpiryDate ?? "")
+        .maybeSingle();
 
-      if (insertError) {
-        toast({ title: "Error", description: insertError.message, variant: "destructive" });
-        return;
+      if (existing) {
+        // Merge: add transferred quantity to the existing item
+        const mergedQty = +(existing.quantity + editQuantity).toFixed(1);
+        const { error: mergeError } = await supabase
+          .from("fridge_items")
+          .update({ quantity: mergedQty })
+          .eq("id", existing.id);
+
+        if (mergeError) {
+          toast({ title: "Error", description: mergeError.message, variant: "destructive" });
+          return;
+        }
+      } else {
+        // No matching item found — insert as a new row in the destination location.
+        // Uses selectedItem.user_id so the item stays attributed to the original owner.
+        // RLS allows this via the family members insert policy.
+        const { error: insertError } = await supabase.from("fridge_items").insert({
+          user_id: selectedItem.user_id,
+          name: selectedItem.name,
+          category: selectedItem.category,
+          unit: selectedItem.unit,
+          gtin_code: selectedItem.gtin_code,
+          quantity: editQuantity,
+          status: editLocation,
+          expiry_date: newExpiryDate,
+          remaining_fridge_days: newRemainingFridgeDays,
+        });
+
+        if (insertError) {
+          toast({ title: "Error", description: insertError.message, variant: "destructive" });
+          return;
+        }
       }
     } else {
       // --- FULL UPDATE (same location or full quantity transfer) ---
