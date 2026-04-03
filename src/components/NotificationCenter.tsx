@@ -1,13 +1,22 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, X, Trash2, CheckCircle2, Trash, Eye } from 'lucide-react';
-import { useNotifications, Notification } from '@/hooks/useNotifications';
-import NotificationDetail from '@/components/NotificationDetail';
+import React, { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Bell, X, Trash2, CheckCircle2, Trash, Eye } from "lucide-react";
+import { useNotifications, Notification } from "@/hooks/useNotifications";
+import NotificationDetail from "@/components/NotificationDetail";
 
 const NotificationCenter: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
-  const { allNotifications, unreadCount, hasNewNotification, markAsRead, deleteNotification, clearAll, markAsConsumed, markAsDiscarded } = useNotifications();
+  const {
+    allNotifications,
+    unreadCount,
+    hasNewNotification,
+    markAsRead,
+    deleteNotification,
+    clearAll,
+    markAsConsumed,
+    markAsDiscarded,
+  } = useNotifications();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -19,14 +28,20 @@ const NotificationCenter: React.FC = () => {
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen]);
 
   const activeNotifications = allNotifications
     .filter((n) => !n.readAt && !n.deletedAt)
-    .sort((a, b) => (a.level === 'warning' && b.level === 'high-priority' ? -1 : a.level === 'high-priority' && b.level === 'warning' ? 1 : 0));
+    .sort((a, b) =>
+      a.level === "warning" && b.level === "high-priority"
+        ? -1
+        : a.level === "high-priority" && b.level === "warning"
+          ? 1
+          : 0,
+    );
   const readNotifications = allNotifications.filter((n) => n.readAt && !n.deletedAt);
 
   return (
@@ -39,7 +54,7 @@ const NotificationCenter: React.FC = () => {
         className="relative w-9 h-9 glass-card rounded-xl flex items-center justify-center cursor-pointer transition-all"
         title="Notifications"
       >
-        <Bell className={`w-4 h-4 ${hasNewNotification ? 'text-urgent animate-pulse' : 'text-muted-foreground'}`} />
+        <Bell className={`w-4 h-4 ${hasNewNotification ? "text-urgent animate-pulse" : "text-muted-foreground"}`} />
 
         {/* Red Badge */}
         {unreadCount > 0 && (
@@ -49,7 +64,7 @@ const NotificationCenter: React.FC = () => {
             exit={{ scale: 0 }}
             className="absolute -top-2 -right-2 bg-urgent text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center"
           >
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {unreadCount > 9 ? "9+" : unreadCount}
           </motion.div>
         )}
       </motion.button>
@@ -73,8 +88,8 @@ const NotificationCenter: React.FC = () => {
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-              className="absolute top-12 right-0 z-50 w-96 max-w-[calc(100vw-20px)] glass-card-strong rounded-2xl shadow-2xl overflow-hidden"
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
+              className="fixed top-24 right-3 left-3 sm:left-auto sm:w-96 z-50 glass-card-strong rounded-2xl shadow-2xl overflow-hidden"
             >
               {/* Header */}
               <div className="px-5 py-4 border-b border-primary/10 flex items-center justify-between">
@@ -112,15 +127,15 @@ const NotificationCenter: React.FC = () => {
                         exit={{ opacity: 0, x: 20 }}
                         onClick={() => setSelectedNotification(notification)}
                         className={`px-5 py-4 transition-all cursor-pointer hover:bg-primary/5 ${
-                          notification.level === 'high-priority'
-                            ? 'bg-urgent/5 border-l-4 border-urgent'
-                            : 'bg-warning/5 border-l-4 border-warning'
+                          notification.level === "high-priority"
+                            ? "bg-urgent/5 border-l-4 border-urgent"
+                            : "bg-warning/5 border-l-4 border-warning"
                         }`}
                       >
                         <div className="flex gap-3">
                           {/* Icon */}
                           <div className="flex-shrink-0 mt-1">
-                            {notification.level === 'high-priority' ? (
+                            {notification.level === "high-priority" ? (
                               <div className="w-2 h-2 rounded-full bg-urgent mt-1" />
                             ) : (
                               <div className="w-2 h-2 rounded-full bg-warning mt-1" />
@@ -129,21 +144,19 @@ const NotificationCenter: React.FC = () => {
 
                           {/* Content */}
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium ${
-                              notification.level === 'high-priority'
-                                ? 'text-urgent'
-                                : 'text-warning'
-                            }`}>
+                            <p
+                              className={`text-sm font-medium ${
+                                notification.level === "high-priority" ? "text-urgent" : "text-warning"
+                              }`}
+                            >
                               {notification.itemName}
                             </p>
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                              {notification.message}
-                            </p>
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{notification.message}</p>
                             <p className="text-[10px] text-muted-foreground/50 mt-2">
-                              {new Date(notification.createdAt).toLocaleDateString()} at{' '}
+                              {new Date(notification.createdAt).toLocaleDateString()} at{" "}
                               {new Date(notification.createdAt).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
+                                hour: "2-digit",
+                                minute: "2-digit",
                               })}
                             </p>
                           </div>
@@ -195,9 +208,7 @@ const NotificationCenter: React.FC = () => {
                           >
                             <div className="flex gap-3">
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm text-muted-foreground opacity-70">
-                                  {notification.itemName}
-                                </p>
+                                <p className="text-sm text-muted-foreground opacity-70">{notification.itemName}</p>
                                 <p className="text-[10px] text-muted-foreground/50 mt-1">
                                   {new Date(notification.createdAt).toLocaleDateString()}
                                 </p>
