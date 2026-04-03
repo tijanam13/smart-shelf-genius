@@ -1510,6 +1510,7 @@ const FridgePage = () => {
             setShowDonationModal(false);
             setDonationItem(null);
             queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
+            fetchWallet();
           }}
           itemId={(donationItem || selectedItem)?.id || ""}
           itemName={(donationItem || selectedItem)?.name || ""}
