@@ -29,7 +29,6 @@ import Planet from "./pages/Planet.tsx";
 import Store from "./pages/Store.tsx";
 import AdminScan from "./pages/AdminScan.tsx";
 import NotFound from "./pages/NotFound.tsx";
-import AuthCallback from "./pages/AuthCallback.tsx";
 
 const queryClient = new QueryClient();
 
@@ -175,9 +174,6 @@ const App = () => (
                       </AuthGuard>
                     }
                   />
-
-                  {/* Auth callback — handles email confirmation links */}
-                  <Route path="/auth/callback" element={<AuthCallback />} />
 
                   {/* Keep this catch-all last */}
                   <Route path="*" element={<NotFound />} />
