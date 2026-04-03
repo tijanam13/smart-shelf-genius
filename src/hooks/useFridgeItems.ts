@@ -13,6 +13,7 @@ export interface FridgeItem {
   status: string;
   created_at: string;
   user_id: string;
+  remaining_fridge_days: number | null;
 }
 
 export function formatQtyUnit(quantity: number, unit: string): string {
@@ -38,27 +39,18 @@ export function useFridgeItems() {
       if (!user) return [];
 
       // Get all family group member user IDs
-      const { data: myMemberships } = await supabase
-        .from("family_members")
-        .select("group_id")
-        .eq("user_id", user.id);
+      const { data: myMemberships } = await supabase.from("family_members").select("group_id").eq("user_id", user.id);
 
       let userIds = [user.id];
 
       if (myMemberships && myMemberships.length > 0) {
         const groupIds = myMemberships.map((m) => m.group_id);
-        const { data: allMembers } = await supabase
-          .from("family_members")
-          .select("user_id")
-          .in("group_id", groupIds);
+        const { data: allMembers } = await supabase.from("family_members").select("user_id").in("group_id", groupIds);
 
         if (allMembers) {
           const ids = new Set(allMembers.map((m) => m.user_id));
           // Also include group owners
-          const { data: groups } = await supabase
-            .from("family_groups")
-            .select("owner_id")
-            .in("id", groupIds);
+          const { data: groups } = await supabase.from("family_groups").select("owner_id").in("id", groupIds);
           if (groups) {
             groups.forEach((g) => ids.add(g.owner_id));
           }
@@ -94,10 +86,21 @@ export function getDaysLeft(expiryDate: string | null): number {
 
 export function getCategoryEmoji(category: string): string {
   const map: Record<string, string> = {
-    Dairy: "🥛", Meat: "🥩", Fruit: "🍎", Vegetable: "🥬",
-    Bakery: "🍞", Pantry: "🫙", Beverage: "🧃", Fish: "🐟",
-    Seafood: "🦐", Eggs: "🥚", Frozen: "🧊", Snacks: "🍿",
-    Condiments: "🫙", Sweets: "🍫", Other: "🍽️",
+    Dairy: "🥛",
+    Meat: "🥩",
+    Fruit: "🍎",
+    Vegetable: "🥬",
+    Bakery: "🍞",
+    Pantry: "🫙",
+    Beverage: "🧃",
+    Fish: "🐟",
+    Seafood: "🦐",
+    Eggs: "🥚",
+    Frozen: "🧊",
+    Snacks: "🍿",
+    Condiments: "🫙",
+    Sweets: "🍫",
+    Other: "🍽️",
   };
   return map[category] || "🍽️";
 }

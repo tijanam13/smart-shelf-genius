@@ -100,6 +100,7 @@ export type Database = {
           id: string;
           name: string;
           quantity: number;
+          remaining_fridge_days: number | null;
           status: string;
           unit: string;
           user_id: string;
@@ -112,6 +113,7 @@ export type Database = {
           id?: string;
           name: string;
           quantity?: number;
+          remaining_fridge_days?: number | null;
           status?: string;
           unit?: string;
           user_id: string;
@@ -124,6 +126,7 @@ export type Database = {
           id?: string;
           name?: string;
           quantity?: number;
+          remaining_fridge_days?: number | null;
           status?: string;
           unit?: string;
           user_id?: string;
