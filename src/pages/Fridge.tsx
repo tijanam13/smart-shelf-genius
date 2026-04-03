@@ -348,11 +348,13 @@ const FridgePage = () => {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("fridge_items").delete().eq("id", id);
-    if (!error) {
-      queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
-      toast({ title: "Item removed" });
+    const { error } = await supabase.from("fridge_items").delete().eq("id", id).eq("user_id", user!.id);
+    if (error) {
+      toast({ title: "Error", description: "Could not delete item: " + error.message, variant: "destructive" });
+      return;
     }
+    queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
+    toast({ title: "Item removed" });
   };
 
   const handleQuantity = async (id: string, delta: number, current: number, unit: string) => {
@@ -782,7 +784,19 @@ const FridgePage = () => {
                         whileTap={{ scale: 0.95 }}
                         onClick={async () => {
                           const ids = expiredItems.map((item) => item.id);
-                          await supabase.from("fridge_items").delete().in("id", ids);
+                          const { error } = await supabase
+                            .from("fridge_items")
+                            .delete()
+                            .in("id", ids)
+                            .eq("user_id", user!.id);
+                          if (error) {
+                            toast({
+                              title: "Error",
+                              description: "Could not empty trash: " + error.message,
+                              variant: "destructive",
+                            });
+                            return;
+                          }
                           setSelectedExpiredItem(null);
                           queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
                           toast({
@@ -1573,10 +1587,22 @@ const FridgePage = () => {
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={async () => {
-                      await supabase.from("fridge_items").delete().eq("id", selectedExpiredItem.id);
+                      const { error } = await supabase
+                        .from("fridge_items")
+                        .delete()
+                        .eq("id", selectedExpiredItem.id)
+                        .eq("user_id", user!.id);
+                      if (error) {
+                        toast({
+                          title: "Error",
+                          description: "Could not delete: " + error.message,
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      setSelectedExpiredItem(null);
                       queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
                       toast({ title: "Deleted", description: `${selectedExpiredItem.name} removed.` });
-                      setSelectedExpiredItem(null);
                     }}
                     className="flex-1 py-3 rounded-lg bg-urgent/20 text-urgent text-sm font-bold hover:bg-urgent/30 transition-colors flex items-center justify-center gap-2"
                   >
