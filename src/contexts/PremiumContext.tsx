@@ -30,9 +30,14 @@ export const PremiumProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const { data } = await supabase.from("profiles").select("is_premium").eq("user_id", user.id).maybeSingle();
+    const { data, error } = await supabase.rpc("get_my_premium");
 
-    setIsPremium(data?.is_premium ?? false);
+    if (error) {
+      console.error("get_my_premium error:", error);
+      setIsPremium(false);
+    } else {
+      setIsPremium(data === true);
+    }
     setLoading(false);
   };
 
