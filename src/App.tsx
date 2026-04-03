@@ -48,6 +48,16 @@ const AdminGuard = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Wrapper koji dozvoljava pristup SAMO adminima — bez toast greške
+const AdminOnlyGuard = ({ children }: { children: React.ReactNode }) => {
+  const { isAdmin, loading } = useAdmin();
+  const { user, loading: authLoading } = useAuth();
+  if (authLoading || loading) return null; // čekaj dok oba ne završe
+  if (!user) return <Navigate to="/login" replace />;
+  if (!isAdmin) return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -60,7 +70,14 @@ const App = () => (
               <AdminProvider>
                 <Routes>
                   {/* Admin-only route — accessible only to admins */}
-                  <Route path="/admin-scan" element={<AdminScan />} />
+                  <Route
+                    path="/admin-scan"
+                    element={
+                      <AdminOnlyGuard>
+                        <AdminScan />
+                      </AdminOnlyGuard>
+                    }
+                  />
 
                   {/* Auth routes — always accessible */}
                   <Route path="/login" element={<Login />} />

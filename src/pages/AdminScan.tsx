@@ -81,21 +81,6 @@ const AdminScan = () => {
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
-  // ── Security: Redirect non-admins ──
-  const redirectHandled = useRef(false);
-  useEffect(() => {
-    // Wait until both auth and admin checks are fully complete
-    if (adminLoading) return;
-    if (redirectHandled.current) return;
-    redirectHandled.current = true;
-
-    if (!isAdmin) {
-      toast({ title: "Access Denied", description: "This page is for administrators only.", variant: "destructive" });
-      navigate("/");
-    }
-    // isAdmin === true → korisnik je admin, ostaje na stranici
-  }, [isAdmin, adminLoading]);
-
   // ── Camera cleanup on unmount ──
   useEffect(() => {
     return () => {
