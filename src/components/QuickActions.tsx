@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 
 const actions = [
   { icon: Camera, label: "Scan Receipt", color: "bg-primary/15 text-primary", path: "/scan" },
-  { icon: QrCode, label: "Barcode", color: "bg-coral/15 text-coral", path: "/barcode-scanner" },
   { icon: Plus, label: "Add Manual", color: "bg-cream/15 text-cream", path: "/manual-entry" },
   { icon: ShoppingCart, label: "Shopping List", color: "bg-token/15 text-token", path: "/shopping-list" },
 ];
