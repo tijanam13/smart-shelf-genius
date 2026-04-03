@@ -283,7 +283,15 @@ const Profile = () => {
 
             {/* Premium Section */}
             <div className="pt-2 border-t border-border/50">
-              {premiumLoading ? (
+              {isAdmin ? (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/30">
+                  <ShieldCheck className="w-5 h-5 text-primary" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Admin Account</p>
+                    <p className="text-xs text-muted-foreground">Full access — no subscription required</p>
+                  </div>
+                </div>
+              ) : premiumLoading ? (
                 <div className="h-12 rounded-xl bg-muted/40 animate-pulse" />
               ) : isPremium ? (
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30">
