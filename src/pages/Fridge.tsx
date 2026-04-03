@@ -463,15 +463,33 @@ const FridgePage = () => {
 
     if (isPartial) {
       // --- PARTIAL TRANSFER ---
-      // 1. Reduce original item quantity, keep its location and expiry unchanged
+      // selectedItem may be a merged display item (quantity = sum of multiple DB rows).
+      // To correctly reduce the source, delete all merged rows and re-insert one row
+      // with the remaining quantity so we don't accidentally increase any single row.
       const remainingQty = +(selectedItem.quantity - editQuantity).toFixed(1);
-      const { error: reduceError } = await supabase
-        .from("fridge_items")
-        .update({ quantity: remainingQty })
-        .eq("id", selectedItem.id);
+      const mergedIds: string[] = (selectedItem as any).mergedIds ?? [selectedItem.id];
 
-      if (reduceError) {
-        toast({ title: "Error", description: reduceError.message, variant: "destructive" });
+      const { error: deleteSourceError } = await supabase.from("fridge_items").delete().in("id", mergedIds);
+
+      if (deleteSourceError) {
+        toast({ title: "Error", description: deleteSourceError.message, variant: "destructive" });
+        return;
+      }
+
+      const { error: reinsertError } = await supabase.from("fridge_items").insert({
+        user_id: selectedItem.user_id,
+        name: selectedItem.name,
+        category: selectedItem.category,
+        unit: selectedItem.unit,
+        gtin_code: selectedItem.gtin_code,
+        quantity: remainingQty,
+        status: selectedItem.status,
+        expiry_date: selectedItem.expiry_date,
+        remaining_fridge_days: selectedItem.remaining_fridge_days,
+      });
+
+      if (reinsertError) {
+        toast({ title: "Error", description: reinsertError.message, variant: "destructive" });
         return;
       }
 
@@ -521,19 +539,46 @@ const FridgePage = () => {
       }
     } else {
       // --- FULL UPDATE (same location or full quantity transfer) ---
-      const { error } = await supabase
-        .from("fridge_items")
-        .update({
+      // If the display item was merged from multiple DB rows, delete all and re-insert one
+      // to avoid leaving stale duplicate rows behind.
+      const mergedIds: string[] = (selectedItem as any).mergedIds ?? [selectedItem.id];
+
+      if (mergedIds.length > 1) {
+        const { error: delError } = await supabase.from("fridge_items").delete().in("id", mergedIds);
+        if (delError) {
+          toast({ title: "Error", description: delError.message, variant: "destructive" });
+          return;
+        }
+        const { error: insError } = await supabase.from("fridge_items").insert({
+          user_id: selectedItem.user_id,
+          name: selectedItem.name,
+          category: selectedItem.category,
+          unit: selectedItem.unit,
+          gtin_code: selectedItem.gtin_code,
+          quantity: editQuantity,
           status: editLocation,
           expiry_date: newExpiryDate,
-          quantity: editQuantity,
           remaining_fridge_days: newRemainingFridgeDays,
-        })
-        .eq("id", selectedItem.id);
+        });
+        if (insError) {
+          toast({ title: "Error", description: insError.message, variant: "destructive" });
+          return;
+        }
+      } else {
+        const { error } = await supabase
+          .from("fridge_items")
+          .update({
+            status: editLocation,
+            expiry_date: newExpiryDate,
+            quantity: editQuantity,
+            remaining_fridge_days: newRemainingFridgeDays,
+          })
+          .eq("id", selectedItem.id);
 
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-        return;
+        if (error) {
+          toast({ title: "Error", description: error.message, variant: "destructive" });
+          return;
+        }
       }
     }
 
