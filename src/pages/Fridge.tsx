@@ -310,6 +310,26 @@ const FridgePage = () => {
     return { ...item, days, urgency, emoji, freshness, daysLabel };
   });
 
+  // Merge items with the same name + status + expiry_date into a single display item.
+  // All matching row ids are collected so delete/edit actions affect every duplicate row.
+  const mergeDisplayItems = (items: typeof allEnrichedItems) => {
+    const map = new Map<string, (typeof allEnrichedItems)[0] & { mergedIds: string[] }>();
+    for (const item of items) {
+      const key = `${item.name.toLowerCase()}__${item.status}__${item.expiry_date ?? ""}`;
+      if (map.has(key)) {
+        const existing = map.get(key)!;
+        map.set(key, {
+          ...existing,
+          quantity: +(existing.quantity + item.quantity).toFixed(1),
+          mergedIds: [...existing.mergedIds, item.id],
+        });
+      } else {
+        map.set(key, { ...item, mergedIds: [item.id] });
+      }
+    }
+    return Array.from(map.values());
+  };
+
   // Expired items = expiry_date is yesterday or earlier (days < 0)
   const expiredItems = allEnrichedItems.filter((i) => i.expiry_date && i.days < 0 && !deletedIds.has(i.id));
   // Active items = not expired
@@ -348,10 +368,15 @@ const FridgePage = () => {
     setSelectedItem(item);
   };
 
-  const handleDelete = async (id: string) => {
-    // Optimistic: immediately hide the item from UI
-    setDeletedIds((prev) => new Set(prev).add(id));
-    const { error } = await supabase.from("fridge_items").delete().eq("id", id);
+  const handleDelete = async (id: string, extraIds?: string[]) => {
+    const allIds = extraIds ? [id, ...extraIds.filter((i) => i !== id)] : [id];
+    // Optimistic: immediately hide all merged rows from UI
+    setDeletedIds((prev) => {
+      const next = new Set(prev);
+      allIds.forEach((i) => next.add(i));
+      return next;
+    });
+    const { error } = await supabase.from("fridge_items").delete().in("id", allIds);
     if (error) {
       console.error("Delete error:", error);
       // Rollback optimistic update
@@ -665,8 +690,10 @@ const FridgePage = () => {
     setChatInput("");
   }, [selectedRecipe?.title]);
 
-  const fridgeDisplayItems = enrichedItems.filter((i) => i.status === "fridge" || i.status === "in_fridge");
-  const freezerDisplayItems = enrichedItems.filter((i) => i.status === "freezer");
+  const fridgeDisplayItems = mergeDisplayItems(
+    enrichedItems.filter((i) => i.status === "fridge" || i.status === "in_fridge"),
+  );
+  const freezerDisplayItems = mergeDisplayItems(enrichedItems.filter((i) => i.status === "freezer"));
   const maxFridgeVisible = 9;
   const maxFreezerVisible = 5;
   const visibleFridgeItems = fridgeExpanded ? fridgeDisplayItems : fridgeDisplayItems.slice(0, maxFridgeVisible);
@@ -1212,7 +1239,7 @@ const FridgePage = () => {
                               <motion.button
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => {
-                                  handleDelete(selectedItem.id);
+                                  handleDelete(selectedItem.id, (selectedItem as any).mergedIds);
                                   setSelectedItem(null);
                                 }}
                                 className="flex-1 min-w-[100px] py-3 rounded-lg bg-muted/30 text-muted-foreground text-sm font-bold hover:bg-muted/50 transition-colors flex items-center justify-center gap-2"
@@ -1223,7 +1250,7 @@ const FridgePage = () => {
                             <motion.button
                               whileTap={{ scale: 0.95 }}
                               onClick={() => {
-                                handleDelete(selectedItem.id);
+                                handleDelete(selectedItem.id, (selectedItem as any).mergedIds);
                                 setSelectedItem(null);
                               }}
                               className="flex-1 min-w-[100px] py-3 rounded-lg bg-urgent/20 text-urgent text-sm font-bold hover:bg-urgent/30 transition-colors flex items-center justify-center gap-2"
