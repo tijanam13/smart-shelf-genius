@@ -1145,26 +1145,36 @@ const FridgePage = () => {
                               <div className="flex items-center gap-3">
                                 <motion.button
                                   whileTap={{ scale: 0.9 }}
-                                  onClick={() => setEditQuantity((q) => Math.max(q - 1, 1))}
+                                  onClick={() => {
+                                    const step = getConsumeStep(selectedItem.unit);
+                                    setEditQuantity((q) => +Math.max(q - step, step).toFixed(1));
+                                  }}
                                   className="w-10 h-10 rounded-lg bg-muted/40 hover:bg-muted/60 flex items-center justify-center transition-colors"
                                 >
                                   <Minus className="w-4 h-4 text-foreground" />
                                 </motion.button>
                                 <input
                                   type="number"
-                                  min={1}
+                                  min={getConsumeStep(selectedItem.unit)}
                                   max={selectedItem.quantity}
+                                  step={getConsumeStep(selectedItem.unit)}
                                   value={editQuantity}
                                   onChange={(e) => {
-                                    const v = parseInt(e.target.value);
-                                    setEditQuantity(isNaN(v) || v < 1 ? 1 : Math.min(v, selectedItem.quantity));
+                                    const step = getConsumeStep(selectedItem.unit);
+                                    const v = parseFloat(e.target.value);
+                                    setEditQuantity(
+                                      isNaN(v) || v < step ? step : +Math.min(v, selectedItem.quantity).toFixed(1),
+                                    );
                                   }}
                                   className="w-20 text-center text-lg font-bold text-foreground bg-background/50 border border-border/50 rounded-lg h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                                 <span className="text-sm text-muted-foreground">{selectedItem.unit}</span>
                                 <motion.button
                                   whileTap={{ scale: 0.9 }}
-                                  onClick={() => setEditQuantity((q) => Math.min(q + 1, selectedItem.quantity))}
+                                  onClick={() => {
+                                    const step = getConsumeStep(selectedItem.unit);
+                                    setEditQuantity((q) => +Math.min(q + step, selectedItem.quantity).toFixed(1));
+                                  }}
                                   className="w-10 h-10 rounded-lg bg-muted/40 hover:bg-muted/60 flex items-center justify-center transition-colors"
                                 >
                                   <Plus className="w-4 h-4 text-foreground" />
