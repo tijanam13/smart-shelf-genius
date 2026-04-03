@@ -6,10 +6,22 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, QrCode, CheckCircle, AlertCircle, Loader2, Wallet, ExternalLink, RefreshCw } from "lucide-react";
+import {
+  ShieldCheck,
+  QrCode,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  RefreshCw,
+  Wallet,
+  ExternalLink,
+  PenLine,
+} from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import BottomNav from "@/components/BottomNav";
+import { useAdmin } from "@/contexts/AdminContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -17,15 +29,14 @@ import { useNavigate } from "react-router-dom";
 import {
   connectMetaMask,
   recordDonationOnChain,
-  isMetaMaskAvailable,
+  canUseMetaMaskDirectly,
   isMobileDevice,
-  getMetaMaskDeepLinkForCurrentPage,
+  getMetaMaskDeepLink,
+  isValidEthAddress,
   switchToSepolia,
   checkNetwork,
-  isValidEthAddress,
   type DonationResult,
 } from "@/lib/blockchain";
-import { Input } from "@/components/ui/input";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -42,54 +53,41 @@ interface QRDonationData {
   network: string;
 }
 
-type PageStep = "scanner" | "confirm" | "processing" | "success" | "error";
+type WalletStep = "choose" | "connecting" | "manual-input" | "connected";
+type PageStep = "wallet" | "scanner" | "confirm" | "processing" | "success" | "error";
 
 const SCANNER_ID = "admin-qr-reader";
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 
 const AdminScan = () => {
+  const { isAdmin, loading: adminLoading } = useAdmin();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // ── Admin check done locally (avoids race condition with AdminContext) ──
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null); // null = still checking
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (!user) {
-        setIsAdmin(false);
-        return;
-      }
-      const { data } = await supabase.from("profiles").select("is_admin").eq("user_id", user.id).maybeSingle();
-      const admin = data?.is_admin === true;
-      setIsAdmin(admin);
-      if (!admin) {
-        toast({
-          title: "Access Denied",
-          description: "This page is for administrators only.",
-          variant: "destructive",
-        });
-        navigate("/");
-      }
-    };
-    checkAdmin();
-  }, [user]);
-
-  // ── Wallet (persists across all scans in this session) ──
+  // ── Wallet ──
+  const [walletStep, setWalletStep] = useState<WalletStep>("choose");
   const [adminWalletAddress, setAdminWalletAddress] = useState("");
-  const [isConnectingWallet, setIsConnectingWallet] = useState(false);
+  const [manualAddressInput, setManualAddressInput] = useState("");
+  const [manualAddressError, setManualAddressError] = useState("");
   const [isOnSepolia, setIsOnSepolia] = useState(false);
 
   // ── Page flow ──
-  const [step, setStep] = useState<PageStep>("scanner");
+  const [step, setStep] = useState<PageStep>("wallet");
   const [scannedData, setScannedData] = useState<QRDonationData | null>(null);
   const [txResult, setTxResult] = useState<DonationResult | null>(null);
   const [scanning, setScanning] = useState(false);
-  const [manualDonorWallet, setManualDonorWallet] = useState("");
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
+
+  // ── Security: Redirect non-admins ──
+  useEffect(() => {
+    if (!adminLoading && !isAdmin) {
+      toast({ title: "Access Denied", description: "This page is for administrators only.", variant: "destructive" });
+      navigate("/");
+    }
+  }, [isAdmin, adminLoading]);
 
   // ── Camera cleanup on unmount ──
   useEffect(() => {
@@ -112,25 +110,23 @@ const AdminScan = () => {
 
   // ─── WALLET ──────────────────────────────────────────────────────────
 
-  const connectWallet = async () => {
-    setIsConnectingWallet(true);
+  const handleConnectMetaMask = async () => {
+    setWalletStep("connecting");
     try {
       const address = await connectMetaMask();
       const net = await checkNetwork();
       setIsOnSepolia(net.ok);
       setAdminWalletAddress(address);
-      toast({
-        title: "✅ Wallet Connected",
-        description: `${address.slice(0, 8)}...${address.slice(-6)}`,
-      });
+      setWalletStep("connected");
+      setStep("scanner");
+      toast({ title: "✅ Wallet Connected", description: `${address.slice(0, 8)}...${address.slice(-6)}` });
     } catch (err: any) {
+      setWalletStep("choose");
       toast({ title: "Connection Error", description: err.message, variant: "destructive" });
-    } finally {
-      setIsConnectingWallet(false);
     }
   };
 
-  const switchNetwork = async () => {
+  const handleSwitchToSepolia = async () => {
     try {
       await switchToSepolia();
       const net = await checkNetwork();
@@ -141,9 +137,20 @@ const AdminScan = () => {
     }
   };
 
+  const handleManualAddressSubmit = () => {
+    const addr = manualAddressInput.trim();
+    if (!isValidEthAddress(addr)) {
+      setManualAddressError("Please enter a valid Ethereum address (0x...)");
+      return;
+    }
+    setAdminWalletAddress(addr);
+    setWalletStep("connected");
+    setStep("scanner");
+    toast({ title: "✅ Address Confirmed", description: `${addr.slice(0, 8)}...` });
+  };
+
   // ─── SCANNER ─────────────────────────────────────────────────────────
 
-  // Safely destroy old scanner instance before creating a new one
   const destroyScanner = useCallback(async () => {
     const s = scannerRef.current;
     if (!s) return;
@@ -151,7 +158,7 @@ const AdminScan = () => {
       if (s.isScanning) await s.stop();
       await s.clear();
     } catch {
-      // ignore — element may already be gone
+      /* ignore */
     }
     scannerRef.current = null;
   }, []);
@@ -168,16 +175,13 @@ const AdminScan = () => {
   }, []);
 
   const startScanner = async () => {
-    // Fully destroy any previous instance first to avoid "unconfigured name" error
     await destroyScanner();
-
     try {
       const scanner = new Html5Qrcode(SCANNER_ID, { verbose: false });
       scannerRef.current = scanner;
-
       await scanner.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 260, height: 260 } },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
           scanner.stop().catch(() => {});
           setScanning(false);
@@ -190,7 +194,7 @@ const AdminScan = () => {
       setScanning(false);
       toast({
         title: "Camera Error",
-        description: "Could not start camera. Please allow camera access in your browser.",
+        description: "Could not start camera. Please allow camera access.",
         variant: "destructive",
       });
     }
@@ -211,11 +215,7 @@ const AdminScan = () => {
       setStep("confirm");
       toast({ title: "✅ QR Scanned!", description: `Found: ${data.itemName}` });
     } catch {
-      toast({
-        title: "Read Error",
-        description: "Could not parse QR code. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Read Error", description: "Could not parse QR code. Please try again.", variant: "destructive" });
     }
   };
 
@@ -224,53 +224,16 @@ const AdminScan = () => {
   const handleConfirmOnChain = async () => {
     if (!scannedData || !user) return;
 
-    // Mobile without MetaMask in-app browser
-    if (!isMetaMaskAvailable() && isMobileDevice()) {
-      toast({
-        title: "Open in MetaMask Browser",
-        description: "Copy this page URL and open it inside the MetaMask app browser to sign transactions.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Desktop without MetaMask extension
-    if (!isMetaMaskAvailable()) {
-      toast({
-        title: "MetaMask Not Found",
-        description: "Please install the MetaMask extension at metamask.io",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Step 1: Connect wallet if needed
-    if (!adminWalletAddress) {
-      try {
-        setIsConnectingWallet(true);
-        const address = await connectMetaMask(); // requests accounts + switches to Sepolia
-        setAdminWalletAddress(address);
-        setIsConnectingWallet(false);
-        toast({ title: "✅ Wallet Connected", description: `${address.slice(0, 8)}...${address.slice(-6)}` });
-      } catch (err: any) {
-        setIsConnectingWallet(false);
-        toast({ title: "Connection Error", description: err.message, variant: "destructive" });
-        return;
-      }
-    }
-
-    // Step 2: Resolve donor wallet address
-    const donorWallet = scannedData.userWalletAddress?.trim() || manualDonorWallet.trim();
+    const donorWallet = scannedData.userWalletAddress?.trim();
     if (!isValidEthAddress(donorWallet)) {
       toast({
-        title: "Invalid Wallet Address",
-        description: "The donor wallet address is missing or invalid. Please enter it manually.",
+        title: "Invalid Wallet",
+        description: "Donor wallet address is missing or invalid.",
         variant: "destructive",
       });
       return;
     }
 
-    // Step 3: Send blockchain transaction (MetaMask confirm popup appears automatically)
     setStep("processing");
 
     const result = await recordDonationOnChain(donorWallet, scannedData.itemName, scannedData.isCritical);
@@ -294,6 +257,7 @@ const AdminScan = () => {
 
       const donorUserId = donorProfile?.user_id;
 
+      // Log donation
       await supabase.from("donations").insert({
         user_id: donorUserId || user.id,
         item_name: scannedData.itemName,
@@ -301,20 +265,20 @@ const AdminScan = () => {
         unit: scannedData.unit ?? "pcs",
       });
 
+      // Partial or full donation — update fridge accordingly
       if (scannedData.itemId) {
         const donated = scannedData.donationQuantity ?? scannedData.totalQuantity ?? null;
         const total = scannedData.totalQuantity ?? null;
 
         if (donated !== null && total !== null && donated < total) {
-          // Partial donation — reduce quantity in fridge
           const remaining = Math.max(0, parseFloat((total - donated).toFixed(2)));
           await supabase.from("fridge_items").update({ quantity: remaining }).eq("id", scannedData.itemId);
         } else {
-          // Full donation (or no quantity info) — remove item
           await supabase.from("fridge_items").delete().eq("id", scannedData.itemId);
         }
       }
 
+      // Award tokens to donor
       if (donorUserId) {
         await supabase.rpc("adjust_user_tokens", {
           _user_id: donorUserId,
@@ -332,10 +296,19 @@ const AdminScan = () => {
 
   // ─── RESET ───────────────────────────────────────────────────────────
 
-  // Scan again: keep wallet connected, go back to scanner
-  const handleScanAgain = async () => {
-    await destroyScanner(); // clean up before re-rendering scanner DOM element
+  const handleReset = async () => {
+    await destroyScanner();
     setStep("scanner");
+    setScannedData(null);
+    setTxResult(null);
+    setScanning(false);
+  };
+
+  const handleFullReset = async () => {
+    await destroyScanner();
+    setStep("wallet");
+    setWalletStep("choose");
+    setAdminWalletAddress("");
     setScannedData(null);
     setTxResult(null);
     setScanning(false);
@@ -343,7 +316,7 @@ const AdminScan = () => {
 
   // ─── LOADING / GUARD ─────────────────────────────────────────────────
 
-  if (isAdmin === null) {
+  if (adminLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="animate-spin" />
@@ -354,9 +327,6 @@ const AdminScan = () => {
   if (!isAdmin) return null;
 
   // ─── RENDER ──────────────────────────────────────────────────────────
-
-  const metamaskAvailable = isMetaMaskAvailable();
-  const onMobile = isMobileDevice();
 
   return (
     <div className="min-h-screen bg-background relative overflow-x-hidden">
@@ -373,63 +343,132 @@ const AdminScan = () => {
             </div>
           </div>
 
-          {/* Wallet status bar */}
-          <div className="mt-3 px-3 py-2 rounded-xl border flex items-center justify-between bg-background/40">
-            {adminWalletAddress ? (
-              <>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-3.5 h-3.5 text-safe" />
-                  <span className="text-xs text-safe font-mono">
-                    {adminWalletAddress.slice(0, 10)}...{adminWalletAddress.slice(-6)}
-                  </span>
-                  {!isOnSepolia && (
-                    <button onClick={switchNetwork} className="text-[10px] text-yellow-400 underline ml-1">
-                      Switch to Sepolia
-                    </button>
-                  )}
-                </div>
-                <button
-                  onClick={() => {
-                    setAdminWalletAddress("");
-                    setIsOnSepolia(false);
-                  }}
-                  className="text-[10px] underline text-muted-foreground"
-                >
-                  Change
-                </button>
-              </>
-            ) : metamaskAvailable ? (
-              <button
-                onClick={connectWallet}
-                disabled={isConnectingWallet}
-                className="flex items-center gap-2 text-xs text-orange-400 hover:text-orange-300 transition-colors disabled:opacity-60"
-              >
-                {isConnectingWallet ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Wallet className="w-3.5 h-3.5" />
+          {adminWalletAddress && step !== "wallet" && (
+            <div className="mt-3 px-3 py-2 rounded-xl bg-safe/10 border border-safe/30 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-3.5 h-3.5 text-safe" />
+                <span className="text-xs text-safe font-mono">
+                  {adminWalletAddress.slice(0, 10)}...{adminWalletAddress.slice(-6)}
+                </span>
+                {!isOnSepolia && (
+                  <button onClick={handleSwitchToSepolia} className="text-[10px] text-yellow-400 underline ml-1">
+                    Switch to Sepolia
+                  </button>
                 )}
-                {isConnectingWallet ? "Connecting..." : "Connect MetaMask to sign transactions"}
+              </div>
+              <button onClick={handleFullReset} className="text-[10px] underline text-muted-foreground">
+                Change
               </button>
-            ) : onMobile ? (
-              <span className="text-xs text-orange-400 flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5" />
-                Open this page inside MetaMask app browser
-              </span>
-            ) : (
-              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5 text-yellow-500" />
-                MetaMask extension not installed
-              </span>
-            )}
-          </div>
+            </div>
+          )}
         </motion.div>
 
         {/* ── Step Content ── */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
           <AnimatePresence mode="wait">
             {/* ═══════════════════════════════════════
-                STEP 1 — SCANNER
+                STEP 1 — WALLET SELECTION
+            ═══════════════════════════════════════ */}
+            {step === "wallet" && (
+              <motion.div
+                key="wallet"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="glass-card rounded-2xl p-6 flex flex-col gap-4"
+              >
+                <div className="text-center mb-2">
+                  <Wallet className="w-10 h-10 text-primary mx-auto mb-2" />
+                  <h2 className="text-lg font-bold">Connect Admin Wallet</h2>
+                  <p className="text-xs text-muted-foreground">Required to sign blockchain transactions</p>
+                </div>
+
+                {walletStep === "connecting" && (
+                  <div className="flex flex-col items-center gap-3 py-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Connecting to MetaMask...</p>
+                  </div>
+                )}
+
+                {walletStep === "manual-input" && (
+                  <div className="flex flex-col gap-3">
+                    <p className="text-sm text-muted-foreground">Enter your Ethereum wallet address:</p>
+                    <Input
+                      value={manualAddressInput}
+                      onChange={(e) => {
+                        setManualAddressInput(e.target.value);
+                        setManualAddressError("");
+                      }}
+                      placeholder="0x..."
+                      className="font-mono text-xs"
+                    />
+                    {manualAddressError && <p className="text-xs text-destructive">{manualAddressError}</p>}
+                    <Button onClick={handleManualAddressSubmit} className="w-full">
+                      Confirm Address
+                    </Button>
+                    <Button onClick={() => setWalletStep("choose")} variant="outline" className="w-full">
+                      Back
+                    </Button>
+                  </div>
+                )}
+
+                {walletStep === "choose" && (
+                  <>
+                    {canUseMetaMaskDirectly() ? (
+                      <button
+                        onClick={handleConnectMetaMask}
+                        className="w-full flex items-center gap-4 px-4 py-4 rounded-xl bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 transition-colors text-left"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                          <Wallet className="text-orange-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold">Connect MetaMask</p>
+                          <p className="text-xs text-muted-foreground">Direct connection • Recommended</p>
+                        </div>
+                        <CheckCircle className="text-safe ml-auto shrink-0 w-5 h-5" />
+                      </button>
+                    ) : (
+                      <div className="w-full rounded-xl bg-orange-500/10 border border-orange-500/20 p-4 flex flex-col gap-3">
+                        <p className="text-xs font-semibold text-orange-300">MetaMask not detected</p>
+                        <p className="text-xs text-muted-foreground">
+                          To sign transactions on mobile, open this page inside the MetaMask app browser (🌐 icon inside
+                          MetaMask).
+                        </p>
+                        <a
+                          href={getMetaMaskDeepLink()}
+                          className="w-full py-2.5 rounded-xl bg-orange-500 text-white text-sm font-bold flex items-center justify-center gap-2"
+                        >
+                          <ExternalLink className="w-4 h-4" /> Open in MetaMask App
+                        </a>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 h-px bg-border/50" />
+                      <span className="text-xs text-muted-foreground">or</span>
+                      <div className="flex-1 h-px bg-border/50" />
+                    </div>
+
+                    <button
+                      onClick={() => setWalletStep("manual-input")}
+                      className="w-full flex items-center gap-4 px-4 py-4 rounded-xl bg-muted/20 border border-border/40 hover:bg-muted/40 transition-colors text-left"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-muted/30 flex items-center justify-center flex-shrink-0">
+                        <PenLine className="text-muted-foreground w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">Enter Address Manually</p>
+                        <p className="text-xs text-muted-foreground">No MetaMask required for manual entry</p>
+                      </div>
+                    </button>
+                  </>
+                )}
+              </motion.div>
+            )}
+
+            {/* ═══════════════════════════════════════
+                STEP 2 — SCANNER
             ═══════════════════════════════════════ */}
             {step === "scanner" && (
               <motion.div
@@ -447,7 +486,6 @@ const AdminScan = () => {
                   </p>
                 </div>
 
-                {/* Camera viewport */}
                 <div className="w-full rounded-2xl overflow-hidden bg-black/30 min-h-[290px] relative border border-border/30">
                   <div id={SCANNER_ID} className="w-full" />
                   {!scanning && (
@@ -486,7 +524,7 @@ const AdminScan = () => {
             )}
 
             {/* ═══════════════════════════════════════
-                STEP 2 — CONFIRM
+                STEP 3 — CONFIRM
             ═══════════════════════════════════════ */}
             {step === "confirm" && scannedData && (
               <motion.div
@@ -517,17 +555,15 @@ const AdminScan = () => {
                       {scannedData.totalQuantity &&
                       scannedData.donationQuantity &&
                       scannedData.donationQuantity < scannedData.totalQuantity
-                        ? ` (of ${scannedData.totalQuantity})`
-                        : " (all)"}
+                        ? ` (od ${scannedData.totalQuantity})`
+                        : " (sve)"}
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center py-3 px-4 rounded-xl bg-background/40 border">
                     <span className="text-sm text-muted-foreground">Type</span>
                     <span
-                      className={`text-xs font-bold px-2 py-1 rounded-full ${
-                        scannedData.isCritical ? "bg-danger/20 text-danger" : "bg-safe/20 text-safe"
-                      }`}
+                      className={`text-xs font-bold px-2 py-1 rounded-full ${scannedData.isCritical ? "bg-danger/20 text-danger" : "bg-safe/20 text-safe"}`}
                     >
                       {scannedData.isCritical ? "⚠️ Critical" : "✅ Normal"}
                     </span>
@@ -540,78 +576,29 @@ const AdminScan = () => {
 
                   <div className="py-3 px-4 rounded-xl bg-background/40 border">
                     <p className="text-xs text-muted-foreground mb-1">Donor wallet</p>
-                    {isValidEthAddress(scannedData.userWalletAddress) ? (
-                      <p className="text-xs font-mono break-all text-foreground/80">{scannedData.userWalletAddress}</p>
-                    ) : (
-                      <div className="mt-1">
-                        <p className="text-xs text-warning mb-2">⚠️ Donor hasn't set a wallet. Enter manually:</p>
-                        <Input
-                          value={manualDonorWallet}
-                          onChange={(e) => setManualDonorWallet(e.target.value)}
-                          placeholder="0x..."
-                          className="font-mono text-xs h-9"
-                        />
-                        {manualDonorWallet && !isValidEthAddress(manualDonorWallet) && (
-                          <p className="text-xs text-destructive mt-1">Invalid Ethereum address</p>
-                        )}
-                      </div>
-                    )}
+                    <p className="text-xs font-mono break-all text-foreground/80">{scannedData.userWalletAddress}</p>
                   </div>
                 </div>
 
-                {/* MetaMask signing notice */}
                 <div className="px-3 py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/20">
-                  {metamaskAvailable ? (
-                    <p className="text-xs text-orange-300 leading-relaxed">
-                      <strong>MetaMask will open</strong> to sign the transaction. Review the details before confirming.
-                    </p>
-                  ) : onMobile ? (
-                    <div className="space-y-2">
-                      <p className="text-xs text-orange-300 leading-relaxed font-semibold">
-                        ⚠️ MetaMask browser required
-                      </p>
-                      <p className="text-xs text-orange-200 leading-relaxed">
-                        You must open this admin page <strong>inside the MetaMask app browser</strong>:
-                      </p>
-                      <ol className="text-[11px] text-orange-200 space-y-1 list-decimal list-inside">
-                        <li>Open MetaMask app on your phone</li>
-                        <li>Tap the browser icon (🌐) at the bottom</li>
-                        <li>Paste or type this page's URL</li>
-                        <li>Log in and scan the QR code again</li>
-                      </ol>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard
-                            ?.writeText(window.location.href)
-                            .then(() =>
-                              toast({ title: "✅ URL Copied!", description: "Paste it in the MetaMask browser." }),
-                            );
-                        }}
-                        className="w-full mt-1 py-1.5 rounded-lg bg-orange-500/20 text-orange-300 text-xs font-bold hover:bg-orange-500/30 transition-colors"
-                      >
-                        📋 Copy Page URL
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-yellow-300 leading-relaxed">
-                      <strong>MetaMask is not installed.</strong> Please install the MetaMask extension at metamask.io.
-                    </p>
-                  )}
+                  <p className="text-xs text-orange-300 leading-relaxed">
+                    <strong>MetaMask will open</strong> to sign the transaction. Review the details before confirming.
+                  </p>
                 </div>
 
                 <Button onClick={handleConfirmOnChain} className="w-full bg-primary" size="lg">
                   <Wallet className="w-4 h-4 mr-2" />
-                  {adminWalletAddress ? "Confirm on Blockchain" : "Connect Wallet & Confirm"}
+                  Confirm on Blockchain
                 </Button>
 
-                <Button onClick={handleScanAgain} variant="outline" className="w-full">
+                <Button onClick={handleReset} variant="outline" className="w-full">
                   Cancel / Scan Again
                 </Button>
               </motion.div>
             )}
 
             {/* ═══════════════════════════════════════
-                STEP 3 — PROCESSING
+                STEP 4 — PROCESSING
             ═══════════════════════════════════════ */}
             {step === "processing" && (
               <motion.div
@@ -633,7 +620,7 @@ const AdminScan = () => {
             )}
 
             {/* ═══════════════════════════════════════
-                STEP 4 — SUCCESS
+                STEP 5 — SUCCESS
             ═══════════════════════════════════════ */}
             {step === "success" && txResult && (
               <motion.div
@@ -661,8 +648,7 @@ const AdminScan = () => {
                     rel="noreferrer"
                     className="w-full py-3 rounded-xl bg-blue-500/15 text-blue-400 text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-500/25 transition-colors border border-blue-500/20"
                   >
-                    <ExternalLink className="w-4 h-4" />
-                    View on Etherscan
+                    <ExternalLink className="w-4 h-4" /> View on Etherscan
                   </a>
                 )}
 
@@ -673,7 +659,7 @@ const AdminScan = () => {
                   </div>
                 )}
 
-                <Button onClick={handleScanAgain} className="w-full" size="lg">
+                <Button onClick={handleReset} className="w-full" size="lg">
                   <QrCode className="w-4 h-4 mr-2" />
                   Scan Next Donation
                 </Button>
@@ -681,7 +667,7 @@ const AdminScan = () => {
             )}
 
             {/* ═══════════════════════════════════════
-                STEP 5 — ERROR
+                STEP 6 — ERROR
             ═══════════════════════════════════════ */}
             {step === "error" && txResult && (
               <motion.div
@@ -702,7 +688,7 @@ const AdminScan = () => {
                   Make sure you have enough Sepolia ETH for gas fees, and that MetaMask is on the Sepolia testnet.
                 </p>
 
-                <Button onClick={handleScanAgain} className="w-full" variant="outline">
+                <Button onClick={handleReset} className="w-full" variant="outline">
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Try Again
                 </Button>
