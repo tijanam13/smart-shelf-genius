@@ -1083,7 +1083,18 @@ const FridgePage = () => {
 
                             <div className="space-y-2">
                               <label className="text-sm text-muted-foreground font-semibold">📍 Storage Location</label>
-                              <Select value={editLocation} onValueChange={setEditLocation}>
+                              <Select
+                                value={editLocation}
+                                onValueChange={(val) => {
+                                  setEditLocation(val);
+                                  const currentStatus =
+                                    selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status;
+                                  // Switching to transfer mode — clamp quantity to current max
+                                  if (val !== currentStatus) {
+                                    setEditQuantity((q) => Math.min(q, selectedItem.quantity));
+                                  }
+                                }}
+                              >
                                 <SelectTrigger className="h-10 text-sm bg-background/50 border-border/50 rounded-lg">
                                   <SelectValue />
                                 </SelectTrigger>
