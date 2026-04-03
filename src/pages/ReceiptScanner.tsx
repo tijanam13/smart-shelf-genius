@@ -124,7 +124,7 @@ const ReceiptScanner = () => {
           .select("id, quantity")
           .eq("user_id", user.id)
           .eq("name", item.name)
-          .eq("status", "in_fridge")
+          .in("status", ["fridge", "in_fridge"])
           .eq("expiry_date", item.expiry_date)
           .maybeSingle();
 
