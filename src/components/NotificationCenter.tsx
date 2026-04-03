@@ -89,7 +89,7 @@ const NotificationCenter: React.FC = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ type: "spring", damping: 20, stiffness: 300 }}
-              className="fixed top-24 right-3 left-3 sm:left-auto sm:w-96 z-50 glass-card-strong rounded-2xl shadow-2xl overflow-hidden"
+              className="fixed top-24 bottom-28 right-3 left-3 sm:left-auto sm:w-96 z-50 glass-card-strong rounded-2xl shadow-2xl flex flex-col overflow-hidden"
             >
               {/* Header */}
               <div className="px-5 py-4 border-b border-primary/10 flex items-center justify-between">
@@ -107,7 +107,7 @@ const NotificationCenter: React.FC = () => {
               </div>
 
               {/* Notifications List */}
-              <div className="max-h-[500px] overflow-y-auto">
+              <div className="flex-1 overflow-y-auto min-h-0">
                 {allNotifications.length === 0 ? (
                   <div className="px-5 py-8 text-center">
                     <Bell className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
