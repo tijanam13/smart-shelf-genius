@@ -1,12 +1,23 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Trash2, ExternalLink, ChevronRight, ListPlus, Store, Check, Sparkles, Loader2, ShoppingBag } from "lucide-react";
+import {
+  Plus,
+  X,
+  Trash2,
+  ExternalLink,
+  ChevronRight,
+  ListPlus,
+  Store,
+  Check,
+  Sparkles,
+  Loader2,
+  ShoppingBag,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import BottomNav from "@/components/BottomNav";
 import Header from "@/components/Header";
 import { useToast } from "@/hooks/use-toast";
-
 
 interface ShoppingItem {
   id: string;
@@ -77,12 +88,12 @@ const macroEmoji: Record<string, string> = {
 const ShoppingList = () => {
   const { toast } = useToast();
   const { user } = useAuth();
-  
+
   const [lists, setLists] = useState<ShoppingListData[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [showNewListForm, setShowNewListForm] = useState(false);
   const [newListName, setNewListName] = useState("");
-  
+
   const [newItemName, setNewItemName] = useState("");
   const [newItemQty, setNewItemQty] = useState("1");
   const [newItemUnit, setNewItemUnit] = useState("pcs");
@@ -143,9 +154,8 @@ const ShoppingList = () => {
       toast({ title: "Error", description: "Select a list first", variant: "destructive" });
       return;
     }
-    const store = suggestionShowCustomStore && suggestionCustomStore.trim()
-      ? suggestionCustomStore.trim()
-      : suggestionStore;
+    const store =
+      suggestionShowCustomStore && suggestionCustomStore.trim() ? suggestionCustomStore.trim() : suggestionStore;
     const newItem: ShoppingItem = {
       id: Date.now().toString(),
       name: suggestion.name,
@@ -155,10 +165,10 @@ const ShoppingList = () => {
       checked: false,
     };
     const updatedLists = lists.map((list) =>
-      list.id === currentList.id ? { ...list, items: [...list.items, newItem] } : list
+      list.id === currentList.id ? { ...list, items: [...list.items, newItem] } : list,
     );
     setLists(updatedLists);
-    setSuggestions(prev => prev.filter(s => s.name !== suggestion.name));
+    setSuggestions((prev) => prev.filter((s) => s.name !== suggestion.name));
     setExpandedSuggestion(null);
     toast({ title: "Added!", description: `"${suggestion.name}" added to ${store}` });
   };
@@ -235,7 +245,7 @@ const ShoppingList = () => {
     };
 
     const updatedLists = lists.map((list) =>
-      list.id === currentList.id ? { ...list, items: [...list.items, newItem] } : list
+      list.id === currentList.id ? { ...list, items: [...list.items, newItem] } : list,
     );
 
     setLists(updatedLists);
@@ -252,9 +262,7 @@ const ShoppingList = () => {
     if (!currentList) return;
 
     const updatedLists = lists.map((list) =>
-      list.id === currentList.id
-        ? { ...list, items: list.items.filter((i) => i.id !== itemId) }
-        : list
+      list.id === currentList.id ? { ...list, items: list.items.filter((i) => i.id !== itemId) } : list,
     );
     setLists(updatedLists);
   };
@@ -266,11 +274,9 @@ const ShoppingList = () => {
       list.id === currentList.id
         ? {
             ...list,
-            items: list.items.map((item) =>
-              item.id === itemId ? { ...item, checked: !item.checked } : item
-            ),
+            items: list.items.map((item) => (item.id === itemId ? { ...item, checked: !item.checked } : item)),
           }
-        : list
+        : list,
     );
     setLists(updatedLists);
   };
@@ -283,7 +289,7 @@ const ShoppingList = () => {
           acc[store].push(item);
           return acc;
         },
-        {} as Record<string, ShoppingItem[]>
+        {} as Record<string, ShoppingItem[]>,
       )
     : {};
 
@@ -321,11 +327,15 @@ const ShoppingList = () => {
                   <button
                     onClick={() => setSelectedListId(list.id)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      selectedListId === list.id ? "bg-primary text-primary-foreground" : "glass-card text-muted-foreground hover:text-foreground"
+                      selectedListId === list.id
+                        ? "bg-primary text-primary-foreground"
+                        : "glass-card text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {list.name}
-                    <span className="text-xs ml-2 opacity-60">({list.items.filter((i) => !i.checked).length}/{list.items.length})</span>
+                    <span className="text-xs ml-2 opacity-60">
+                      ({list.items.filter((i) => !i.checked).length}/{list.items.length})
+                    </span>
                   </button>
                 </motion.div>
               ))}
@@ -346,7 +356,12 @@ const ShoppingList = () => {
             {/* New List Form */}
             <AnimatePresence>
               {showNewListForm && (
-                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="glass-card rounded-lg p-3 flex gap-2">
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="glass-card rounded-lg p-3 flex gap-2"
+                >
                   <input
                     type="text"
                     value={newListName}
@@ -403,7 +418,9 @@ const ShoppingList = () => {
                     className="glass-card-strong rounded-2xl p-5 mb-6 space-y-4"
                   >
                     <div>
-                      <label className="text-xs font-semibold text-foreground uppercase tracking-wider block mb-2">Product</label>
+                      <label className="text-xs font-semibold text-foreground uppercase tracking-wider block mb-2">
+                        Product
+                      </label>
                       <input
                         type="text"
                         value={newItemName}
@@ -417,7 +434,9 @@ const ShoppingList = () => {
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-semibold text-foreground uppercase tracking-wider block mb-2">Quantity</label>
+                        <label className="text-xs font-semibold text-foreground uppercase tracking-wider block mb-2">
+                          Quantity
+                        </label>
                         <input
                           type="number"
                           value={newItemQty}
@@ -428,7 +447,9 @@ const ShoppingList = () => {
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-semibold text-foreground uppercase tracking-wider block mb-2">Unit</label>
+                        <label className="text-xs font-semibold text-foreground uppercase tracking-wider block mb-2">
+                          Unit
+                        </label>
                         <select
                           value={newItemUnit}
                           onChange={(e) => setNewItemUnit(e.target.value)}
@@ -444,7 +465,9 @@ const ShoppingList = () => {
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold text-foreground uppercase tracking-wider block mb-2">Store</label>
+                      <label className="text-xs font-semibold text-foreground uppercase tracking-wider block mb-2">
+                        Store
+                      </label>
                       {!showCustomStore ? (
                         <div className="space-y-2">
                           <select
@@ -581,140 +604,166 @@ const ShoppingList = () => {
                     ) : suggestions.length > 0 ? (
                       <div className="space-y-2">
                         {suggestions.map((s, idx) => (
-                          <motion.div
-                            key={s.name + idx}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                            className="glass-card rounded-xl p-3 flex items-center gap-3"
-                          >
-                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                              s.priority === "high" ? "bg-urgent" : s.priority === "medium" ? "bg-warning" : "bg-safe"
-                            }`} />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-foreground">{s.name}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">{s.reason}</p>
-                              {s.macronutrient && (
-                                <span className="text-[10px] text-primary/80 mt-0.5 inline-flex items-center gap-0.5">
-                                  {macroEmoji[s.macronutrient] || "⚖️"} {s.macronutrient}
-                                </span>
+                          <div key={s.name + idx}>
+                            <motion.div
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: idx * 0.05 }}
+                              className="glass-card rounded-xl p-3 flex items-center gap-3"
+                            >
+                              <div
+                                className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                  s.priority === "high"
+                                    ? "bg-urgent"
+                                    : s.priority === "medium"
+                                      ? "bg-warning"
+                                      : "bg-safe"
+                                }`}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground">{s.name}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{s.reason}</p>
+                                {s.macronutrient && (
+                                  <span className="text-[10px] text-primary/80 mt-0.5 inline-flex items-center gap-0.5">
+                                    {macroEmoji[s.macronutrient] || "⚖️"} {s.macronutrient}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full flex-shrink-0">
+                                {s.category}
+                              </span>
+                              {currentList && (
+                                <motion.button
+                                  whileTap={{ scale: 0.9 }}
+                                  onClick={() => openSuggestionPicker(s.name)}
+                                  className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors flex-shrink-0"
+                                  title="Add to list"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </motion.button>
                               )}
-                            </div>
-                            <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full flex-shrink-0">
-                              {s.category}
-                            </span>
-                            {currentList && (
-                              <motion.button
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => openSuggestionPicker(s.name)}
-                                className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors flex-shrink-0"
-                                title="Add to list"
-                              >
-                                <Plus className="w-4 h-4" />
-                              </motion.button>
-                            )}
-                          </motion.div>
+                            </motion.div>
 
-                          {/* Expanded store/qty picker for this suggestion */}
-                          <AnimatePresence>
-                            {expandedSuggestion === s.name && (
-                              <motion.div
-                                key="picker"
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: "auto" }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="overflow-hidden"
-                              >
-                                <div className="mt-2 mx-1 p-3 rounded-xl bg-background/40 border border-primary/20 space-y-3">
-                                  {/* Quantity + Unit */}
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Quantity</label>
-                                      <input
-                                        type="number"
-                                        value={suggestionQty}
-                                        onChange={(e) => setSuggestionQty(e.target.value)}
-                                        min="0.1"
-                                        step="0.1"
-                                        className="w-full glass-card rounded-lg px-2 py-1.5 text-sm border border-primary/20 focus:border-primary/60 outline-none transition-colors text-foreground"
-                                      />
-                                    </div>
-                                    <div>
-                                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Unit</label>
-                                      <select
-                                        value={suggestionUnit}
-                                        onChange={(e) => setSuggestionUnit(e.target.value)}
-                                        className="w-full glass-card rounded-lg px-2 py-1.5 text-sm border border-primary/20 focus:border-primary/60 outline-none transition-colors text-foreground"
-                                      >
-                                        {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                                      </select>
-                                    </div>
-                                  </div>
-
-                                  {/* Store picker */}
-                                  <div>
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Store</label>
-                                    {!suggestionShowCustomStore ? (
-                                      <div className="space-y-1.5">
+                            {/* Expanded store/qty picker for this suggestion */}
+                            <AnimatePresence>
+                              {expandedSuggestion === s.name && (
+                                <motion.div
+                                  key="picker"
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="mt-2 mx-1 p-3 rounded-xl bg-background/40 border border-primary/20 space-y-3">
+                                    {/* Quantity + Unit */}
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                                          Quantity
+                                        </label>
+                                        <input
+                                          type="number"
+                                          value={suggestionQty}
+                                          onChange={(e) => setSuggestionQty(e.target.value)}
+                                          min="0.1"
+                                          step="0.1"
+                                          className="w-full glass-card rounded-lg px-2 py-1.5 text-sm border border-primary/20 focus:border-primary/60 outline-none transition-colors text-foreground"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                                          Unit
+                                        </label>
                                         <select
-                                          value={suggestionStore}
-                                          onChange={(e) => setSuggestionStore(e.target.value)}
+                                          value={suggestionUnit}
+                                          onChange={(e) => setSuggestionUnit(e.target.value)}
                                           className="w-full glass-card rounded-lg px-2 py-1.5 text-sm border border-primary/20 focus:border-primary/60 outline-none transition-colors text-foreground"
                                         >
-                                          {STORES.map((store) => <option key={store} value={store}>{store}</option>)}
+                                          {UNITS.map((u) => (
+                                            <option key={u} value={u}>
+                                              {u}
+                                            </option>
+                                          ))}
                                         </select>
-                                        <button
-                                          onClick={() => setSuggestionShowCustomStore(true)}
-                                          className="w-full text-[10px] text-primary hover:text-primary/80 transition-colors font-medium py-0.5"
-                                        >
-                                          + Custom Store
-                                        </button>
                                       </div>
-                                    ) : (
-                                      <div className="space-y-1.5">
-                                        <input
-                                          type="text"
-                                          value={suggestionCustomStore}
-                                          onChange={(e) => setSuggestionCustomStore(e.target.value)}
-                                          placeholder="Store name..."
-                                          className="w-full glass-card rounded-lg px-2 py-1.5 text-sm border border-primary/20 focus:border-primary/60 outline-none transition-colors text-foreground placeholder:text-muted-foreground"
-                                          autoFocus
-                                        />
-                                        <button
-                                          onClick={() => { setSuggestionShowCustomStore(false); setSuggestionCustomStore(""); }}
-                                          className="w-full text-[10px] text-muted-foreground hover:text-foreground transition-colors font-medium py-0.5"
-                                        >
-                                          Use Store List
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
+                                    </div>
 
-                                  {/* Confirm / Cancel */}
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => addSuggestionToList(s)}
-                                      className="flex-1 bg-primary text-primary-foreground rounded-lg py-2 text-xs font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-1"
-                                    >
-                                      <Plus className="w-3 h-3" /> Add to List
-                                    </button>
-                                    <button
-                                      onClick={() => setExpandedSuggestion(null)}
-                                      className="flex-1 glass-card rounded-lg py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                                    >
-                                      Cancel
-                                    </button>
+                                    {/* Store picker */}
+                                    <div>
+                                      <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                                        Store
+                                      </label>
+                                      {!suggestionShowCustomStore ? (
+                                        <div className="space-y-1.5">
+                                          <select
+                                            value={suggestionStore}
+                                            onChange={(e) => setSuggestionStore(e.target.value)}
+                                            className="w-full glass-card rounded-lg px-2 py-1.5 text-sm border border-primary/20 focus:border-primary/60 outline-none transition-colors text-foreground"
+                                          >
+                                            {STORES.map((store) => (
+                                              <option key={store} value={store}>
+                                                {store}
+                                              </option>
+                                            ))}
+                                          </select>
+                                          <button
+                                            onClick={() => setSuggestionShowCustomStore(true)}
+                                            className="w-full text-[10px] text-primary hover:text-primary/80 transition-colors font-medium py-0.5"
+                                          >
+                                            + Custom Store
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <div className="space-y-1.5">
+                                          <input
+                                            type="text"
+                                            value={suggestionCustomStore}
+                                            onChange={(e) => setSuggestionCustomStore(e.target.value)}
+                                            placeholder="Store name..."
+                                            className="w-full glass-card rounded-lg px-2 py-1.5 text-sm border border-primary/20 focus:border-primary/60 outline-none transition-colors text-foreground placeholder:text-muted-foreground"
+                                            autoFocus
+                                          />
+                                          <button
+                                            onClick={() => {
+                                              setSuggestionShowCustomStore(false);
+                                              setSuggestionCustomStore("");
+                                            }}
+                                            className="w-full text-[10px] text-muted-foreground hover:text-foreground transition-colors font-medium py-0.5"
+                                          >
+                                            Use Store List
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Confirm / Cancel */}
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => addSuggestionToList(s)}
+                                        className="flex-1 bg-primary text-primary-foreground rounded-lg py-2 text-xs font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-1"
+                                      >
+                                        <Plus className="w-3 h-3" /> Add to List
+                                      </button>
+                                      <button
+                                        onClick={() => setExpandedSuggestion(null)}
+                                        className="flex-1 glass-card rounded-lg py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
                                   </div>
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
                         ))}
                       </div>
                     ) : (
                       <div className="text-center py-6">
                         <ShoppingBag className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                        <p className="text-xs text-muted-foreground">No suggestions available. Add items to your fridge first.</p>
+                        <p className="text-xs text-muted-foreground">
+                          No suggestions available. Add items to your fridge first.
+                        </p>
                       </div>
                     )}
                   </motion.div>
@@ -725,11 +774,18 @@ const ShoppingList = () => {
               {Object.keys(groupedByStore).length > 0 ? (
                 <div className="space-y-6">
                   {Object.entries(groupedByStore).map(([store, storeItems], storeIdx) => (
-                    <motion.div key={store} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: storeIdx * 0.1 }}>
+                    <motion.div
+                      key={store}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: storeIdx * 0.1 }}
+                    >
                       <div className="flex items-center gap-2 mb-3">
                         <Store className="w-4 h-4 text-primary" />
                         <h3 className="text-sm font-semibold text-foreground">{store}</h3>
-                        <span className="text-xs text-muted-foreground">({storeItems.filter((i) => !i.checked).length}/{storeItems.length})</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({storeItems.filter((i) => !i.checked).length}/{storeItems.length})
+                        </span>
                       </div>
 
                       <div className="space-y-2">
@@ -747,15 +803,15 @@ const ShoppingList = () => {
                               onClick={() => toggleItem(item.id)}
                               whileTap={{ scale: 0.9 }}
                               className={`flex-shrink-0 w-7 h-7 rounded-lg border-2 flex items-center justify-center transition-all ${
-                                item.checked
-                                  ? "bg-primary border-primary"
-                                  : "border-primary/30 hover:border-primary/60"
+                                item.checked ? "bg-primary border-primary" : "border-primary/30 hover:border-primary/60"
                               }`}
                             >
                               {item.checked && <Check className="w-4 h-4 text-primary-foreground" />}
                             </motion.button>
                             <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleItem(item.id)}>
-                              <p className={`text-sm font-medium ${item.checked ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                              <p
+                                className={`text-sm font-medium ${item.checked ? "line-through text-muted-foreground" : "text-foreground"}`}
+                              >
                                 {item.name}
                               </p>
                               <p className="text-xs text-muted-foreground mt-0.5">
@@ -777,7 +833,11 @@ const ShoppingList = () => {
                   ))}
                 </div>
               ) : (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card rounded-2xl p-8 text-center">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="glass-card rounded-2xl p-8 text-center"
+                >
                   <ListPlus className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
                   <p className="text-sm text-muted-foreground">No items on your list</p>
                   <p className="text-xs text-muted-foreground mt-1">Start adding products you need to buy</p>
@@ -786,7 +846,11 @@ const ShoppingList = () => {
 
               {/* Summary */}
               {totalCount > 0 && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl p-5 mt-6 border border-primary/20">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="glass-card rounded-2xl p-5 mt-6 border border-primary/20"
+                >
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <p className="text-xs text-muted-foreground">Remaining</p>
@@ -817,7 +881,7 @@ const ShoppingList = () => {
                   <p className="text-xs text-muted-foreground mt-1">Click on "New List" to get started</p>
                 </div>
               </div>
-              
+
               {/* Cenoteka Link - LARGE & PROMINENT */}
               <motion.a
                 whileHover={{ scale: 1.02 }}
@@ -831,8 +895,12 @@ const ShoppingList = () => {
                     <ExternalLink className="w-6 h-6 text-token" />
                   </div>
                   <div className="text-left">
-                    <p className="text-sm text-token font-bold uppercase tracking-wider">Compare Prices on Cenoteka.rs</p>
-                    <p className="text-base text-foreground font-semibold mt-1">Find the best deals for your shopping →</p>
+                    <p className="text-sm text-token font-bold uppercase tracking-wider">
+                      Compare Prices on Cenoteka.rs
+                    </p>
+                    <p className="text-base text-foreground font-semibold mt-1">
+                      Find the best deals for your shopping →
+                    </p>
                   </div>
                 </div>
               </motion.a>
