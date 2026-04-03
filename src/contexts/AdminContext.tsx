@@ -22,11 +22,14 @@ const AdminContext = createContext<AdminContextType>({
 export const useAdmin = () => useContext(AdminContext);
 
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Čekaj dok AuthContext ne završi učitavanje sesije
+    if (authLoading) return;
+
     const checkAdmin = async () => {
       if (!user) {
         setIsAdmin(false);
@@ -41,7 +44,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     };
 
     checkAdmin();
-  }, [user]);
+  }, [user, authLoading]);
 
   return <AdminContext.Provider value={{ isAdmin, loading }}>{children}</AdminContext.Provider>;
 };
