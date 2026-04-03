@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PremiumContextType {
@@ -17,12 +16,13 @@ const PremiumContext = createContext<PremiumContextType>({
 export const usePremium = () => useContext(PremiumContext);
 
 export const PremiumProvider = ({ children }: { children: ReactNode }) => {
-  const { user, loading: authLoading } = useAuth();
   const [isPremium, setIsPremium] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchPremium = async () => {
-    if (authLoading) return;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       setIsPremium(false);
@@ -42,12 +42,27 @@ export const PremiumProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    if (authLoading) {
-      setLoading(true);
-      return;
-    }
-    fetchPremium();
-  }, [user, authLoading]);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+        if (session?.user) {
+          (supabase.rpc as any)("get_my_premium").then(({ data, error }: any) => {
+            if (!error) setIsPremium(data === true);
+            setLoading(false);
+          });
+        } else {
+          setIsPremium(false);
+          setLoading(false);
+        }
+      } else if (event === "SIGNED_OUT") {
+        setIsPremium(false);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <PremiumContext.Provider value={{ isPremium, loading, refresh: fetchPremium }}>{children}</PremiumContext.Provider>
