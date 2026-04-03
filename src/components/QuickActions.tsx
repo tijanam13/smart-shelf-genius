@@ -16,7 +16,7 @@ const QuickActions = () => {
       <h3 className="font-display text-sm font-semibold text-foreground mb-3">
         Quick Actions
       </h3>
-      <div className="grid grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-3 gap-2.5">
         {actions.map((action, idx) => (
           <motion.button
             key={action.label}

@@ -102,14 +102,6 @@ const App = () => (
                     }
                   />
                   <Route
-                    path="/barcode-scanner"
-                    element={
-                      <AdminGuard>
-                        <BarcodeScanner />
-                      </AdminGuard>
-                    }
-                  />
-                  <Route
                     path="/scan"
                     element={
                       <AdminGuard>
