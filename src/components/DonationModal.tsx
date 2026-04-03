@@ -8,10 +8,13 @@
 
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, QrCode, CheckCircle, AlertTriangle } from "lucide-react";
+import { X, QrCode, CheckCircle, AlertTriangle, Wallet, Unlink, Loader2, ExternalLink } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { connectMetaMask, isMetaMaskAvailable, isMobileDevice, getMetaMaskDeepLinkForCurrentPage } from "@/lib/blockchain";
 
 interface DonationModalProps {
   isOpen: boolean;
@@ -34,12 +37,22 @@ const DonationModal: React.FC<DonationModalProps> = ({
   unit = "pcs",
   userWalletAddress,
 }) => {
+  const { user } = useAuth();
   const [confirmed, setConfirmed] = useState(false);
+  const [tokensEarned, setTokensEarned] = useState(0);
   const [localWallet, setLocalWallet] = useState(userWalletAddress || "");
+  const [connectingWallet, setConnectingWallet] = useState(false);
+  const [scannedByAdmin, setScannedByAdmin] = useState(false);
+
   const isCritical = daysLeft <= 5 && daysLeft >= 0;
   const isExpired = daysLeft < 0;
   const bonusTokens = isCritical ? 5 : 3;
   const hasValidWallet = /^0x[a-fA-F0-9]{40}$/.test(localWallet);
+
+  // Sync wallet from prop
+  useEffect(() => {
+    if (userWalletAddress) setLocalWallet(userWalletAddress);
+  }, [userWalletAddress]);
 
   // QR code payload — admin scans this to confirm the donation
   const qrData = JSON.stringify({
@@ -68,12 +81,15 @@ const DonationModal: React.FC<DonationModalProps> = ({
         },
         () => {
           // Item was deleted by admin after blockchain confirmation
+          setScannedByAdmin(true);
+          setTokensEarned(bonusTokens);
           setConfirmed(true);
-          // Auto-close after showing success for 3 seconds
+          // Auto-close after showing success
           setTimeout(() => {
             setConfirmed(false);
+            setScannedByAdmin(false);
             onClose();
-          }, 3500);
+          }, 4000);
         },
       )
       .subscribe();
@@ -81,7 +97,36 @@ const DonationModal: React.FC<DonationModalProps> = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isOpen, itemId, onClose]);
+  }, [isOpen, itemId, onClose, bonusTokens]);
+
+  // Connect MetaMask from within the modal
+  const handleConnectWallet = async () => {
+    if (!isMetaMaskAvailable() && isMobileDevice()) {
+      window.location.href = getMetaMaskDeepLinkForCurrentPage();
+      return;
+    }
+    if (!isMetaMaskAvailable()) return;
+
+    setConnectingWallet(true);
+    try {
+      const address = await connectMetaMask();
+      if (address) {
+        setLocalWallet(address);
+        // Save to profile
+        await supabase.rpc("update_own_profile", { _wallet_address: address });
+      }
+    } catch {
+      // ignore
+    } finally {
+      setConnectingWallet(false);
+    }
+  };
+
+  // Disconnect wallet
+  const handleDisconnectWallet = async () => {
+    setLocalWallet("");
+    await supabase.rpc("update_own_profile", { _wallet_address: "" });
+  };
 
   if (!isOpen) return null;
 
@@ -131,107 +176,169 @@ const DonationModal: React.FC<DonationModalProps> = ({
                 <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
                 <h2 className="text-xl font-bold text-foreground">Donation Confirmed! 🎉</h2>
                 <p className="text-sm text-muted-foreground mt-2 text-center">
-                  The admin verified your donation on the blockchain. You earned <strong>+{bonusTokens} tokens</strong>!
+                  The admin verified your donation on the blockchain.
                 </p>
-                <p className="text-xs text-muted-foreground mt-3">Closing automatically...</p>
+                <div className="mt-3 px-4 py-2 rounded-xl bg-primary/10 border border-primary/20">
+                  <p className="text-lg font-bold text-primary">+{tokensEarned} Tokens Earned!</p>
+                  <p className="text-xs text-muted-foreground text-center">+{tokensEarned} Points added</p>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  {itemName} has been removed from your fridge.
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-2">Closing automatically...</p>
               </motion.div>
             ) : (
-            <motion.div
-              key="info"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="w-full flex flex-col items-center"
-            >
-              {isCritical && (
-                <div className="mb-3 px-3 py-1 rounded-full bg-warning/20 text-warning text-xs font-semibold">
-                  ⏰ Priority Donation (+{bonusTokens} Tokens)
+              <motion.div
+                key="info"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="w-full flex flex-col items-center"
+              >
+                {isCritical && (
+                  <div className="mb-3 px-3 py-1 rounded-full bg-warning/20 text-warning text-xs font-semibold">
+                    ⏰ Priority Donation (+{bonusTokens} Tokens)
+                  </div>
+                )}
+
+                <h2 className="text-xl font-bold text-foreground mt-2 text-center">
+                  {isExpired ? "🗑️ Item Expired" : "🎁 Donate Item"}
+                </h2>
+
+                <div className="mt-4 mb-4 text-center">
+                  <p className="text-lg font-semibold text-foreground">{itemName}</p>
+                  {isCritical && <p className="text-sm text-warning mt-1 font-medium">⏰ Expires in {daysLeft} days</p>}
                 </div>
-              )}
 
-              <h2 className="text-xl font-bold text-foreground mt-2 text-center">
-                {isExpired ? "🗑️ Item Expired" : "🎁 Donate Item"}
-              </h2>
+                {!isExpired && (
+                  <>
+                    {/* Wallet Status Section */}
+                    <div className="w-full mb-4 px-4 py-3 rounded-xl border border-border/30 bg-background/30">
+                      {hasValidWallet ? (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-safe" />
+                            <div>
+                              <p className="text-xs font-semibold text-safe">Wallet Connected</p>
+                              <p className="text-[10px] text-muted-foreground font-mono">
+                                {localWallet.slice(0, 10)}...{localWallet.slice(-6)}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={handleDisconnectWallet}
+                            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <Unlink className="w-3 h-3" />
+                            Disconnect
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 mb-2">
+                            <AlertTriangle className="w-4 h-4 text-warning" />
+                            <p className="text-xs font-semibold text-warning">Wallet address required</p>
+                          </div>
 
-              <div className="mt-4 mb-4 text-center">
-                <p className="text-lg font-semibold text-foreground">{itemName}</p>
-                {isCritical && <p className="text-sm text-warning mt-1 font-medium">⏰ Expires in {daysLeft} days</p>}
-              </div>
+                          {isMetaMaskAvailable() ? (
+                            <Button
+                              onClick={handleConnectWallet}
+                              disabled={connectingWallet}
+                              variant="outline"
+                              size="sm"
+                              className="w-full border-orange-500/40 text-orange-400 hover:bg-orange-500/10"
+                            >
+                              {connectingWallet ? (
+                                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                              ) : (
+                                <Wallet className="w-3.5 h-3.5 mr-1.5" />
+                              )}
+                              {connectingWallet ? "Connecting..." : "Connect MetaMask"}
+                            </Button>
+                          ) : isMobileDevice() ? (
+                            <a
+                              href={getMetaMaskDeepLinkForCurrentPage()}
+                              className="flex items-center justify-center gap-2 w-full py-2 rounded-lg border border-orange-500/40 text-orange-400 text-sm hover:bg-orange-500/10"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              Open in MetaMask App
+                            </a>
+                          ) : null}
 
-              {!isExpired && (
-                <>
-                  {/* Wallet warning + manual input */}
-                  {!hasValidWallet && (
-                    <div className="w-full mb-4 px-4 py-3 rounded-xl bg-warning/10 border border-warning/30">
-                      <div className="flex items-center gap-2 mb-2">
-                        <AlertTriangle className="w-4 h-4 text-warning" />
-                        <p className="text-xs font-semibold text-warning">Wallet address required</p>
-                      </div>
-                      <p className="text-xs text-muted-foreground mb-2">
-                        Add your MetaMask wallet address on the Profile page, or enter it below:
+                          <p className="text-[10px] text-muted-foreground">
+                            Or enter your wallet address manually:
+                          </p>
+                          <Input
+                            value={localWallet}
+                            onChange={(e) => setLocalWallet(e.target.value)}
+                            placeholder="0x..."
+                            className="font-mono text-xs h-9"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Instructions */}
+                    <div className="w-full mb-4 px-4 py-3 rounded-xl bg-primary/5 border border-primary/20 text-center">
+                      <QrCode className="w-5 h-5 text-primary mx-auto mb-1" />
+                      <p className="text-xs text-muted-foreground">
+                        Show this QR code to the{" "}
+                        <span className="font-semibold text-foreground">donation center admin</span> — they will scan it
+                        and confirm your donation.
                       </p>
-                      <Input
-                        value={localWallet}
-                        onChange={(e) => setLocalWallet(e.target.value)}
-                        placeholder="0x..."
-                        className="font-mono text-xs h-9"
+                    </div>
+
+                    {/* QR Code */}
+                    <div className={`bg-white rounded-2xl p-4 mb-4 shadow-sm ${!hasValidWallet ? "opacity-40 pointer-events-none" : ""}`}>
+                      <QRCodeSVG
+                        value={qrData}
+                        size={190}
+                        level="H"
+                        includeMargin={true}
+                        fgColor="#000000"
+                        bgColor="#ffffff"
                       />
                     </div>
-                  )}
 
-                  {/* Instructions */}
-                  <div className="w-full mb-4 px-4 py-3 rounded-xl bg-primary/5 border border-primary/20 text-center">
-                    <QrCode className="w-5 h-5 text-primary mx-auto mb-1" />
-                    <p className="text-xs text-muted-foreground">
-                      Show this QR code to the{" "}
-                      <span className="font-semibold text-foreground">donation center admin</span> — they will scan it
-                      and confirm your donation.
-                    </p>
-                  </div>
+                    {/* Waiting indicator */}
+                    {hasValidWallet && (
+                      <div className="w-full mb-3 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                        Waiting for admin to scan and confirm...
+                      </div>
+                    )}
 
-                  {/* QR Code */}
-                  <div className={`bg-white rounded-2xl p-4 mb-4 shadow-sm ${!hasValidWallet ? 'opacity-40 pointer-events-none' : ''}`}>
-                    <QRCodeSVG
-                      value={qrData}
-                      size={190}
-                      level="H"
-                      includeMargin={true}
-                      fgColor="#000000"
-                      bgColor="#ffffff"
-                    />
-                  </div>
+                    {/* Token reward info */}
+                    <div className="w-full text-center mb-4 space-y-1 text-xs text-muted-foreground">
+                      <p>✅ You earn +{bonusTokens} tokens when confirmed</p>
+                      <p>🌱 Helps reduce food waste</p>
+                    </div>
 
-                  {/* Token reward info */}
-                  <div className="w-full text-center mb-4 space-y-1 text-xs text-muted-foreground">
-                    <p>✅ You earn +{bonusTokens} tokens when confirmed</p>
-                    <p>🌱 Helps reduce food waste</p>
-                  </div>
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={onClose}
+                      className="w-full py-3 rounded-xl bg-muted/30 text-muted-foreground text-sm font-bold hover:bg-muted/50 transition-colors"
+                    >
+                      Close
+                    </motion.button>
+                  </>
+                )}
 
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={onClose}
-                    className="w-full py-3 rounded-xl bg-muted/30 text-muted-foreground text-sm font-bold hover:bg-muted/50 transition-colors"
-                  >
-                    Close
-                  </motion.button>
-                </>
-              )}
-
-              {isExpired && (
-                <>
-                  <div className="mb-6 text-center px-4 py-3 rounded-lg bg-urgent/10 border border-urgent/20">
-                    <p className="text-sm text-urgent">This item has expired and should be removed from your fridge.</p>
-                  </div>
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={onClose}
-                    className="w-full py-3 rounded-lg bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors"
-                  >
-                    Close
-                  </motion.button>
-                </>
-              )}
-            </motion.div>
+                {isExpired && (
+                  <>
+                    <div className="mb-6 text-center px-4 py-3 rounded-lg bg-urgent/10 border border-urgent/20">
+                      <p className="text-sm text-urgent">This item has expired and should be removed from your fridge.</p>
+                    </div>
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={onClose}
+                      className="w-full py-3 rounded-lg bg-primary/20 text-primary text-sm font-bold hover:bg-primary/30 transition-colors"
+                    >
+                      Close
+                    </motion.button>
+                  </>
+                )}
+              </motion.div>
             )}
           </AnimatePresence>
         </div>
