@@ -12,6 +12,7 @@ import { PremiumProvider } from "@/contexts/PremiumContext";
 import { AdminProvider } from "@/contexts/AdminContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useAdmin } from "@/contexts/AdminContext";
+import { useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index.tsx";
 import Fridge from "./pages/Fridge.tsx";
 import ShoppingList from "./pages/ShoppingList.tsx";
@@ -31,7 +32,15 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
-// Wrapper that redirects admins away from regular pages
+// Štiti rute od nelogovanih korisnika — redirectuje na /login
+const AuthGuard = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
+// Wrapper koji redirectuje admin korisnike ka /admin-scan
 const AdminGuard = ({ children }: { children: React.ReactNode }) => {
   const { isAdmin, loading } = useAdmin();
   if (loading) return null;
@@ -63,66 +72,89 @@ const App = () => (
                   <Route
                     path="/"
                     element={
-                      <AdminGuard>
-                        <Index />
-                      </AdminGuard>
+                      <AuthGuard>
+                        <AdminGuard>
+                          <Index />
+                        </AdminGuard>
+                      </AuthGuard>
                     }
                   />
                   <Route
                     path="/fridge"
                     element={
-                      <AdminGuard>
-                        <Fridge />
-                      </AdminGuard>
+                      <AuthGuard>
+                        <AdminGuard>
+                          <Fridge />
+                        </AdminGuard>
+                      </AuthGuard>
                     }
                   />
                   <Route
                     path="/shopping-list"
                     element={
-                      <AdminGuard>
-                        <ShoppingList />
-                      </AdminGuard>
+                      <AuthGuard>
+                        <AdminGuard>
+                          <ShoppingList />
+                        </AdminGuard>
+                      </AuthGuard>
                     }
                   />
                   <Route
                     path="/planet"
                     element={
-                      <AdminGuard>
-                        <Planet />
-                      </AdminGuard>
+                      <AuthGuard>
+                        <AdminGuard>
+                          <Planet />
+                        </AdminGuard>
+                      </AuthGuard>
                     }
                   />
-                  <Route path="/profile" element={<Profile />} />
+                  <Route
+                    path="/profile"
+                    element={
+                      <AuthGuard>
+                        <Profile />
+                      </AuthGuard>
+                    }
+                  />
                   <Route
                     path="/family"
                     element={
-                      <AdminGuard>
-                        <Family />
-                      </AdminGuard>
+                      <AuthGuard>
+                        <AdminGuard>
+                          <Family />
+                        </AdminGuard>
+                      </AuthGuard>
                     }
                   />
                   <Route
                     path="/scan"
                     element={
-                      <AdminGuard>
-                        <ReceiptScanner />
-                      </AdminGuard>
+                      <AuthGuard>
+                        <AdminGuard>
+                          <ReceiptScanner />
+                        </AdminGuard>
+                      </AuthGuard>
                     }
                   />
                   <Route
                     path="/manual-entry"
                     element={
-                      <AdminGuard>
-                        <ManualEntry />
-                      </AdminGuard>
+                      <AuthGuard>
+                        <AdminGuard>
+                          <ManualEntry />
+                        </AdminGuard>
+                      </AuthGuard>
                     }
                   />
                   <Route
                     path="/store"
                     element={
-                      <AdminGuard>
-                        <Store />
-                      </AdminGuard>
+                      <AuthGuard>
+                        <AdminGuard>
+                          <Store />
+                        </AdminGuard>
+                      </AuthGuard>
                     }
                   />
 
