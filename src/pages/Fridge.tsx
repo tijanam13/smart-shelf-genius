@@ -335,11 +335,7 @@ const FridgePage = () => {
   // Fetch wallet address on mount and when modal closes (in case it was updated)
   const fetchWallet = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("profiles")
-      .select("wallet_address")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const { data } = await supabase.from("profiles").select("wallet_address").eq("user_id", user.id).maybeSingle();
     setUserWalletAddress((data as any)?.wallet_address || "");
   };
 
@@ -785,9 +781,9 @@ const FridgePage = () => {
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={async () => {
-                          for (const item of expiredItems) {
-                            await supabase.from("fridge_items").delete().eq("id", item.id);
-                          }
+                          const ids = expiredItems.map((item) => item.id);
+                          await supabase.from("fridge_items").delete().in("id", ids);
+                          setSelectedExpiredItem(null);
                           queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
                           toast({
                             title: "Trash emptied",
