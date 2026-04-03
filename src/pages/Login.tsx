@@ -26,9 +26,8 @@ const Login = () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return; // nije ulogovan, čekamo da se uloguje ručno
+      if (!user) return;
 
-      // Korisnik je već ulogovan — odmah aktiviraj premium
       try {
         const { data } = await supabase.functions.invoke("verify-premium");
         if (data?.isPremium) {
@@ -48,7 +47,6 @@ const Login = () => {
     handlePremiumReturn();
   }, []);
 
-  // Ako je admin već ulogovan, odmah ga preusmeri
   useEffect(() => {
     const checkExistingSession = async () => {
       if (searchParams.get("premium") === "success") return; // već obrađeno gore
@@ -75,7 +73,6 @@ const Login = () => {
       return;
     }
 
-    // Proveri da li je korisnik admin
     if (authData?.user) {
       const { data: profile } = await supabase
         .from("profiles")
@@ -90,8 +87,6 @@ const Login = () => {
       }
     }
 
-    // ✅ ISPRAVKA: Korisnik se tek ulogovao, a dolazi sa Stripe-a —
-    // aktiviraj premium i preusmeri na /profile (ne na /)
     if (searchParams.get("premium") === "success") {
       try {
         const { data } = await supabase.functions.invoke("verify-premium");
