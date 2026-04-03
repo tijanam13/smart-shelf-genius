@@ -34,6 +34,9 @@ interface QRDonationData {
   itemName: string;
   isCritical: boolean;
   bonusTokens: number;
+  donationQuantity?: number;
+  totalQuantity?: number;
+  unit?: string;
   userWalletAddress: string;
   action: string;
   network: string;
@@ -42,6 +45,10 @@ interface QRDonationData {
 type PageStep = "scanner" | "confirm" | "processing" | "success" | "error";
 
 const SCANNER_ID = "admin-qr-reader";
+
+// Keys for persisting state across MetaMask redirect
+const SS_SCANNED_DATA = "adminScan_scannedData";
+const SS_STEP = "adminScan_step";
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
 
@@ -80,8 +87,18 @@ const AdminScan = () => {
   const [isOnSepolia, setIsOnSepolia] = useState(false);
 
   // ── Page flow ──
-  const [step, setStep] = useState<PageStep>("scanner");
-  const [scannedData, setScannedData] = useState<QRDonationData | null>(null);
+  const [step, setStep] = useState<PageStep>(() => {
+    const saved = sessionStorage.getItem(SS_STEP);
+    return (saved as PageStep) || "scanner";
+  });
+  const [scannedData, setScannedData] = useState<QRDonationData | null>(() => {
+    try {
+      const saved = sessionStorage.getItem(SS_SCANNED_DATA);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [txResult, setTxResult] = useState<DonationResult | null>(null);
   const [scanning, setScanning] = useState(false);
   const [manualDonorWallet, setManualDonorWallet] = useState("");
@@ -137,6 +154,19 @@ const AdminScan = () => {
       toast({ title: "Network Error", description: err.message, variant: "destructive" });
     }
   };
+
+  // ── Auto-connect wallet when returning from MetaMask redirect ──
+  useEffect(() => {
+    const restoredStep = sessionStorage.getItem(SS_STEP);
+    if (restoredStep === "confirm" && isMetaMaskAvailable() && !adminWalletAddress) {
+      connectMetaMask()
+        .then((address) => {
+          setAdminWalletAddress(address);
+          checkNetwork().then((net) => setIsOnSepolia(net.ok));
+        })
+        .catch(() => {});
+    }
+  }, []);
 
   // ─── SCANNER ─────────────────────────────────────────────────────────
 
@@ -204,6 +234,8 @@ const AdminScan = () => {
         });
         return;
       }
+      sessionStorage.setItem(SS_SCANNED_DATA, JSON.stringify(data));
+      sessionStorage.setItem(SS_STEP, "confirm");
       setScannedData(data);
       setStep("confirm");
       toast({ title: "✅ QR Scanned!", description: `Found: ${data.itemName}` });
@@ -223,6 +255,11 @@ const AdminScan = () => {
 
     // Mobile without MetaMask browser → open MetaMask app
     if (!isMetaMaskAvailable() && isMobileDevice()) {
+      // Persist state so it survives the redirect back from MetaMask
+      if (scannedData) {
+        sessionStorage.setItem(SS_SCANNED_DATA, JSON.stringify(scannedData));
+        sessionStorage.setItem(SS_STEP, "confirm");
+      }
       window.location.href = getMetaMaskDeepLinkForCurrentPage();
       return;
     }
@@ -266,11 +303,7 @@ const AdminScan = () => {
     // Step 3: Send blockchain transaction (MetaMask confirm popup appears automatically)
     setStep("processing");
 
-    const result = await recordDonationOnChain(
-      donorWallet,
-      scannedData.itemName,
-      scannedData.isCritical,
-    );
+    const result = await recordDonationOnChain(donorWallet, scannedData.itemName, scannedData.isCritical);
 
     setTxResult(result);
 
@@ -294,12 +327,22 @@ const AdminScan = () => {
       await supabase.from("donations").insert({
         user_id: donorUserId || user.id,
         item_name: scannedData.itemName,
-        quantity: 1,
-        unit: "pcs",
+        quantity: scannedData.donationQuantity ?? 1,
+        unit: scannedData.unit ?? "pcs",
       });
 
       if (scannedData.itemId) {
-        await supabase.from("fridge_items").delete().eq("id", scannedData.itemId);
+        const donated = scannedData.donationQuantity ?? scannedData.totalQuantity ?? null;
+        const total = scannedData.totalQuantity ?? null;
+
+        if (donated !== null && total !== null && donated < total) {
+          // Partial donation — reduce quantity in fridge
+          const remaining = Math.max(0, parseFloat((total - donated).toFixed(2)));
+          await supabase.from("fridge_items").update({ quantity: remaining }).eq("id", scannedData.itemId);
+        } else {
+          // Full donation (or no quantity info) — remove item
+          await supabase.from("fridge_items").delete().eq("id", scannedData.itemId);
+        }
       }
 
       if (donorUserId) {
@@ -311,7 +354,6 @@ const AdminScan = () => {
       }
     } catch (err: any) {
       console.error("Database sync error:", err.message);
-      // Don't fail — blockchain is source of truth
     }
 
     setStep("success");
@@ -319,9 +361,10 @@ const AdminScan = () => {
 
   // ─── RESET ───────────────────────────────────────────────────────────
 
-  // Scan again: keep wallet connected, go back to scanner
   const handleScanAgain = async () => {
     await destroyScanner(); // clean up before re-rendering scanner DOM element
+    sessionStorage.removeItem(SS_SCANNED_DATA);
+    sessionStorage.removeItem(SS_STEP);
     setStep("scanner");
     setScannedData(null);
     setTxResult(null);
@@ -495,6 +538,18 @@ const AdminScan = () => {
                   <div className="flex justify-between items-center py-3 px-4 rounded-xl bg-background/40 border">
                     <span className="text-sm text-muted-foreground">Item</span>
                     <span className="text-sm font-bold">{scannedData.itemName}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center py-3 px-4 rounded-xl bg-background/40 border">
+                    <span className="text-sm text-muted-foreground">Donating</span>
+                    <span className="text-sm font-bold">
+                      {scannedData.donationQuantity ?? scannedData.totalQuantity ?? 1} {scannedData.unit ?? "pcs"}
+                      {scannedData.totalQuantity &&
+                      scannedData.donationQuantity &&
+                      scannedData.donationQuantity < scannedData.totalQuantity
+                        ? ` (of ${scannedData.totalQuantity})`
+                        : " (all)"}
+                    </span>
                   </div>
 
                   <div className="flex justify-between items-center py-3 px-4 rounded-xl bg-background/40 border">
