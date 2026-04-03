@@ -378,16 +378,68 @@ const FridgePage = () => {
     if (!error) queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
   };
 
+  // Freezer shelf life in days by category (USDA FoodKeeper)
+  const freezerDaysByCategory: Record<string, number> = {
+    Meat: 365,
+    Poultry: 270,
+    Fish: 180,
+    Seafood: 180,
+    Dairy: 90,
+    Bakery: 90,
+    Fruit: 365,
+    Vegetable: 365,
+    Eggs: 365,
+    Beverage: 180,
+    Pantry: 365,
+    Other: 90,
+  };
+
+  const getFreezerDays = (category: string): number => {
+    return freezerDaysByCategory[category] ?? 120;
+  };
+
   const handleUpdateItem = async () => {
     if (!selectedItem) return;
+
+    const prevStatus = selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let newExpiryDate = editExpiryDate ? format(editExpiryDate, "yyyy-MM-dd") : null;
+    let newRemainingFridgeDays: number | null = selectedItem.remaining_fridge_days ?? null;
+
+    // Fridge → Freezer: save remaining fridge days, set new expiry based on freezer shelf life
+    if (prevStatus === "fridge" && editLocation === "freezer") {
+      if (editExpiryDate) {
+        const msLeft = editExpiryDate.getTime() - today.getTime();
+        newRemainingFridgeDays = Math.max(1, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+      } else {
+        newRemainingFridgeDays = 1;
+      }
+      const freezerDate = new Date(today);
+      freezerDate.setDate(today.getDate() + getFreezerDays(selectedItem.category));
+      newExpiryDate = format(freezerDate, "yyyy-MM-dd");
+    }
+
+    // Freezer → Fridge: restore saved remaining fridge days from today, clear remaining_fridge_days
+    if (prevStatus === "freezer" && editLocation === "fridge") {
+      const daysBack = selectedItem.remaining_fridge_days ?? 1;
+      const fridgeDate = new Date(today);
+      fridgeDate.setDate(today.getDate() + daysBack);
+      newExpiryDate = format(fridgeDate, "yyyy-MM-dd");
+      newRemainingFridgeDays = null;
+    }
+
     const { error } = await supabase
       .from("fridge_items")
       .update({
         status: editLocation,
-        expiry_date: editExpiryDate ? format(editExpiryDate, "yyyy-MM-dd") : null,
+        expiry_date: newExpiryDate,
         quantity: editQuantity,
+        remaining_fridge_days: newRemainingFridgeDays,
       })
       .eq("id", selectedItem.id);
+
     if (!error) {
       queryClient.invalidateQueries({ queryKey: ["fridge_items"] });
       toast({ title: "Updated!", description: "Item updated successfully" });
@@ -922,6 +974,22 @@ const FridgePage = () => {
                                   <SelectItem value="freezer">❄️ Freezer</SelectItem>
                                 </SelectContent>
                               </Select>
+                              {/* Info messages about automatic expiry recalculation */}
+                              {(selectedItem.status === "fridge" || selectedItem.status === "in_fridge") &&
+                                editLocation === "freezer" && (
+                                  <p className="text-[11px] text-blue-400/80 bg-blue-500/8 px-2.5 py-1.5 rounded-lg">
+                                    ❄️ Rok u zamrzivaču će biti automatski postavljen. Preostali frižider rok se pamti.
+                                  </p>
+                                )}
+                              {selectedItem.status === "freezer" && editLocation === "fridge" && (
+                                <p className="text-[11px] text-mint/80 bg-mint/8 px-2.5 py-1.5 rounded-lg">
+                                  🧊 Rok će biti vraćen na preostalih{" "}
+                                  <span className="font-semibold">
+                                    {selectedItem.remaining_fridge_days ?? 1} dan(a)
+                                  </span>{" "}
+                                  od danas.
+                                </p>
+                              )}
                             </div>
 
                             <div className="space-y-2">
