@@ -201,7 +201,8 @@ export const useNotifications = () => {
 
     if (newNotifications.length > 0) {
       const updated = [...newNotifications, ...existing];
-      localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updated));
+      const sk = `${NOTIFICATION_STORAGE_KEY_PREFIX}${user.id}`;
+      localStorage.setItem(sk, JSON.stringify(updated));
       setNotifications(updated);
       setHasNewNotification(true);
       if (!soundPlayedThisSession) {
