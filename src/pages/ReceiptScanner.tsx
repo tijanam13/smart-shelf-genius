@@ -118,14 +118,14 @@ const ReceiptScanner = () => {
 
       for (const item of items) {
         // Check if an identical item already exists (same name, location, expiry)
-        const { data: existing } = await supabase
+        let query = supabase
           .from("fridge_items")
           .select("id, quantity")
           .eq("user_id", user.id)
           .eq("name", item.name)
-          .eq("status", "in_fridge")
-          .eq("expiry_date", item.expiry_date)
-          .maybeSingle();
+          .in("status", ["fridge", "in_fridge"]);
+        query = item.expiry_date ? query.eq("expiry_date", item.expiry_date) : query.is("expiry_date", null);
+        const { data: existing } = await query.maybeSingle();
 
         if (existing) {
           // Merge: add scanned quantity to the existing row
@@ -271,7 +271,7 @@ const ReceiptScanner = () => {
                 <AnimatePresence>
                   {items.map((item, idx) => (
                     <motion.div
-                      key={`${item.name}-${idx}`}
+                      key={idx}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10, height: 0 }}
