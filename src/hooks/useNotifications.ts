@@ -17,7 +17,7 @@ export interface Notification {
   date: string; // YYYY-MM-DD format for duplicate prevention
 }
 
-const NOTIFICATION_STORAGE_KEY = 'smart-shelf-notifications';
+const NOTIFICATION_STORAGE_KEY_PREFIX = 'smart-shelf-notifications-';
 const NOTIFICATION_DATES_KEY = 'smart-shelf-notification-dates';
 let soundPlayedThisSession = false;
 
