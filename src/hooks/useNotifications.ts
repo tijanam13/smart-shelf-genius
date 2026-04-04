@@ -60,14 +60,15 @@ export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [hasNewNotification, setHasNewNotification] = useState(false);
 
+  const storageKey = user?.id ? `${NOTIFICATION_STORAGE_KEY_PREFIX}${user.id}` : null;
+
   // Load notifications from localStorage
   const loadNotifications = useCallback(() => {
-    if (!user?.id) return;
+    if (!storageKey) return;
     try {
-      const stored = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
+      const stored = localStorage.getItem(storageKey);
       if (stored) {
         const parsed: Notification[] = JSON.parse(stored);
-        // Deduplicate: keep only one notification per itemId+level+date
         const seen = new Set<string>();
         const filtered = parsed.filter((n) => {
           if ((n.daysLeft === 5 && n.level === 'warning') || (n.daysLeft === 1 && n.level === 'high-priority')) {
@@ -79,25 +80,24 @@ export const useNotifications = () => {
           return false;
         });
         if (filtered.length !== parsed.length) {
-          localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(filtered));
+          localStorage.setItem(storageKey, JSON.stringify(filtered));
         }
         setNotifications(filtered);
-        const unread = filtered.filter((n) => !n.readAt && !n.deletedAt).length;
-        setUnreadCount(unread);
       }
     } catch (error) {
       console.error('Error loading notifications:', error);
     }
-  }, [user?.id]);
+  }, [storageKey]);
 
   // Save notifications to localStorage
   const saveNotifications = useCallback((notifs: Notification[]) => {
+    if (!storageKey) return;
     try {
-      localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(notifs));
+      localStorage.setItem(storageKey, JSON.stringify(notifs));
     } catch (error) {
       console.error('Error saving notifications:', error);
     }
-  }, []);
+  }, [storageKey]);
 
   // Check if we already have a notification for this item today
   const hasTodayNotification = useCallback((itemId: string, level: 'warning' | 'high-priority'): boolean => {
