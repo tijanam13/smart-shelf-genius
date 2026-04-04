@@ -74,14 +74,14 @@ const ManualEntry = () => {
     // Check if identical item already exists (same name, location, expiry)
     // Match both "fridge" and "in_fridge" when location is fridge
     const statusFilter = location === "fridge" ? ["fridge", "in_fridge"] : [location];
-    const { data: existing } = await supabase
+    let query = supabase
       .from("fridge_items")
       .select("id, quantity")
       .eq("user_id", user.id)
       .eq("name", name.trim())
-      .in("status", statusFilter)
-      .eq("expiry_date", expiryStr ?? null)
-      .maybeSingle();
+      .in("status", statusFilter);
+    query = expiryStr ? query.eq("expiry_date", expiryStr) : query.is("expiry_date", null);
+    const { data: existing } = await query.maybeSingle();
 
     if (existing) {
       const newQty = +(existing.quantity + quantity).toFixed(1);
