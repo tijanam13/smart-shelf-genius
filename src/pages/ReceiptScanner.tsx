@@ -102,8 +102,7 @@ const ReceiptScanner = () => {
     setItems((prev) =>
       prev.map((item, i) => {
         if (i !== idx) return item;
-        const step = item.unit === "g" || item.unit === "ml" ? 100 : item.unit === "kg" || item.unit === "l" ? 0.1 : 1;
-        const newQty = Math.max(step, +(item.quantity + delta * step).toFixed(1));
+        const newQty = Math.max(1, +(item.quantity + delta * 1).toFixed(1));
         return { ...item, quantity: newQty };
       }),
     );
@@ -124,7 +123,7 @@ const ReceiptScanner = () => {
           .select("id, quantity")
           .eq("user_id", user.id)
           .eq("name", item.name)
-          .in("status", ["fridge", "in_fridge"])
+          .eq("status", "in_fridge")
           .eq("expiry_date", item.expiry_date)
           .maybeSingle();
 
