@@ -375,8 +375,7 @@ const FridgePage = () => {
   };
 
   const handleQuantity = async (id: string, delta: number, current: number, unit: string) => {
-    const step = getConsumeStep(unit);
-    const newQty = +(current + delta * step).toFixed(1);
+    const newQty = +(current + delta * 1).toFixed(1);
     if (newQty <= 0) {
       await handleDelete(id);
       return;
@@ -1128,7 +1127,7 @@ const FridgePage = () => {
                                 <motion.button
                                   whileTap={{ scale: 0.9 }}
                                   onClick={() => {
-                                    const step = getConsumeStep(selectedItem.unit);
+                                    const step = 1;
                                     const isTransfer =
                                       editLocation !==
                                       (selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status);
@@ -1140,17 +1139,17 @@ const FridgePage = () => {
                                 </motion.button>
                                 <input
                                   type="number"
-                                  min={getConsumeStep(selectedItem.unit)}
+                                  min={1}
                                   max={
                                     editLocation !==
                                     (selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status)
                                       ? selectedItem.quantity
                                       : 99999
                                   }
-                                  step={getConsumeStep(selectedItem.unit)}
+                                  step={1}
                                   value={editQuantity}
                                   onChange={(e) => {
-                                    const step = getConsumeStep(selectedItem.unit);
+                                    const step = 1;
                                     const isTransfer =
                                       editLocation !==
                                       (selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status);
@@ -1164,7 +1163,7 @@ const FridgePage = () => {
                                 <motion.button
                                   whileTap={{ scale: 0.9 }}
                                   onClick={() => {
-                                    const step = getConsumeStep(selectedItem.unit);
+                                    const step = 1;
                                     const isTransfer =
                                       editLocation !==
                                       (selectedItem.status === "in_fridge" ? "fridge" : selectedItem.status);
