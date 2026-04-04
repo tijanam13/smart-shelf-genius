@@ -157,7 +157,8 @@ export const useNotifications = () => {
     // Read directly from localStorage to avoid stale state issues
     let existing: Notification[] = [];
     try {
-      const stored = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
+      const sk = `${NOTIFICATION_STORAGE_KEY_PREFIX}${user.id}`;
+      const stored = localStorage.getItem(sk);
       if (stored) existing = JSON.parse(stored);
     } catch {}
 
