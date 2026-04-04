@@ -220,11 +220,15 @@ export const useNotifications = () => {
     loadNotifications();
   }, [loadNotifications]);
 
-  // Update unread count
+  // Update unread count based on active (fridge-item-existing) notifications
+  const fridgeItemIds = new Set(fridgeItems.map((fi) => fi.id));
+  const activeNotifications = notifications.filter(
+    (n) => !n.readAt && !n.deletedAt && fridgeItemIds.has(n.itemId)
+  );
+
   useEffect(() => {
-    const unread = notifications.filter((n) => !n.readAt && !n.deletedAt).length;
-    setUnreadCount(unread);
-  }, [notifications]);
+    setUnreadCount(activeNotifications.length);
+  }, [activeNotifications.length]);
 
   // Mark notification as read
   const markAsRead = useCallback((notificationId: string) => {
