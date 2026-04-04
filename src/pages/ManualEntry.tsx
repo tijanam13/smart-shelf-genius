@@ -72,13 +72,15 @@ const ManualEntry = () => {
     const expiryStr = expiryDate ? format(expiryDate, "yyyy-MM-dd") : null;
 
     // Check if identical item already exists (same name, location, expiry)
+    // Match both "fridge" and "in_fridge" when location is fridge
+    const statusFilter = location === "fridge" ? ["fridge", "in_fridge"] : [location];
     const { data: existing } = await supabase
       .from("fridge_items")
       .select("id, quantity")
       .eq("user_id", user.id)
       .eq("name", name.trim())
-      .eq("status", location)
-      .eq("expiry_date", expiryStr ?? "")
+      .in("status", statusFilter)
+      .eq("expiry_date", expiryStr ?? null)
       .maybeSingle();
 
     if (existing) {
