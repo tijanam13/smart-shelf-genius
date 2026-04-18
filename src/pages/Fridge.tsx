@@ -287,14 +287,23 @@ const FridgePage = () => {
         .order("used_at", { ascending: false });
       if (data) {
         setUsedRecipeTitles(new Set(data.map((r: any) => r.recipe_title)));
-        const fullRecipes: Recipe[] = data
-          .map((r: any) => {
-            if (r.recipe_data && typeof r.recipe_data === "object") {
-              return r.recipe_data as Recipe;
-            }
-            // Fallback for legacy rows without recipe_data
-            return { title: r.recipe_title, sub: "", time: "", difficulty: "", tokens: 0, ingredients: [], steps: [] } as Recipe;
-          });
+        const fullRecipes: Recipe[] = data.map((r: any) => {
+          if (r.recipe_data && typeof r.recipe_data === "object") {
+            return r.recipe_data as Recipe;
+          }
+          // Fallback for legacy rows without recipe_data: try to match by title in defaultRecipes
+          const fromDefaults = defaultRecipes.find((dr) => dr.title === r.recipe_title);
+          if (fromDefaults) return fromDefaults;
+          return {
+            title: r.recipe_title,
+            sub: "Recipe details not saved (used before update). Use this recipe again to save full details.",
+            time: "—",
+            difficulty: "",
+            tokens: 0,
+            ingredients: [],
+            instructions: [],
+          } as Recipe;
+        });
         setUsedRecipesFromDb(fullRecipes);
       }
     };
