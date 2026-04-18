@@ -33,7 +33,22 @@ const Register = () => {
     setLoading(false);
 
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      const msg = error.message?.toLowerCase() || "";
+      if (
+        msg.includes("already registered") ||
+        msg.includes("already been registered") ||
+        msg.includes("user already") ||
+        msg.includes("duplicate") ||
+        error.status === 422
+      ) {
+        toast({
+          title: "Email already registered",
+          description: "A user with this email already exists. Please sign in instead.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      }
     } else {
       toast({ title: "Success!", description: "Check your email to confirm your account." });
       navigate("/login");

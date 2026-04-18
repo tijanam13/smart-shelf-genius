@@ -734,7 +734,7 @@ const FridgePage = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
-            className="flex-shrink-0"
+            className="flex-shrink-0 w-[280px] sm:w-[320px]"
           >
             <div className="relative mx-auto" style={{ perspective: "1200px" }}>
               <div
@@ -938,7 +938,7 @@ const FridgePage = () => {
                       </div>
                       <span className="text-[10px] text-muted-foreground">{expiredItems.length} items</span>
                     </div>
-                    <div className="p-3 flex flex-wrap gap-2 max-h-[160px] overflow-y-auto">
+                    <div className="p-3 flex flex-wrap gap-2 max-h-[200px] overflow-y-auto">
                       {expiredItems.map((item) => (
                         <motion.div
                           key={item.id}
