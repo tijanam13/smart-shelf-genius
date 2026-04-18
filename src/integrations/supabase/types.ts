@@ -229,6 +229,7 @@ export type Database = {
       used_recipes: {
         Row: {
           id: string
+          recipe_data: Json | null
           recipe_title: string
           tokens_earned: number
           used_at: string
@@ -236,6 +237,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          recipe_data?: Json | null
           recipe_title: string
           tokens_earned?: number
           used_at?: string
@@ -243,6 +245,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          recipe_data?: Json | null
           recipe_title?: string
           tokens_earned?: number
           used_at?: string
