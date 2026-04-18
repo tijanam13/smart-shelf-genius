@@ -266,6 +266,7 @@ const FridgePage = () => {
   const [showDonationModal, setShowDonationModal] = useState(false);
   const [donationItem, setDonationItem] = useState<(typeof enrichedItems)[0] | null>(null);
   const [usedRecipeTitles, setUsedRecipeTitles] = useState<Set<string>>(new Set());
+  const [usedRecipesFromDb, setUsedRecipesFromDb] = useState<Recipe[]>([]);
   const [fridgeExpanded, setFridgeExpanded] = useState(false);
   const [freezerExpanded, setFreezerExpanded] = useState(false);
   const [selectedExpiredItem, setSelectedExpiredItem] = useState<any | null>(null);
@@ -279,9 +280,22 @@ const FridgePage = () => {
   useEffect(() => {
     if (!user) return;
     const loadUsedRecipes = async () => {
-      const { data } = await supabase.from("used_recipes").select("recipe_title").eq("user_id", user.id);
+      const { data } = await supabase
+        .from("used_recipes")
+        .select("recipe_title, recipe_data, used_at")
+        .eq("user_id", user.id)
+        .order("used_at", { ascending: false });
       if (data) {
         setUsedRecipeTitles(new Set(data.map((r: any) => r.recipe_title)));
+        const fullRecipes: Recipe[] = data
+          .map((r: any) => {
+            if (r.recipe_data && typeof r.recipe_data === "object") {
+              return r.recipe_data as Recipe;
+            }
+            // Fallback for legacy rows without recipe_data
+            return { title: r.recipe_title, sub: "", time: "", difficulty: "", ingredients: [], steps: [] } as Recipe;
+          });
+        setUsedRecipesFromDb(fullRecipes);
       }
     };
     loadUsedRecipes();
@@ -580,7 +594,7 @@ const FridgePage = () => {
       // Record used recipe (no tokens awarded)
       const { error: recipeError } = await supabase
         .from("used_recipes")
-        .insert({ user_id: user.id, recipe_title: recipe.title, tokens_earned: 0 });
+        .insert({ user_id: user.id, recipe_title: recipe.title, tokens_earned: 0, recipe_data: recipe as any });
 
       if (recipeError) throw recipeError;
 
@@ -626,6 +640,7 @@ const FridgePage = () => {
       }
 
       setUsedRecipeTitles((prev) => new Set([...prev, recipe.title]));
+      setUsedRecipesFromDb((prev) => (prev.some((r) => r.title === recipe.title) ? prev : [recipe, ...prev]));
 
       toast({
         title: "Recipe Used! 🎉",
@@ -1513,7 +1528,12 @@ const FridgePage = () => {
                 >
                   {(() => {
                     const unusedRecipes = recipes.filter((r) => !usedRecipeTitles.has(r.title));
-                    const usedRecipes = recipes.filter((r) => usedRecipeTitles.has(r.title));
+                    // Merge: prefer DB-stored used recipes (persisted), fallback to current generated ones
+                    const usedFromDbTitles = new Set(usedRecipesFromDb.map((r) => r.title));
+                    const usedFromCurrent = recipes.filter(
+                      (r) => usedRecipeTitles.has(r.title) && !usedFromDbTitles.has(r.title)
+                    );
+                    const usedRecipes = [...usedRecipesFromDb, ...usedFromCurrent];
                     return (
                       <>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-3">
