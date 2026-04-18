@@ -1714,22 +1714,24 @@ const FridgePage = () => {
                           <Check className="w-4 h-4" /> Use Recipe
                         </motion.button>
                       )}
-                      <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setShowChat(!showChat)}
-                        className={`flex-1 py-3 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2 ${
-                          showChat
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                        }`}
-                      >
-                        <MessageCircle className="w-4 h-4" /> {showChat ? "Hide Chat" : "Ask AI"}
-                      </motion.button>
+                      {!usedRecipeTitles.has(selectedRecipe.title) && (
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setShowChat(!showChat)}
+                          className={`flex-1 py-3 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2 ${
+                            showChat
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                          }`}
+                        >
+                          <MessageCircle className="w-4 h-4" /> {showChat ? "Hide Chat" : "Ask AI"}
+                        </motion.button>
+                      )}
                     </div>
 
                     {/* Recipe Chat */}
                     <AnimatePresence>
-                      {showChat && (
+                      {showChat && !usedRecipeTitles.has(selectedRecipe.title) && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
