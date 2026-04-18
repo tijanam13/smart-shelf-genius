@@ -293,7 +293,7 @@ const FridgePage = () => {
               return r.recipe_data as Recipe;
             }
             // Fallback for legacy rows without recipe_data
-            return { title: r.recipe_title, sub: "", time: "", difficulty: "", ingredients: [], steps: [] } as Recipe;
+            return { title: r.recipe_title, sub: "", time: "", difficulty: "", tokens: 0, ingredients: [], steps: [] } as Recipe;
           });
         setUsedRecipesFromDb(fullRecipes);
       }
