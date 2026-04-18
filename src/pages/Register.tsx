@@ -22,7 +22,7 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -49,10 +49,22 @@ const Register = () => {
       } else {
         toast({ title: "Error", description: error.message, variant: "destructive" });
       }
-    } else {
-      toast({ title: "Success!", description: "Check your email to confirm your account." });
-      navigate("/login");
+      return;
     }
+
+    // Supabase returns success with empty identities array when email already exists
+    // (privacy feature to prevent email enumeration). Detect this case manually.
+    if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
+      toast({
+        title: "Email already registered",
+        description: "A user with this email already exists. Please sign in instead.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({ title: "Success!", description: "Check your email to confirm your account." });
+    navigate("/login");
   };
 
   return (
