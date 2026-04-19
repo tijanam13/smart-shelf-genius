@@ -224,7 +224,7 @@ Built with ❤️ at **FON Hackathon – Web4 Challenge 2026** by:
 - [@andjelaaNikolic](https://github.com/andjelaaNikolic)
 - [@andrijanaopacic](https://github.com/andrijanaopacic)
 
-The entire application was designed, developed, and deployed using [Lovable](https://lovable.dev) — an AI-powered full-stack development platform that enabled the team to build a production-ready app with Supabase backend, Edge Functions, and blockchain integration within the hackathon timeframe.
+The application was developed using Lovable as an AI-assisted full-stack development platform, enabling rapid implementation of features, integrations, and deployment within the hackathon timeframe, including a Supabase backend, Edge Functions, and blockchain components.
 
 ---
 
