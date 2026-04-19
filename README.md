@@ -12,7 +12,7 @@
 
 ## About the Project
 
-**SmartEat** is a full-stack progressive web application that helps households track fridge contents, reduce food waste, and donate surplus food, all while earning blockchain-backed rewards. The app combines AI-driven recipe suggestions, receipt scanning, expiry-date notifications, and a Web3 donation system to create a complete ecosystem that incentivizes sustainable food habits.
+**SmartEat** is a full-stack application that helps households track fridge contents, reduce food waste, and donate surplus food, all while earning blockchain-backed rewards. The app combines AI-driven recipe suggestions, receipt scanning, expiry-date notifications, and a Web3 donation system to create a complete ecosystem that incentivizes sustainable food habits.
 
 SmartEat was built as a hackathon submission and targets the intersection of **sustainability**, **Web3 technology**, and **everyday usability**.
 
